@@ -1,5 +1,3 @@
-export function markProviderIconMissing(_providerId?: string | null): void {}
-
 import { resolveProviderId } from "@/lib/providers";
 import { BUILTIN_PROVIDER_CATALOG } from "@/lib/provider-catalog";
 

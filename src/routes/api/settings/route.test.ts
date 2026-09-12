@@ -7,20 +7,16 @@ describe("settings response serialization", () => {
       requireLogin: true,
       dbPath: "/srv/swayrouter/db/data.sqlite",
       password: "$2b$10$stored-hash",
-      oidcClientSecret: "oidc-secret",
-      oidcIssuerUrl: "https://issuer.example",
-      oidcClientId: "router",
+      accentColor: "#ffffff",
+      outboundProxyEnabled: true,
     });
 
     expect(result).toEqual({
       requireLogin: true,
-      oidcIssuerUrl: "https://issuer.example",
-      oidcClientId: "router",
-      oidcConfigured: true,
     });
     expect(result).not.toHaveProperty("dbPath");
     expect(result).not.toHaveProperty("password");
-    expect(result).not.toHaveProperty("oidcClientSecret");
+    expect(result).not.toHaveProperty("accentColor");
   });
 
   test("does not preserve a client-supplied dbPath", () => {
@@ -31,7 +27,6 @@ describe("settings response serialization", () => {
 
     expect(result).toEqual({
       requireApiKey: false,
-      oidcConfigured: false,
     });
   });
 });

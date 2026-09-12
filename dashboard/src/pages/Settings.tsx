@@ -699,7 +699,7 @@ export default function Settings() {
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(() => {
     const requestedTab = searchParams.get("tab");
-    return requestedTab === "preferences" || requestedTab === "security" || requestedTab === "data"
+    return requestedTab === "preferences" || requestedTab === "general" || requestedTab === "security" || requestedTab === "data"
       ? requestedTab
       : "preferences";
   });

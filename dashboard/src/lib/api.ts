@@ -1,6 +1,5 @@
 import axios, { type AxiosError } from "axios";
 import { useAuthStore } from "@/stores/authStore";
-import type { Connection } from "@/lib/connections-api";
 
 export const api = axios.create({
   baseURL: "/api",
@@ -69,17 +68,11 @@ export function compactDatabasePath(p: string | undefined | null): string {
 
 export type AuthStatus = {
   requireLogin: boolean;
-  authMode: "password" | "oidc";
-  oidcConfigured: boolean;
-  oidcLoginLabel: string;
   hasPassword: boolean;
   defaultPasswordActive: boolean;
   displayName: string;
-  loginMethod: "Password" | "OIDC";
+  loginMethod: "Password";
   authenticated: boolean;
-  oidcName: string | null;
-  oidcEmail: string | null;
-  oidcLogin: boolean;
 };
 
 export async function fetchAuthStatus() {
@@ -169,14 +162,6 @@ export type UsageChartBucket = {
 export type UsageHeatmapPoint = UsageDailyPoint;
 
 export type ChartPeriod = "today" | "24h" | "7d" | "30d" | "60d" | "90d" | "180d" | "365d" | "year" | "all";
-
-export async function fetchChartData(params?: { period?: ChartPeriod }) {
-
-  const { data } = await api.get<UsageChartBucket[]>("/usage/chart", {
-    params: { period: params?.period || "7d" },
-  });
-  return Array.isArray(data) ? data : [];
-}
 
 export async function fetchUsageHeatmap(periodOrDays: ChartPeriod | number = 90) {
   const period = typeof periodOrDays === "number"
@@ -455,50 +440,6 @@ export async function fetchRequestDetails(params?: {
   return data;
 }
 
-export async function fetchUsageByApiKey(apiKeyId: string) {
-
-  const stats = await fetchUsageStats();
-  const row = (stats.byApiKey as Record<string, Record<string, unknown>> | undefined)?.[
-    apiKeyId
-  ] ?? {};
-  return {
-    key: { id: apiKeyId },
-    usage: {
-      requests: (row.requests as number) || 0,
-      promptTokens: (row.promptTokens as number) || 0,
-      completionTokens: (row.completionTokens as number) || 0,
-      totalTokens:
-        ((row.promptTokens as number) || 0) +
-        ((row.completionTokens as number) || 0),
-      totalCostUsd: (row.cost as number) || 0,
-      tokensUsedPeriod:
-        ((row.promptTokens as number) || 0) +
-        ((row.completionTokens as number) || 0),
-      costUsedPeriodUsd: (row.cost as number) || 0,
-      periodStart: (row.lastUsed as string) || undefined,
-    },
-  };
-}
-
-export async function fetchConnections(params?: {
-  provider?: string;
-  active?: boolean;
-
-  limit?: number;
-}) {
-  const { data } = await api.get<{ connections: Connection[] }>("/providers", {
-    params,
-  });
-  return data.connections ?? [];
-}
-
-export async function fetchAvailableProviders() {
-  const { data } = await api.get<{ providers: unknown[] }>(
-    "/providers/client"
-  );
-  return data.providers ?? [];
-}
-
 export type UsageQuota = {
   used: number;
   total: number;
@@ -532,14 +473,6 @@ export async function fetchUsageForConnection(connectionId: string, signal?: Abo
       timeout: 15_000,
     },
   );
-  return data;
-}
-
-export async function fetchCodexResetCredits(connectionId: string) {
-  const { data } = await api.get<{
-    availableCount?: number;
-    credits?: Array<{ status?: string; grantedAt?: string | null; expiresAt?: string | null }>;
-  }>(`/usage/${encodeURIComponent(connectionId)}/codex-reset-credits`);
   return data;
 }
 

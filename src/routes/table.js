@@ -2,9 +2,6 @@
 export const ROUTE_LOADERS = {
   "api/auth/login/route.js": () => import("./api/auth/login/route.js"),
   "api/auth/logout/route.js": () => import("./api/auth/logout/route.js"),
-  "api/auth/oidc/callback/route.js": () => import("./api/auth/oidc/callback/route.js"),
-  "api/auth/oidc/start/route.js": () => import("./api/auth/oidc/start/route.js"),
-  "api/auth/oidc/test/route.js": () => import("./api/auth/oidc/test/route.js"),
   "api/auth/reset-password/route.js": () => import("./api/auth/reset-password/route.js"),
   "api/auth/status/route.js": () => import("./api/auth/status/route.js"),
   "api/auth/verify-password/route.js": () => import("./api/auth/verify-password/route.js"),
@@ -233,18 +230,6 @@ export const ROUTE_TABLE = [
     "method": "DELETE",
     "pathPattern": "/api/usage/history",
     "file": "api/usage/history/route.js",
-    "params": []
-  },
-  {
-    "method": "GET",
-    "pathPattern": "/api/auth/oidc/callback",
-    "file": "api/auth/oidc/callback/route.js",
-    "params": []
-  },
-  {
-    "method": "GET",
-    "pathPattern": "/api/auth/oidc/start",
-    "file": "api/auth/oidc/start/route.js",
     "params": []
   },
   {
@@ -756,12 +741,6 @@ export const ROUTE_TABLE = [
     "method": "POST",
     "pathPattern": "/api/auth/logout",
     "file": "api/auth/logout/route.js",
-    "params": []
-  },
-  {
-    "method": "POST",
-    "pathPattern": "/api/auth/oidc/test",
-    "file": "api/auth/oidc/test/route.js",
     "params": []
   },
   {

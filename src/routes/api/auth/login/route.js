@@ -3,7 +3,6 @@ import { getSettings } from "@/lib/localDb";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { setDashboardAuthCookie } from "@/lib/auth/dashboardSession";
-import { isOidcConfigured } from "@/lib/auth/oidc";
 import { checkLock, recordFail, recordSuccess, getClientIp } from "@/lib/auth/loginLimiter";
 import { isLocalRequest } from "@/dashboardGuard";
 import { env } from "@/lib/env";
@@ -44,10 +43,6 @@ export async function POST(request) {
         { error: "Initial setup must be completed from localhost before remote login is enabled." },
         { status: 403, headers: NO_STORE_HEADERS },
       );
-    }
-
-    if (settings.authMode === "oidc" && isOidcConfigured(settings)) {
-      return NextResponse.json({ error: "Password login is disabled. Use OIDC sign in." }, { status: 403 });
     }
 
     let isValid = false;

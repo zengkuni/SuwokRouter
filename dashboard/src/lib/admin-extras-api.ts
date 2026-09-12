@@ -19,13 +19,6 @@ export async function listNodes(): Promise<ProviderNode[]> {
   return data.nodes ?? [];
 }
 
-export async function getNode(id: string): Promise<ProviderNode | null> {
-  const { data } = await api.get<{ node: ProviderNode }>(
-    `/provider-nodes/${id}`
-  );
-  return data.node ?? null;
-}
-
 export async function createNode(body: CreateNodeInput): Promise<ProviderNode> {
   const { data } = await api.post<{ node: ProviderNode }>(
     "/provider-nodes",
@@ -134,48 +127,6 @@ export async function testProxyPool(id: string): Promise<{
     ip?: string;
   }>(`/proxy-pools/${id}/test`);
   return data;
-}
-
-export type RequestDetail = {
-  id: string;
-  timestamp?: string;
-  provider?: string;
-  model?: string;
-  connectionId?: string;
-  apiKeyId?: string;
-  status?: string;
-  data?: unknown;
-};
-
-export type RequestDetailListResult = {
-  details: RequestDetail[];
-  pagination?: {
-    page: number;
-    pageSize: number;
-    totalItems: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
-};
-
-export async function listUsageDetails(limit = 50): Promise<RequestDetail[]> {
-
-  const pageSize = Math.min(limit, 100);
-  const { data } = await api.get<RequestDetailListResult>(
-    "/usage/request-details",
-    { params: { page: 1, pageSize } }
-  );
-  return data.details ?? [];
-}
-
-export async function getUsageDetail(id: string): Promise<RequestDetail | null> {
-
-  const { data } = await api.get<RequestDetailListResult>(
-    "/usage/request-details",
-    { params: { page: 1, pageSize: 100 } }
-  );
-  return (data.details ?? []).find((d) => d.id === id) ?? null;
 }
 
 export type SettingsForm = {

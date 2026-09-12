@@ -35,12 +35,6 @@ const DEFAULT_SETTINGS = {
   requireLogin: true,
   requireApiKey: true,
   tunnelDashboardAccess: true,
-  authMode: "password",
-  oidcIssuerUrl: "",
-  oidcClientId: "",
-  oidcClientSecret: "",
-  oidcScopes: "openid profile email",
-  oidcLoginLabel: "Sign in with OIDC",
   enableObservability: false,
 
   payloadCaptureEnabled: false,
@@ -64,6 +58,12 @@ const REMOVED_SETTING_KEYS = [
   "outboundProxyUrl",
   "outboundNoProxy",
   "accentColor",
+  "authMode",
+  "oidcIssuerUrl",
+  "oidcClientId",
+  "oidcClientSecret",
+  "oidcScopes",
+  "oidcLoginLabel",
 ];
 
 export function stripRemovedSettings(raw) {

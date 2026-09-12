@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { Check, Copy, Pin, PinOff, Plus, Trash2 } from "lucide-react";
+import { Ban, Check, Copy, Pin, PinOff, Plus, Power, Trash2 } from "lucide-react";
 import { RippleButton } from "@/components/animate/ripple-button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TestBtn } from "@/components/provider/TestBtn";
@@ -47,6 +47,8 @@ type ProviderModelsPanelProps = {
   onCopyModelId: (modelId: string) => void | Promise<void>;
   onTestModel: (modelId: string, connectionId: string | undefined) => void | Promise<void>;
   onRemoveModel: (modelId: string) => void | Promise<void>;
+  disabledModelIds: Set<string>;
+  onToggleDisabled: (modelId: string) => void | Promise<void>;
 };
 
 export function ProviderModelsPanel({
@@ -78,6 +80,8 @@ export function ProviderModelsPanel({
   onCopyModelId,
   onTestModel,
   onRemoveModel,
+  disabledModelIds,
+  onToggleDisabled,
 }: ProviderModelsPanelProps) {
   return (
                   <TabsContent value="models" className="min-h-0 flex-1 basis-0">
@@ -174,6 +178,7 @@ export function ProviderModelsPanel({
 
                             const busy = batchKind === "model" || checking;
                             const isPinned = pinnedFor.includes(m);
+                            const isDisabled = disabledModelIds.has(m);
                             return (
                               <motion.div
                                 key={m}
@@ -186,7 +191,10 @@ export function ProviderModelsPanel({
                                     mass: 0.4,
                                   },
                                 }}
-                                className="rounded-md border border-border bg-background px-2.5 py-2 hover:border-foreground/30"
+                                className={cn(
+                                  "rounded-md border border-border bg-background px-2.5 py-2 hover:border-foreground/30",
+                                  isDisabled && "border-warning/40 bg-warning/[0.03]",
+                                )}
                               >
                                 <div className="group flex flex-wrap items-center gap-1.5">
                                   <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
@@ -198,6 +206,7 @@ export function ProviderModelsPanel({
                                     <code className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground">
                                       {m}
                                     </code>
+                                    {isDisabled ? <Badge size="sm" variant="warning">Disabled</Badge> : null}
                                     {checking || r ? (
                                       <div className="flex shrink-0 items-center gap-1">
                                         {checking ? (
@@ -289,6 +298,20 @@ export function ProviderModelsPanel({
                                       ) : (
                                         <Copy className="h-3.5 w-3.5" />
                                       )}
+                                      </button>
+                                    </Tooltip>
+                                    <Tooltip label={isDisabled ? "Enable routing for model" : "Disable routing for model"}>
+                                      <button
+                                        type="button"
+                                        aria-label={isDisabled ? "Enable routing for model" : "Disable routing for model"}
+                                        aria-pressed={isDisabled}
+                                        onClick={() => void onToggleDisabled(m)}
+                                        className={cn(
+                                          "inline-flex h-7 w-7 items-center justify-center rounded-md p-0 text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground",
+                                          isDisabled && "text-warning hover:text-warning",
+                                        )}
+                                      >
+                                        {isDisabled ? <Power className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
                                       </button>
                                     </Tooltip>
                                     <span className="sm:hidden">
