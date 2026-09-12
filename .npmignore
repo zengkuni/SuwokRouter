@@ -1,0 +1,6 @@
+# Development-only files are kept in the repository, not in the runtime package.
+**/*.test.js
+**/*.test.ts
+**/*.test.mjs
+**/__tests__/
+cli/LICENSE

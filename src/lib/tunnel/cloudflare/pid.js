@@ -1,0 +1,31 @@
+import fs from "fs";
+import path from "path";
+import { TUNNEL_DIR, ensureTunnelDir } from "../shared/state.js";
+
+const PID_FILE = path.join(TUNNEL_DIR, "cloudflared.pid");
+
+function pidFileExists() {
+  return fs.existsSync(PID_FILE);
+}
+
+export function savePid(pid) {
+  ensureTunnelDir();
+  fs.writeFileSync(PID_FILE, pid.toString());
+}
+
+export function loadPid() {
+  try {
+    if (pidFileExists()) return parseInt(fs.readFileSync(PID_FILE, "utf8"));
+  } catch {}
+  return null;
+}
+
+export function clearPid(expectedPid = null) {
+  try {
+    if (!pidFileExists()) return false;
+    if (expectedPid !== null && loadPid() !== expectedPid) return false;
+    fs.unlinkSync(PID_FILE);
+    return true;
+  } catch {}
+  return false;
+}

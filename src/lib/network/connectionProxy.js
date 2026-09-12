@@ -1,0 +1,200 @@
+import { getProxyPoolById } from "@/models";
+import { normalizeProxyUrl } from "./proxyUrl.js";
+import { isRelayProxyType, isSupportedProxyType } from "./relay.js";
+
+function normalizeString(value) {
+  if (value === undefined || value === null) return "";
+  return String(value).trim();
+}
+
+const rotateState = new Map();
+
+export function pickProxyPoolId(poolIds, strategy, providerId) {
+  if (!poolIds || poolIds.length === 0) return null;
+  if (poolIds.length === 1) return poolIds[0];
+
+  if (strategy === "round-robin") {
+    const state = rotateState.get(providerId) || { index: -1 };
+    state.index = (state.index + 1) % poolIds.length;
+    rotateState.set(providerId, state);
+    return poolIds[state.index];
+  }
+
+  if (strategy === "random") {
+    return poolIds[Math.floor(Math.random() * poolIds.length)];
+  }
+
+  return poolIds[0];
+}
+
+function normalizeLegacyProxy(providerSpecificData = {}) {
+  const connectionProxyEnabled =
+    providerSpecificData?.connectionProxyEnabled === true;
+
+  const connectionProxyUrl = normalizeString(
+    providerSpecificData?.connectionProxyUrl
+  );
+
+  const connectionNoProxy = normalizeString(
+    providerSpecificData?.connectionNoProxy
+  );
+
+  return {
+    connectionProxyEnabled,
+    connectionProxyUrl,
+    connectionNoProxy,
+  };
+}
+
+export async function resolveConnectionProxyConfig(
+  providerSpecificData = {}
+) {
+  try {
+    const proxyPoolIdRaw = normalizeString(
+      providerSpecificData?.proxyPoolId
+    );
+
+    const proxyPoolId =
+      proxyPoolIdRaw === "__none__" ? "" : proxyPoolIdRaw;
+
+    const legacy = normalizeLegacyProxy(providerSpecificData);
+
+    if (proxyPoolId) {
+      const proxyPool = await getProxyPoolById(proxyPoolId);
+      const proxyType = normalizeString(proxyPool?.type).toLowerCase();
+
+      const proxyUrlRaw = normalizeString(proxyPool?.proxyUrl);
+      const noProxy = normalizeString(proxyPool?.noProxy);
+      let proxyUrl = "";
+      try {
+        proxyUrl = normalizeProxyUrl(proxyUrlRaw, proxyPool?.type) || "";
+      } catch {
+        proxyUrl = "";
+      }
+
+      const isValidPool =
+        proxyPool &&
+        proxyPool.isActive === true &&
+        proxyPool.state !== "disabled" &&
+        isSupportedProxyType(proxyType) &&
+        proxyUrl;
+
+      if (isValidPool) {
+
+        if (isRelayProxyType(proxyPool.type)) {
+          return {
+            source: proxyPool.type,
+
+            proxyPoolId,
+            proxyPool,
+
+            connectionProxyEnabled: false,
+            connectionProxyUrl: "",
+            connectionNoProxy: noProxy,
+
+            strictProxy: proxyPool.strictProxy === true,
+
+            proxyPoolUnavailable: false,
+            proxyPoolError: "",
+
+            relayUrl: proxyUrl,
+            relayToken: normalizeString(proxyPool.relayToken),
+
+            vercelRelayUrl: proxyUrl,
+          };
+        }
+
+        return {
+          source: "pool",
+
+          proxyPoolId,
+          proxyPool,
+
+          connectionProxyEnabled: true,
+          connectionProxyUrl: proxyUrl,
+          connectionNoProxy: noProxy,
+
+          strictProxy: proxyPool.strictProxy === true,
+
+          proxyPoolUnavailable: false,
+          proxyPoolError: "",
+        };
+      }
+
+      const poolError = !proxyPool
+        ? "Proxy pool not found"
+        : proxyPool.isActive !== true
+          ? "Proxy pool is inactive"
+            : proxyPool.state === "disabled"
+              ? "Proxy pool is disabled"
+              : !isSupportedProxyType(proxyType)
+                ? "Proxy pool type is unsupported"
+              : !proxyUrl
+              ? "Proxy pool URL is invalid"
+              : "Proxy pool is unavailable";
+      if (!proxyPool || proxyPool.strictProxy === true) {
+        return {
+          source: "pool-error",
+
+          proxyPoolId,
+          proxyPool: proxyPool || null,
+
+          connectionProxyEnabled: false,
+          connectionProxyUrl: "",
+          connectionNoProxy: noProxy || legacy.connectionNoProxy,
+
+          strictProxy: true,
+          proxyPoolUnavailable: true,
+          proxyPoolError: poolError,
+        };
+      }
+    }
+
+    if (
+      legacy.connectionProxyEnabled &&
+      legacy.connectionProxyUrl
+    ) {
+      return {
+        source: "legacy",
+
+        proxyPoolId: proxyPoolId || null,
+        proxyPool: null,
+
+        proxyPoolUnavailable: false,
+        proxyPoolError: "",
+
+        ...legacy,
+      };
+    }
+
+    return {
+      source: "none",
+
+      proxyPoolId: proxyPoolId || null,
+      proxyPool: null,
+
+      proxyPoolUnavailable: Boolean(proxyPoolId),
+      proxyPoolError: proxyPoolId ? "Proxy pool is unavailable" : "",
+
+      ...legacy,
+    };
+  } catch (error) {
+    console.error(
+      "[resolveConnectionProxyConfig] Failed to resolve proxy config:",
+      error
+    );
+
+    return {
+      source: "error",
+
+      proxyPoolId: null,
+      proxyPool: null,
+
+      connectionProxyEnabled: false,
+      connectionProxyUrl: "",
+      connectionNoProxy: "",
+
+      strictProxy: false,
+    };
+  }
+}
