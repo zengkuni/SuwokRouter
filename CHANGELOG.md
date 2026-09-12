@@ -2,6 +2,13 @@
 
 All notable changes to Sway Router are documented here.
 
+## [1.0.1] - 2026-09-12
+
+- Publish the Sway Router package as `swayrouter` on npm.
+- Add global CLI uninstall instructions to the English and Indonesian README files.
+
+[1.0.1]: https://github.com/envielxyz/SwayRouter/releases/tag/v1.0.1
+
 ## [1.0.0] - 2026-09-12
 
 Sway Router is the new project identity, package name, and CLI name.

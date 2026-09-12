@@ -32,6 +32,7 @@ dashboard simpel untuk mengatur model, routing, dan usage.
 ## Daftar isi
 
 - [Mulai cepat](#mulai-cepat)
+- [Uninstall](#uninstall)
 - [Requirement](#requirement)
 - [HTTP API](#satu-http-api-untuk-semua-kebutuhan)
 - [Dashboard](#dashboard-yang-enak-dipakai)
@@ -96,6 +97,21 @@ sudah terpasang, lewati langkah pertama.
 
 Data runtime CLI disimpan di `%APPDATA%\.swayrouter`. Untuk install lokal
 biasa, kamu tidak perlu membuat file `.env`.
+
+### Uninstall
+
+Stop router dulu sebelum menghapus CLI global:
+
+```powershell
+swayrouter stop
+bun remove -g swayrouter
+```
+
+Kalau install-nya memakai npm, gunakan `npm uninstall -g swayrouter`.
+Menghapus package tidak menghapus credential provider, setting, API key, atau
+data usage. Kalau ingin menghapus semuanya juga, export backup JSON dulu, stop
+router, lalu hapus `%APPDATA%\.swayrouter` di Windows atau `~/.swayrouter` di
+Linux/macOS.
 
 ### Windows — jalankan dari source
 
