@@ -149,11 +149,16 @@ Kalau mau ngembangin dashboard, jalanin `bun run dev` di dalam folder
 
 ### Docker — terisolasi dan datanya persistent
 
+Gunakan image publik dari Docker Hub:
+
 ```bash
-docker build -t swayrouter:latest .
+docker pull envielxyz/swayrouter:latest
 docker compose up -d
 docker compose ps
 ```
+
+Kalau ingin build image dari source, jalankan `docker build -t envielxyz/swayrouter:latest .`
+sebelum menjalankan Compose.
 
 Docker juga membuat secret persistent di data volume. Copy `.env.example`
 menjadi `.env` hanya kalau kamu ingin memberi override deployment sendiri.
