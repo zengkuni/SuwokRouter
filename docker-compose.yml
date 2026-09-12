@@ -1,6 +1,6 @@
 services:
   swayrouter:
-    image: swayrouter:latest
+    image: envielxyz/swayrouter:latest
     container_name: swayrouter
     restart: always
     read_only: true

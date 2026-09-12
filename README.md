@@ -149,11 +149,16 @@ second terminal.
 
 ### Docker — isolated and persistent
 
+Use the public image from Docker Hub:
+
 ```bash
-docker build -t swayrouter:latest .
+docker pull envielxyz/swayrouter:latest
 docker compose up -d
 docker compose ps
 ```
+
+To build the image from source instead, run `docker build -t envielxyz/swayrouter:latest .`
+before starting Compose.
 
 Docker also generates persistent secrets in its data volume. Copy
 `.env.example` to `.env` only when you want explicit deployment overrides.
