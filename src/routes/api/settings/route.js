@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSettings, updateSettings } from "@/lib/localDb";
+import { stripRemovedSettings } from "@/lib/db/repos/settingsRepo.js";
 import { resetComboRotation } from "open-sse/services/combo.js";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
@@ -23,15 +24,9 @@ const CLI_MODEL_MAPPING_KEYS = new Set(["enabled", "entries"]);
 function sanitizeSettingsForResponse(settings) {
   const {
     password: _password,
-    oidcClientSecret: _oidcClientSecret,
     dbPath: _dbPath,
     ...safeSettings
-  } = settings;
-  safeSettings.oidcConfigured = !!(
-    safeSettings.oidcIssuerUrl &&
-    safeSettings.oidcClientId &&
-    _oidcClientSecret
-  );
+  } = stripRemovedSettings(settings);
   return safeSettings;
 }
 
@@ -153,12 +148,6 @@ export async function PATCH(request) {
         );
       }
       body.profileAvatar = avatar;
-    }
-
-    if (Object.prototype.hasOwnProperty.call(body, "oidcClientSecret")) {
-      if (!body.oidcClientSecret || !String(body.oidcClientSecret).trim()) {
-        delete body.oidcClientSecret;
-      }
     }
 
     const settings = await updateSettings(body);

@@ -97,32 +97,6 @@ export function resolveAuthFlow(
   return "apikey";
 }
 
-export function connectionActionLabel(
-  providerId: string,
-  authType?: string,
-  noAuth?: boolean,
-  short = false
-): string {
-  const flow = resolveAuthFlow(providerId, authType, noAuth);
-  if (flow === "apikey") return short ? "Add" : "Add connection";
-  return short ? "Connect" : "Connect";
-}
-
-export function authTypeLabel(
-  authType?: string,
-  noAuth?: boolean
-): string {
-  if (noAuth) return "Local";
-  const a = (authType || "apikey").toLowerCase();
-  if (a.includes("import")) return "Import";
-  if (a.includes("device")) return "Device";
-  if (a.includes("oauth")) return "OAuth";
-  if (a === "local") return "Local";
-  if (a === "none") return "No auth";
-  if (a === "cookie") return "Cookie";
-  return "API key";
-}
-
 function authModeWord(mode: string): string {
   const m = (mode || "").toLowerCase();
   if (m.includes("oauth")) return "OAuth";

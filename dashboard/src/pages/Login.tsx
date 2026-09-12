@@ -16,33 +16,27 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const [defaultPasswordActive, setDefaultPasswordActive] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     fetchAuthStatus()
-      .then((s) => {
-        if (!cancelled && s.authMode === "password") {
-          setDefaultPasswordActive(s.defaultPasswordActive);
-        }
+      .then((status) => {
+        if (!cancelled) setDefaultPasswordActive(status.defaultPasswordActive);
       })
-      .catch(() => {
-
-      });
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
   }, []);
 
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault();
+  async function onSubmit(event: FormEvent) {
+    event.preventDefault();
     setLoading(true);
     setError(null);
     try {
-      const res = await login(password);
-      if (res.mustChangePassword) {
-
+      const result = await login(password);
+      if (result.mustChangePassword) {
         navigate("/setup", { replace: true });
         return;
       }
@@ -76,7 +70,7 @@ export default function Login() {
                 type={showPassword ? "text" : "password"}
                 placeholder="Password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(event) => setPassword(event.target.value)}
                 autoFocus
                 required
                 className="pr-10"
@@ -88,20 +82,14 @@ export default function Login() {
                 aria-label={showPassword ? "Hide password" : "Show password"}
                 aria-pressed={showPassword}
               >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
             {defaultPasswordActive && !error ? (
               <p className="text-xs text-muted-foreground">
                 First login? The default password is{" "}
-                <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">
-                  123456
-                </code>
-                . Set a new one after signing in.
+                <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">123456</code>.
+                Set a new one after signing in.
               </p>
             ) : null}
             {error ? <p className="text-sm text-destructive">{error}</p> : null}

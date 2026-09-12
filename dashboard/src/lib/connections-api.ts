@@ -73,17 +73,6 @@ export async function getConnectionModels(connectionId: string, refresh = false)
   return data;
 }
 
-export async function listConnections(params?: {
-  provider?: string;
-  active?: boolean | string;
-}) {
-  const { data } = await api.get<{ connections: Connection[] }>(
-    "/providers",
-    { params }
-  );
-  return data.connections ?? [];
-}
-
 export type PaginationMeta = {
   page: number;
   pageSize: number;
@@ -542,10 +531,6 @@ export function oauthStatusIsDone(status: OAuthSessionStatus["status"]): boolean
 
 export function oauthStatusIsError(status: OAuthSessionStatus["status"]): boolean {
   return status === "error";
-}
-
-export function oauthStatusIsTerminal(status: OAuthSessionStatus["status"]): boolean {
-  return oauthStatusIsDone(status) || oauthStatusIsError(status);
 }
 
 export async function startDeviceCode(

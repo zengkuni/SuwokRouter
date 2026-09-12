@@ -115,12 +115,6 @@ async function fetchChatModels(): Promise<ModelInfo[]> {
   });
 }
 
-function modelDisplayName(model?: ModelInfo): string {
-  const label = model?.name?.trim() || model?.id?.trim() || "";
-  const parts = label.split("/").filter(Boolean);
-  return parts[parts.length - 1] || label || "Select a model";
-}
-
 const PIXEL_DELAYS = [0, 90, 180, 90, 180, 270, 180, 270, 360];
 const PIXEL_COLORS = [
   "bg-white",
@@ -1454,8 +1448,9 @@ export default function SwayChat() {
                      <Tooltip label="Attach or paste images (≤2MB each, 4MB total)"><button type="button" onClick={() => fileInputRef.current?.click()} className="grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground sm:rounded-md" aria-label="Attach or paste images (≤2MB each, 4MB total)"><Paperclip className="h-4 w-4" /></button></Tooltip>
                     <input ref={fileInputRef} type="file" multiple accept="image/png,image/jpeg,image/jpg,image/webp,image/gif" className="hidden" onChange={(e) => void addFiles(e.target.files)} />
                     <div ref={pickerRootRef} className="relative min-w-0">
-                       <button type="button" onClick={() => setModelMenuOpen((o) => !o)} className={cn("flex h-8 max-w-[min(58vw,15rem)] min-w-0 items-center gap-1.5 rounded-full border border-transparent bg-background/70 px-2.5 text-left transition-colors hover:bg-surface-hover sm:w-full sm:max-w-52 sm:rounded-md sm:border-border sm:bg-card sm:px-2", modelMenuOpen && "border-white/25")} aria-label="Select a model">
-                         <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-foreground">{activeModel ? modelDisplayName(activeModel) : "Select a model"}</span>
+                       <button type="button" onClick={() => setModelMenuOpen((o) => !o)} className={cn("flex h-8 max-w-[min(58vw,15rem)] min-w-0 items-center gap-1.5 rounded-full border border-transparent bg-background/70 px-2.5 text-left transition-colors hover:bg-surface-hover sm:w-full sm:max-w-52 sm:rounded-md sm:border-border sm:bg-card sm:px-2", modelMenuOpen && "border-white/25")} aria-label={activeModel ? `Select model, currently ${activeModel.id}` : "Select a model"}>
+                         {activeModel ? <ProviderModelIcon provider={activeModel.provider} className="h-4 w-4" /> : null}
+                         <span className="min-w-0 flex-1 truncate font-mono text-[11px] font-medium text-foreground">{activeModel?.id || "Select a model"}</span>
                          <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform", modelMenuOpen && "rotate-180")} />
                       </button>
                       <AnimatePresence>
