@@ -242,35 +242,7 @@ const PROVIDER_MODELS_CONFIG = {
     },
   },
   "codebuddy-intl": {
-    customResolver: async (connection, options = {}) => {
-      if (!options.forceRefresh) {
-        return { models: getStaticProviderModels("codebuddy-intl") };
-      }
-      const result = await resolveCodeBuddyModels({
-        provider: "codebuddy-intl",
-        accessToken: connection.accessToken,
-        refreshToken: connection.refreshToken,
-      }, {
-        log: console,
-        onCredentialsRefreshed: async (refreshed) => {
-          await updateProviderCredentials(connection.id, {
-            accessToken: refreshed.accessToken,
-            refreshToken: refreshed.refreshToken || connection.refreshToken,
-            expiresIn: refreshed.expiresIn,
-          });
-          connection.accessToken = refreshed.accessToken;
-          if (refreshed.refreshToken) connection.refreshToken = refreshed.refreshToken;
-        },
-      });
-      if (result?.error) return result;
-      if (result?.models?.length) {
-        return result;
-      }
-      return {
-        models: getStaticProviderModels("codebuddy-intl"),
-        warning: result?.warning || "CodeBuddy returned no live models; falling back to static catalog.",
-      };
-    },
+    customResolver: async () => ({ models: getStaticProviderModels("codebuddy-intl") }),
   },
   antigravity: {
     customResolver: buildOAuthResolver({

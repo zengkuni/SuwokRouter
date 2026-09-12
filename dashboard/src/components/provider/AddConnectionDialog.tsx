@@ -49,10 +49,16 @@ import {
   KiroAuthSelector,
   KiroImportFields,
 } from "./KiroAuthFields";
-import type { BulkKeyRow, KiroAuthMode } from "./auth-dialog-types";
+import {
+  parseCodeBuddyTokenLines,
+  type BulkKeyRow,
+  type CodeBuddyTokenRow,
+  type KiroAuthMode,
+} from "./auth-dialog-types";
 export type { KiroAuthMode } from "./auth-dialog-types";
 
 const PKCE_OAUTH_PROVIDERS = new Set(["claude", "codex", "xai"]);
+const CODEBUDDY_RESULT_HOLD_MS = 200;
 
 export type AddConnectionSubmit = {
   name: string;
@@ -61,6 +67,13 @@ export type AddConnectionSubmit = {
   apiKey?: string;
   importToken?: string;
   codeBuddyToken?: string;
+  codeBuddyTokens?: Array<{
+    credentialToken?: string;
+    accessToken?: string;
+    refreshToken?: string;
+    name?: string;
+    autoName?: boolean;
+  }>;
   machineId?: string;
   oauthCode?: string;
   oauthState?: string;
@@ -109,7 +122,6 @@ export function AddConnectionDialog({
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
   const [keyValid, setKeyValid] = useState<boolean | null>(null);
-  const [codeBuddyTokenValid, setCodeBuddyTokenValid] = useState<boolean | null>(null);
   const [checkMsg, setCheckMsg] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [authLink, setAuthLink] = useState<string | null>(null);
@@ -142,6 +154,9 @@ export function AddConnectionDialog({
   const [bulkChecking, setBulkChecking] = useState(false);
   const [bulkActiveIndex, setBulkActiveIndex] = useState<number | null>(null);
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [codeBuddyRows, setCodeBuddyRows] = useState<CodeBuddyTokenRow[]>([]);
+  const [codeBuddyChecking, setCodeBuddyChecking] = useState(false);
+  const [codeBuddyActiveIndex, setCodeBuddyActiveIndex] = useState<number | null>(null);
 
   function authModeLabel(providerId: string, mode: string): string {
     if (mode === "apikey") {
@@ -211,6 +226,9 @@ export function AddConnectionDialog({
   const validBulkRows = bulkRows.filter((row) => row.valid === true);
   const activeBulkRow =
     bulkActiveIndex === null ? null : bulkRows[bulkActiveIndex] ?? null;
+  const validCodeBuddyRows = codeBuddyRows.filter((row) => row.valid === true);
+  const activeCodeBuddyRow =
+    codeBuddyActiveIndex === null ? null : codeBuddyRows[codeBuddyActiveIndex] ?? null;
 
   function parseBulkLines(text: string) {
     return text
@@ -318,6 +336,7 @@ export function AddConnectionDialog({
   const isOAuthFlow = effectiveFlow === "oauth";
   const isDeviceFlow = effectiveFlow === "device";
   const isAuthLinkFlow = isOAuthFlow || isDeviceFlow;
+  const authFlowBooting = bootLoading && isAuthLinkFlow;
 
   function selectKiroAuthMode(mode: KiroAuthMode) {
     pollAbortRef.current = true;
@@ -400,7 +419,6 @@ export function AddConnectionDialog({
     setKiroProfileArn("");
     setKiroCliProxyJson("");
     setCodeBuddyToken("");
-    setCodeBuddyTokenValid(null);
     setCheckMsg(null);
     setCursorAutoImporting(false);
     setCursorAutoImportMessage(null);
@@ -409,6 +427,9 @@ export function AddConnectionDialog({
     setBulkRaw("");
     setBulkRows([]);
     setBulkActiveIndex(null);
+    setCodeBuddyRows([]);
+    setCodeBuddyChecking(false);
+    setCodeBuddyActiveIndex(null);
   }, [open, provider?.id]);
 
   useEffect(() => {
@@ -445,6 +466,7 @@ export function AddConnectionDialog({
     setOauthCode("");
     setProxyPoolId("pool_none");
     setLoading(false);
+    setBootLoading(false);
     setChecking(false);
     setKeyValid(null);
     setCheckMsg(null);
@@ -886,10 +908,6 @@ export function AddConnectionDialog({
     setSubmitError(null);
   }, [apiKey]);
 
-  useEffect(() => {
-    setCodeBuddyTokenValid(null);
-  }, [codeBuddyToken]);
-
   if (!provider) return null;
 
   const cta = connectionCtaLabel(provider.authType, provider.noAuth);
@@ -897,12 +915,12 @@ export function AddConnectionDialog({
 
   const canSubmit =
     !loading &&
-    !bootLoading &&
+    !authFlowBooting &&
     (isApiKeyFlow
       ? keyValid === true && apiKey.trim().length > 0
       : effectiveFlow === "import"
         ? isCodeBuddyProvider
-          ? codeBuddyToken.trim().length > 0 && codeBuddyTokenValid === true
+          ? validCodeBuddyRows.length > 0 && !codeBuddyChecking
           : isKiroProvider
           ? kiroAuthMode === "import-token"
             ? kiroRefreshToken.trim().length > 0
@@ -940,23 +958,68 @@ export function AddConnectionDialog({
     }
   }
 
-  async function onCheckCodeBuddyToken() {
+  async function onCheckCodeBuddyTokens() {
     if (!provider || !codeBuddyToken.trim()) return;
-    setChecking(true);
-    setCheckMsg(null);
+    const parsed = parseCodeBuddyTokenLines(codeBuddyToken);
+    if (!parsed.length) return;
+    setCodeBuddyChecking(true);
+    const next = parsed.map((row) => ({ ...row, checking: false }));
+    const seenTokens = new Set<string>();
+    setCodeBuddyRows([...next]);
+    setCodeBuddyActiveIndex(0);
     try {
-      const res = await testCodeBuddyToken({
-        provider: provider.id,
-        credentialToken: codeBuddyToken.trim(),
-      });
-      const ok = res.valid === true;
-      setCodeBuddyTokenValid(ok);
-      setCheckMsg(ok ? "Token valid" : res.error || "Token invalid");
-    } catch (err) {
-      setCodeBuddyTokenValid(false);
-      setCheckMsg(getErrorMessage(err, "Check failed"));
+      for (let index = 0; index < next.length; index += 1) {
+        setCodeBuddyActiveIndex(index);
+        const row = next[index];
+        if (row.valid === false) {
+          setCodeBuddyRows([...next]);
+          continue;
+        }
+        const fingerprint = row.credentialToken || `${row.accessToken}|${row.refreshToken}`;
+        if (seenTokens.has(fingerprint)) {
+          next[index] = {
+            ...row,
+            valid: false,
+            checking: false,
+            msg: "Duplicate token pair in this batch",
+          };
+          setCodeBuddyRows([...next]);
+          continue;
+        }
+        seenTokens.add(fingerprint);
+        next[index] = { ...row, checking: true };
+        setCodeBuddyRows([...next]);
+        try {
+          const result = await testCodeBuddyToken({
+            provider: provider.id,
+            ...(row.credentialToken
+              ? { credentialToken: row.credentialToken }
+              : { accessToken: row.accessToken, refreshToken: row.refreshToken }),
+          });
+          next[index] = {
+            ...row,
+            valid: result.valid === true,
+            checking: false,
+            msg: result.valid === true ? "ok" : result.error || "Token invalid",
+          };
+        } catch (error) {
+          next[index] = {
+            ...row,
+            valid: false,
+            checking: false,
+            msg: getErrorMessage(error, "Token validation failed"),
+          };
+        }
+        setCodeBuddyRows([...next]);
+        if (index < next.length - 1) {
+          await new Promise<void>((resolve) => {
+            window.setTimeout(resolve, CODEBUDDY_RESULT_HOLD_MS);
+          });
+        }
+      }
     } finally {
-      setChecking(false);
+      setCodeBuddyActiveIndex(null);
+      setCodeBuddyChecking(false);
     }
   }
 
@@ -1025,7 +1088,21 @@ export function AddConnectionDialog({
           ? token.trim() || undefined
           : undefined,
         codeBuddyToken: effectiveFlow === "import" && isCodeBuddyProvider
-          ? codeBuddyToken.trim() || undefined
+          ? validCodeBuddyRows.length === 1
+            ? validCodeBuddyRows[0].credentialToken || undefined
+            : undefined
+          : undefined,
+        codeBuddyTokens: effectiveFlow === "import" && isCodeBuddyProvider
+          ? validCodeBuddyRows.map((row, index) => {
+            const explicitName = validCodeBuddyRows.length === 1 ? finalName : "";
+            return {
+              ...(row.credentialToken
+                ? { credentialToken: row.credentialToken }
+                : { accessToken: row.accessToken, refreshToken: row.refreshToken }),
+              name: explicitName || `swayrouter-account${index + 1}`,
+              autoName: !explicitName,
+            };
+          })
           : undefined,
         machineId: effectiveFlow === "import" ? machineId.trim() || undefined : undefined,
         kiroAuthMode: isKiroProvider ? kiroAuthMode : undefined,
@@ -1145,7 +1222,7 @@ export function AddConnectionDialog({
             </div>
           ) : null}
 
-          {bootLoading ? (
+          {authFlowBooting ? (
             <p className="text-xs text-muted-foreground">
               <TextShimmer>Starting auth flow…</TextShimmer>
             </p>
@@ -1154,17 +1231,19 @@ export function AddConnectionDialog({
           {effectiveFlow === "import" ? (
             isCodeBuddyProvider ? (
               <CodeBuddyTokenFields
-                token={codeBuddyToken}
-                onTokenChange={(value) => {
+                raw={codeBuddyToken}
+                rows={codeBuddyRows}
+                activeIndex={codeBuddyActiveIndex}
+                activeRow={activeCodeBuddyRow}
+                checking={codeBuddyChecking}
+                validCount={validCodeBuddyRows.length}
+                onRawChange={(value) => {
                   setCodeBuddyToken(value);
-                  setCodeBuddyTokenValid(null);
-                  setCheckMsg(null);
+                  setCodeBuddyRows([]);
+                  setCodeBuddyActiveIndex(null);
                   setSubmitError(null);
                 }}
-                checking={checking}
-                tokenValid={codeBuddyTokenValid}
-                checkMsg={checkMsg}
-                onCheck={onCheckCodeBuddyToken}
+                onCheck={onCheckCodeBuddyTokens}
               />
             ) : isKiroProvider ? (
               <KiroImportFields
