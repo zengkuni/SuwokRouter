@@ -1,0 +1,30 @@
+# Sway Router root ignore
+node_modules/
+.claude/
+
+# Build artifacts
+tsconfig.tsbuildinfo
+dist-binary/
+
+# Dashboard SPA build output
+dashboard/dist/
+dashboard/node_modules/
+dashboard/.vite/
+playwright-report/
+test-results/
+
+# Local secrets / debug scratch (never commit)
+.env
+.env.*
+!.env.example
+.swayrouter/
+data/
+backups/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+server.log
+server-*.log
+.tmp-build-*
+.tmp-image-build/
+.tmp-warp-build/

@@ -1,0 +1,69 @@
+export default {
+  "id": "venice",
+  "priority": 115,
+  "alias": "venice",
+  "aliases": [
+    "vn"
+  ],
+  "uiAlias": "venice",
+  "display": {
+    "name": "Venice AI",
+    "icon": "shield",
+    "color": "#DC2626",
+    "textIcon": "VE",
+    "website": "https://venice.ai",
+    "notice": {
+      "text": "OpenAI-compatible. Private inference + uncensored models (Venice Uncensored, GLM, Qwen, DeepSeek, Llama).",
+      "apiKeyUrl": "https://venice.ai/settings/api"
+    }
+  },
+  "category": "apikey",
+  "transport": {
+    "baseUrl": "https://api.venice.ai/api/v1/chat/completions",
+    "validateUrl": "https://api.venice.ai/api/v1/models",
+    "thinkingFormat": "openai"
+  },
+  "models": [
+    {
+      "id": "venice-uncensored-1-2",
+      "name": "Venice Uncensored 1.2"
+    },
+    {
+      "id": "zai-org-glm-5",
+      "name": "GLM-5"
+    },
+    {
+      "id": "qwen3-235b-a22b-instruct-2507",
+      "name": "Qwen3 235B A22B Instruct"
+    },
+    {
+      "id": "qwen3-coder-480b-a35b-instruct-turbo",
+      "name": "Qwen3 Coder 480B A35B Turbo"
+    },
+    {
+      "id": "qwen3-vl-235b-a22b",
+      "name": "Qwen3 VL 235B A22B"
+    },
+    {
+      "id": "deepseek-v4-pro",
+      "name": "DeepSeek V4 Pro"
+    },
+    {
+      "id": "llama-3.3-70b",
+      "name": "Llama 3.3 70B"
+    },
+    {
+      "id": "hermes-3-llama-3.1-405b",
+      "name": "Hermes 3 Llama 3.1 405B"
+    },
+    {
+      "id": "mistral-small-3-2-24b-instruct",
+      "name": "Mistral Small 3.2 24B"
+    }
+  ],
+  "modelsFetcher": {
+    "url": "https://api.venice.ai/api/v1/models",
+    "type": "openai"
+  },
+  "passthroughModels": true
+};

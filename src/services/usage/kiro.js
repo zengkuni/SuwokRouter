@@ -1,0 +1,172 @@
+import { proxyAwareFetch } from "../../utils/proxyFetch.js";
+import { resolveDefaultProfileArn } from "../../config/kiroConstants.js";
+import { U, parseResetTime } from "./shared.js";
+
+function parseKiroQuotaData(data) {
+  const usageList = data.usageBreakdownList || [];
+  const quotaInfo = {};
+  const resetAt = parseResetTime(data.nextDateReset || data.resetDate);
+
+  usageList.forEach((breakdown) => {
+    const resourceType = breakdown.resourceType?.toLowerCase() || "unknown";
+    const used = breakdown.currentUsageWithPrecision || 0;
+    const total = breakdown.usageLimitWithPrecision || 0;
+
+    quotaInfo[resourceType] = {
+      used,
+      total,
+      remaining: total - used,
+      resetAt,
+      unlimited: false,
+    };
+
+    if (breakdown.freeTrialInfo) {
+      const freeUsed = breakdown.freeTrialInfo.currentUsageWithPrecision || 0;
+      const freeTotal = breakdown.freeTrialInfo.usageLimitWithPrecision || 0;
+
+      quotaInfo[`${resourceType}_freetrial`] = {
+        used: freeUsed,
+        total: freeTotal,
+        remaining: freeTotal - freeUsed,
+        resetAt: parseResetTime(breakdown.freeTrialInfo.freeTrialExpiry || resetAt),
+        unlimited: false,
+      };
+    }
+  });
+
+  return {
+    plan: data.subscriptionInfo?.subscriptionTitle || "Kiro",
+    quotas: quotaInfo,
+  };
+}
+
+export async function getKiroUsage(accessToken, providerSpecificData, proxyOptions = null) {
+  const authMethod = providerSpecificData?.authMethod || "builder-id";
+
+  const isApiKey = authMethod === "api_key";
+  const isExternalIdp = authMethod === "external_idp";
+  const apiKeyHeaders = isApiKey ? { tokentype: "API_KEY" } : {};
+  const externalIdpHeaders = isExternalIdp ? { TokenType: "EXTERNAL_IDP" } : {};
+
+  const profileArn = isApiKey
+    ? (providerSpecificData?.profileArn || "")
+    : (providerSpecificData?.profileArn || resolveDefaultProfileArn(authMethod));
+
+  const getUsageParams = new URLSearchParams({
+    isEmailRequired: "true",
+    origin: "AI_EDITOR",
+    resourceType: "AGENTIC_REQUEST",
+  });
+
+  const attempts = [
+    {
+      name: "codewhisperer-get",
+      run: async () => proxyAwareFetch(
+        `${U("kiro").cwHost}${U("kiro").limitsPath}?${getUsageParams.toString()}`,
+        {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${accessToken}`,
+            "Accept": "application/json",
+            "x-amz-user-agent": "aws-sdk-js/1.0.0 KiroIDE",
+            "user-agent": "aws-sdk-js/1.0.0 KiroIDE",
+            ...apiKeyHeaders,
+            ...externalIdpHeaders,
+          },
+        },
+        proxyOptions
+      ),
+    },
+    {
+      name: "codewhisperer-post",
+      run: async () => proxyAwareFetch(U("kiro").cwHost, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/x-amz-json-1.0",
+          "x-amz-target": "AmazonCodeWhispererService.GetUsageLimits",
+          "Accept": "application/json",
+          ...apiKeyHeaders,
+          ...externalIdpHeaders,
+        },
+        body: JSON.stringify({
+          origin: "AI_EDITOR",
+          ...(profileArn ? { profileArn } : {}),
+          resourceType: "AGENTIC_REQUEST",
+        }),
+      }, proxyOptions),
+    },
+    {
+      name: "q-get",
+      run: async () => {
+        const params = new URLSearchParams({
+          origin: "AI_EDITOR",
+          ...(profileArn ? { profileArn } : {}),
+          resourceType: "AGENTIC_REQUEST",
+        });
+        return proxyAwareFetch(`${U("kiro").qHost}${U("kiro").limitsPath}?${params}`, {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${accessToken}`,
+            "Accept": "application/json",
+            ...apiKeyHeaders,
+            ...externalIdpHeaders,
+          },
+        }, proxyOptions);
+      },
+    },
+  ];
+
+  let sawAuthError = false;
+  const errors = [];
+
+  for (const attempt of attempts) {
+    try {
+      const response = await attempt.run();
+      if (!response.ok) {
+        await response.text().catch(() => "");
+        if (response.status === 401 || response.status === 403) {
+          sawAuthError = true;
+        }
+        errors.push(`${attempt.name}:${response.status}`);
+        continue;
+      }
+
+      const data = await response.json();
+      return parseKiroQuotaData(data);
+    } catch (error) {
+      console.warn(`[Kiro Usage] ${attempt.name} failed:`, error);
+      errors.push(`${attempt.name}:network_error`);
+    }
+  }
+
+  if (sawAuthError && authMethod === "idc") {
+    return {
+      message: "Kiro quota API is unavailable for the current AWS IAM Identity Center session. Chat may still work. If this persists after renewing your session, reconnect Kiro.",
+      quotas: {},
+    };
+  }
+
+  if (sawAuthError && (authMethod === "google" || authMethod === "github")) {
+    return {
+      message: "Kiro quota API authentication expired. Chat may still work.",
+      quotas: {},
+    };
+  }
+
+  if (sawAuthError) {
+    return {
+      message: "Kiro quota API rejected the current token. Chat may still work.",
+      quotas: {},
+    };
+  }
+
+  if (errors.length > 0) {
+    console.warn("[Kiro Usage] All quota endpoints failed:", errors.join(", "));
+  }
+
+  return {
+    message: "Unable to fetch Kiro usage right now.",
+    quotas: {},
+  };
+}
