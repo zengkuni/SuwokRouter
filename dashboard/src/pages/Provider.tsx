@@ -68,6 +68,11 @@ import {
   type ThinkingLevel,
 } from "@/lib/thinking";
 import { cn } from "@/lib/utils";
+import {
+  disableModels,
+  enableModel,
+  fetchDisabledModels,
+} from "@/lib/model-management-api";
 import { providerSelectionChanged } from "@/lib/provider-selection";
 import {
   mergeModelRows,
@@ -457,6 +462,11 @@ export default function Provider() {
     retry: false,
     placeholderData: (previous) => previous,
   });
+  const disabledModelsQ = useQuery({
+    queryKey: ["disabled-models"],
+    queryFn: fetchDisabledModels,
+    retry: false,
+  });
   const liveModelsQ = useQuery({
 
     queryKey: ["available-models", forceTick],
@@ -790,6 +800,31 @@ export default function Provider() {
     const rest = list.filter((row) => !pinnedSet.has(row.id)).sort((a, b) => a.id.localeCompare(b.id));
     return [...pinnedList, ...rest];
   }, [hiddenModels, models, modelQuery, pinnedFor, selected]);
+
+  const disabledModelIds = useMemo(() => {
+    if (!selected) return new Set<string>();
+    const ids = [
+      ...(disabledModelsQ.data?.[selected.id] ?? []),
+      ...(selected.alias ? disabledModelsQ.data?.[selected.alias] ?? [] : []),
+    ];
+    return new Set(ids);
+  }, [disabledModelsQ.data, selected]);
+
+  async function toggleModelDisabled(modelId: string) {
+    if (!selected) return;
+    try {
+      if (disabledModelIds.has(modelId)) {
+        await enableModel(selected.id, modelId);
+        flash(`Enabled ${modelId.split("/").pop()}`);
+      } else {
+        await disableModels(selected.id, [modelId]);
+        flash(`Disabled ${modelId.split("/").pop()}`);
+      }
+      await qc.invalidateQueries({ queryKey: ["disabled-models"] });
+    } catch (error) {
+      flash(getErrorMessage(error, "Failed to update model availability"), "error");
+    }
+  }
 
   function togglePin(id: string) {
     if (!selected) return;
@@ -1760,6 +1795,8 @@ export default function Provider() {
                       }
                       toast(`${removed ? "Removed" : "Hidden"} ${modelId.split("/").pop()}`);
                     }}
+                    disabledModelIds={disabledModelIds}
+                    onToggleDisabled={toggleModelDisabled}
                   />
                 </Tabs>
               </FramePanel>

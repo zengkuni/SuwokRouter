@@ -180,8 +180,7 @@ export function validateDatabaseBackup(payload) {
     "observabilityBatchSize", "observabilityFlushIntervalMs", "observabilityMaxJsonSize",
   ]) assertInteger(payload.settings[field], `settings.${field}`);
   for (const field of [
-    "profileName", "tunnelUrl", "tunnelProvider", "authMode", "oidcIssuerUrl",
-    "oidcClientId", "oidcScopes", "oidcLoginLabel", "cavemanLevel", "ponytailLevel",
+    "profileName", "tunnelUrl", "tunnelProvider", "cavemanLevel", "ponytailLevel",
   ]) assertString(payload.settings[field], `settings.${field}`, { required: false, max: 4096 });
   assertOneOf(payload.settings.fallbackStrategy, "settings.fallbackStrategy", [
     "fill-first", "round-robin", "least-inflight", "cache-affine",
@@ -313,7 +312,7 @@ export async function exportDb({ scope = "configuration" } = {}) {
   const db = await getAdapter();
   const { exportSettings } = await import("./repos/settingsRepo.js");
   const rawSettings = await exportSettings();
-  const { password: _password, oidcClientSecret: _oidcClientSecret, ...safeSettings } = stripRemovedSettings(rawSettings);
+  const { password: _password, ...safeSettings } = stripRemovedSettings(rawSettings);
 
   const out = {
     product: "swayrouter",
@@ -384,11 +383,6 @@ export async function importDb(payload) {
 
       if (currentSettings?.password) settings.password = currentSettings.password;
       else delete settings.password;
-      if (currentSettings?.oidcClientSecret) {
-        settings.oidcClientSecret = currentSettings.oidcClientSecret;
-      } else {
-        delete settings.oidcClientSecret;
-      }
       delete settings.upstreamUserAgent;
       db.run(`INSERT INTO settings(id, data) VALUES(1, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`, [stringifyJson(settings)]);
     }

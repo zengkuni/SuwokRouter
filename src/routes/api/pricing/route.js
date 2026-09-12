@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getPricing, updatePricing, resetPricing, resetAllPricing } from "@/lib/localDb.js";
-import { getDefaultPricing } from "open-sse/providers/pricing.js";
 
 export async function GET() {
   try {
@@ -10,7 +9,7 @@ export async function GET() {
     console.error("Error fetching pricing:", error);
     return NextResponse.json(
       { error: "Failed to fetch pricing" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -22,7 +21,7 @@ export async function PATCH(request) {
     if (typeof body !== "object" || body === null) {
       return NextResponse.json(
         { error: "Invalid pricing data format" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -30,7 +29,7 @@ export async function PATCH(request) {
       if (typeof models !== "object" || models === null) {
         return NextResponse.json(
           { error: `Invalid pricing for provider: ${provider}` },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -38,7 +37,7 @@ export async function PATCH(request) {
         if (typeof pricing !== "object" || pricing === null) {
           return NextResponse.json(
             { error: `Invalid pricing for model: ${provider}/${model}` },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -47,13 +46,13 @@ export async function PATCH(request) {
           if (!validFields.includes(key)) {
             return NextResponse.json(
               { error: `Invalid pricing field: ${key} for ${provider}/${model}` },
-              { status: 400 }
+              { status: 400 },
             );
           }
-          if (typeof value !== "number" || isNaN(value) || value < 0) {
+          if (typeof value !== "number" || Number.isNaN(value) || value < 0) {
             return NextResponse.json(
               { error: `Invalid pricing value for ${key} in ${provider}/${model}: must be non-negative number` },
-              { status: 400 }
+              { status: 400 },
             );
           }
         }
@@ -66,7 +65,7 @@ export async function PATCH(request) {
     console.error("Error updating pricing:", error);
     return NextResponse.json(
       { error: "Failed to update pricing" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -78,13 +77,10 @@ export async function DELETE(request) {
     const model = searchParams.get("model");
 
     if (provider && model) {
-
       await resetPricing(provider, model);
     } else if (provider) {
-
       await resetPricing(provider);
     } else {
-
       await resetAllPricing();
     }
 
@@ -94,20 +90,7 @@ export async function DELETE(request) {
     console.error("Error resetting pricing:", error);
     return NextResponse.json(
       { error: "Failed to reset pricing" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET_DEFAULTS() {
-  try {
-    const defaultPricing = getDefaultPricing();
-    return NextResponse.json(defaultPricing);
-  } catch (error) {
-    console.error("Error fetching default pricing:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch default pricing" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
