@@ -1,0 +1,6 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Local Claude worktrees are ignored developer state"
+paths = ['''^\.claude/worktrees/''']

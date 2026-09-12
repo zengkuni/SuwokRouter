@@ -1,0 +1,5 @@
+# Sway Router — Bun config.
+# Keep the default test command scoped to product code. The checkout-local CLI
+# suite runs explicitly with bunfig.test.toml.
+[test]
+root = "src/"

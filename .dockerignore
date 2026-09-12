@@ -1,0 +1,13 @@
+# Build context — exclude refs, dev state, and build artifacts.
+node_modules
+dashboard/node_modules
+dashboard/dist
+dist
+data
+data-home
+.env*
+!.env.example
+*.tgz
+.logs/
+tests
+.github

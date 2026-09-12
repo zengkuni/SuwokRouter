@@ -1,0 +1,43 @@
+name: Bug report
+description: Report a reproducible problem in Sway Router
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include API keys, tokens, cookies, account emails, or private URLs.
+  - type: input
+    id: version
+    attributes:
+      label: Sway Router version
+      placeholder: v1.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: Install method
+      options:
+        - Global Bun package
+        - Docker / Compose
+        - Standalone binary
+        - Source checkout
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Include expected behavior and clear reproduction steps.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs
+      render: shell
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: OS, Bun version, browser, provider, and deployment details

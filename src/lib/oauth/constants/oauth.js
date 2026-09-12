@@ -1,0 +1,152 @@
+import { platform, arch } from "os";
+import { ANTIGRAVITY_OAUTH_CLIENT, GOOGLE_OAUTH_CLIENT } from "../../../providers/shared.js";
+import { PROVIDER_OAUTH, PROVIDERS as REGISTRY_PROVIDERS } from "../../../providers/index.js";
+
+function getOAuthPlatformEnum() {
+  const os = platform();
+  const architecture = arch();
+  if (os === "darwin") return architecture === "arm64" ? 2 : 1;
+  if (os === "linux") return architecture === "arm64" ? 4 : 3;
+  if (os === "win32") return 5;
+  return 0;
+}
+
+export const CLAUDE_CONFIG = { ...PROVIDER_OAUTH["claude"] };
+
+export const CODEX_CONFIG = { ...PROVIDER_OAUTH["codex"] };
+
+export const GEMINI_CONFIG = { ...GOOGLE_OAUTH_CLIENT, ...PROVIDER_OAUTH["gemini-cli"] };
+
+export const QODER_CONFIG = { ...PROVIDER_OAUTH["qoder"] };
+
+export const ANTIGRAVITY_CONFIG = {
+  ...ANTIGRAVITY_OAUTH_CLIENT,
+  ...PROVIDER_OAUTH["antigravity"],
+  loadCodeAssistClientMetadata: JSON.stringify({ ideType: 9, platform: getOAuthPlatformEnum(), pluginType: 2 }),
+};
+
+export function getOAuthClientMetadata() {
+  return { ideType: 9, platform: getOAuthPlatformEnum(), pluginType: 2 };
+}
+
+export const OPENAI_CONFIG = { ...PROVIDER_OAUTH["openai"] };
+
+export const GITHUB_CONFIG = { ...PROVIDER_OAUTH["github"] };
+
+export const KIRO_CONFIG = { ...PROVIDER_OAUTH["kiro"] };
+
+export const AWS_REGION_PATTERN = /^[a-z]{2}-[a-z]+-\d{1,2}$/;
+
+export function assertValidAwsRegion(region) {
+  if (typeof region !== "string" || !AWS_REGION_PATTERN.test(region)) {
+    throw new Error("Invalid region");
+  }
+  return region;
+}
+
+export const CURSOR_CONFIG = {
+  ...PROVIDER_OAUTH["cursor"],
+  tokenStoragePaths: {
+    linux: "~/.config/Cursor/User/globalStorage/state.vscdb",
+    macos: "/Users/<user>/Library/Application Support/Cursor/User/globalStorage/state.vscdb",
+    windows: "%APPDATA%\\Cursor\\User\\globalStorage\\state.vscdb",
+  },
+};
+
+export const KIMI_CONFIG = {
+  ...PROVIDER_OAUTH["kimi"],
+  clientId:
+    process.env.KIMI_CODING_OAUTH_CLIENT_ID ||
+    process.env.KIMI_OAUTH_CLIENT_ID ||
+    REGISTRY_PROVIDERS["kimi"]?.clientId ||
+    PROVIDER_OAUTH["kimi"]?.clientId,
+};
+
+export const KIMI_CODING_CONFIG = KIMI_CONFIG;
+
+export const KILOCODE_CONFIG = { ...PROVIDER_OAUTH["kilocode"] };
+
+export const CLINE_CONFIG = { ...PROVIDER_OAUTH["cline"] };
+
+export const CLINEPASS_CONFIG = { ...PROVIDER_OAUTH["clinepass"] };
+
+export const CODEBUDDY_CONFIG = { ...PROVIDER_OAUTH["codebuddy-cn"] };
+
+export const CODEBUDDY_INTL_CONFIG = { ...PROVIDER_OAUTH["codebuddy-intl"] };
+
+export const KIMCHI_CONFIG = { ...PROVIDER_OAUTH["kimchi"] };
+
+export const GROK_CLI_CONFIG = { ...PROVIDER_OAUTH["grok-cli"] };
+
+export const TRAE_CONFIG = {
+  clientId: "ono9krqynydwx5",
+  clientSecret: "-",
+  loginGuidanceUrls: [
+    "https://api.marscode.com/cloudide/api/v3/trae/GetLoginGuidance",
+    "https://api.trae.ai/cloudide/api/v3/trae/GetLoginGuidance",
+    "https://www.trae.ai/cloudide/api/v3/trae/GetLoginGuidance",
+  ],
+  apiOrigins: [
+    "https://api.marscode.com",
+    "https://api.trae.ai",
+    "https://www.trae.ai",
+    "https://www.marscode.com",
+  ],
+  exchangeTokenPath: "/cloudide/api/v3/trae/oauth/ExchangeToken",
+  getUserInfoPath: "/cloudide/api/v3/trae/GetUserInfo",
+  authorizationPath: "/authorization",
+  callbackPath: "/callback",
+  minAppVersion: "3.5.54",
+  defaultAppVersion: "3.5.54",
+  defaultAppType: "stable",
+  defaultPluginVersion: "local",
+
+  defaultDeviceId: "0",
+  userAgent: "Trae/1.0.0 antigravity-cockpit-tools",
+  webUrl: "https://www.trae.ai",
+  authScheme: "Cloud-IDE-JWT",
+  tokenLifetimeDays: 14,
+  oauthTimeoutMs: 600_000,
+};
+
+export const WINDSURF_CONFIG = {
+  clientId: "3GUryQ7ldAeKEuD2obYnppsnmj58eP5u",
+  authBaseUrl: "https://www.windsurf.com",
+  signInPath: "/windsurf/signin",
+  registerApiBaseUrl: "https://register.windsurf.com",
+  registerPath: "/exa.seat_management_pb.SeatManagementService/RegisterUser",
+  oneTimeAuthPath: "/exa.seat_management_pb.SeatManagementService/GetOneTimeAuthToken",
+  currentUserPath: "/exa.seat_management_pb.SeatManagementService/GetCurrentUser",
+  planStatusPath: "/exa.seat_management_pb.SeatManagementService/GetPlanStatus",
+  userStatusPath: "/exa.seat_management_pb.SeatManagementService/GetUserStatus",
+  defaultApiServerUrl: "https://server.codeium.com",
+  firebaseApiKey: "AIzaSyDsOl-1XpT5err0Tcn0TFFod1H8gVGIycY", // gitleaks:allow -- public Firebase web client key
+  callbackPath: "/windsurf-auth-callback",
+  userAgent: "antigravity-cockpit-tools",
+  oauthTimeoutMs: 600_000,
+};
+
+export const OAUTH_TIMEOUT = 300000;
+
+export const PROVIDERS = {
+  CLAUDE: "claude",
+  CODEX: "codex",
+  GEMINI: "gemini-cli",
+  QODER: "qoder",
+  ANTIGRAVITY: "antigravity",
+  OPENAI: "openai",
+  GITHUB: "github",
+  KIRO: "kiro",
+  CURSOR: "cursor",
+  KIMI: "kimi",
+  KIMI_CODING: "kimi",
+  KILOCODE: "kilocode",
+  CLINE: "cline",
+  CLINEPASS: "clinepass",
+  CODEBUDDY: "codebuddy-cn",
+  CODEBUDDY_INTL: "codebuddy-intl",
+  KIMCHI: "kimchi",
+  GROK_CLI: "grok-cli",
+  TRAE: "trae",
+  WINDSURF: "windsurf",
+};
