@@ -32,6 +32,29 @@ export class CodeBuddyIntlExecutor extends DefaultExecutor {
 
     return transformed;
   }
+
+  parseError(response, bodyText) {
+    const fallback = super.parseError(response, bodyText);
+    if (!bodyText) return fallback;
+    try {
+      const payload = JSON.parse(bodyText);
+      const code = payload?.code ?? payload?.error?.code;
+      const nested = payload?.error;
+      const message = typeof nested === "object"
+        ? nested?.message || payload?.msg || payload?.message
+        : nested || payload?.msg || payload?.message;
+      if (typeof message !== "string" && code == null) return fallback;
+      const text = typeof message === "string" && message.trim()
+        ? message.trim()
+        : "Provider request failed";
+      return {
+        status: response.status,
+        message: code == null ? text : `CodeBuddy ${code}: ${text}`,
+      };
+    } catch {
+      return fallback;
+    }
+  }
 }
 
 export default CodeBuddyIntlExecutor;

@@ -93,7 +93,11 @@ export function ProviderModelsPanel({
                           {visibleModels.length} models
                         </span>
                         <div className="flex flex-wrap gap-2">
-                          {selected.id !== "qoder" ? (
+                          {selected.id === "codebuddy-cn" || selected.id === "codebuddy-intl" ? (
+                            <span className="self-center text-xs text-muted-foreground">
+                              Add models manually
+                            </span>
+                          ) : selected.id !== "qoder" ? (
                             <Tooltip label={testConnId ? "Fetch GET {base}/models with this connection’s key" : "Needs a connection (API key) on this provider — or set base URL on a custom node"}>
                               <RippleButton
                                 size="sm"

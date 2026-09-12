@@ -122,4 +122,50 @@ describe("pingModelByKind", () => {
     expect(requestBody).toMatchObject({ model: "clinepass/glm-5.2", stream: true });
     expect(result).toMatchObject({ ok: true, status: 200 });
   });
+
+  test("uses the CodeBuddy Intl streaming probe shape", async () => {
+    let requestBody;
+    globalThis.fetch = (async (_input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+      requestBody = JSON.parse(String(init?.body));
+      return new Response('data: {"choices":[{"delta":{"content":"OK"}}]}\n\ndata: [DONE]\n\n', {
+        status: 200,
+        headers: { "content-type": "text/event-stream" },
+      });
+    }) as unknown as typeof fetch;
+
+    const result = await pingModelByKind(
+      "cbai/claude-sonnet-4.6",
+      "llm",
+      "http://router",
+      { providerId: "codebuddy-intl", probeFormat: "codebuddy-intl", stream: true },
+    );
+
+    expect(requestBody).toMatchObject({
+      model: "cbai/claude-sonnet-4.6",
+      stream: true,
+      max_tokens: 50,
+      messages: [
+        { role: "system" },
+        { role: "user", content: [{ type: "text", text: "Reply with OK." }] },
+      ],
+    });
+    expect(result).toMatchObject({ ok: true, status: 200 });
+  });
+
+  test("includes provider error details in failed streaming probes", async () => {
+    globalThis.fetch = (async () => new Response(
+      JSON.stringify({ error: { message: "CodeBuddy 11102: model not found" } }),
+      { status: 400, headers: { "content-type": "application/json" } },
+    )) as unknown as typeof fetch;
+
+    const result = await pingModelByKind(
+      "cbai/unknown-model",
+      "llm",
+      "http://router",
+      { providerId: "codebuddy-intl", probeFormat: "codebuddy-intl", stream: true },
+    );
+
+    expect(result).toMatchObject({ ok: false, status: 400 });
+    expect(result.error).toContain("CodeBuddy 11102");
+  });
 });

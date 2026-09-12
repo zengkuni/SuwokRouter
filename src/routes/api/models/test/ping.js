@@ -40,6 +40,38 @@ function streamContainsCompletion(rawText) {
   return false;
 }
 
+function extractProviderError(rawText) {
+  const candidates = [];
+  for (const line of String(rawText || "").split(/\r?\n/)) {
+    const value = line.startsWith("data:") ? line.slice(5).trim() : line.trim();
+    if (!value || value === "[DONE]") continue;
+    try {
+      candidates.push(JSON.parse(value));
+    } catch {
+
+    }
+  }
+
+  for (const payload of candidates) {
+    const nested = payload?.error;
+    const message = typeof nested === "object"
+      ? nested?.message || payload?.msg || payload?.message
+      : nested || payload?.msg || payload?.message;
+    if (typeof message === "string" && message.trim()) return message.trim();
+  }
+  return null;
+}
+
+function buildProbeMessages(options) {
+  if (options.probeFormat === "codebuddy-intl") {
+    return [
+      { role: "system", content: "Model test probe. Reply with a short confirmation." },
+      { role: "user", content: [{ type: "text", text: "Reply with OK." }] },
+    ];
+  }
+  return [{ role: "user", content: "hi" }];
+}
+
 export async function pingModelByKind(
   model,
   kind,
@@ -83,10 +115,9 @@ export async function pingModelByKind(
       headers,
       body: JSON.stringify({
         model,
-
-        max_tokens: 16,
+        max_tokens: options.probeFormat === "codebuddy-intl" ? 50 : 16,
         stream: useStream,
-        messages: [{ role: "user", content: "hi" }],
+        messages: buildProbeMessages(options),
       }),
       signal,
     });
@@ -116,17 +147,34 @@ export async function pingModelByKind(
   const latencyMs = Date.now() - start;
   if (useStream) {
     if (!res.ok) {
-      return { ok: false, latencyMs, error: `HTTP ${res.status}`, status: res.status };
+      const detail = extractProviderError(rawText);
+      return {
+        ok: false,
+        latencyMs,
+        error: detail ? `HTTP ${res.status}: ${detail}` : `HTTP ${res.status}`,
+        status: res.status,
+      };
     }
     return streamContainsCompletion(rawText)
       ? { ok: true, latencyMs, error: null, status: res.status }
-      : { ok: false, latencyMs, error: `HTTP ${res.status}: provider returned no completion events`, status: res.status };
+      : {
+        ok: false,
+        latencyMs,
+        error: extractProviderError(rawText) || `HTTP ${res.status}: provider returned no completion events`,
+        status: res.status,
+      };
   }
   let parsed = null;
   try { parsed = rawText ? JSON.parse(rawText) : null; } catch {}
 
   if (!res.ok) {
-    return { ok: false, latencyMs, error: `HTTP ${res.status}`, status: res.status };
+    const detail = extractProviderError(rawText);
+    return {
+      ok: false,
+      latencyMs,
+      error: detail ? `HTTP ${res.status}: ${detail}` : `HTTP ${res.status}`,
+      status: res.status,
+    };
   }
 
   const providerStatus = parsed?.status;

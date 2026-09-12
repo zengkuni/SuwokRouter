@@ -82,6 +82,7 @@ export async function POST(request, { params }) {
       || isOpenAICompatibleProvider(providerId)
       || isAnthropicCompatibleProvider(providerId);
     const isCodeBuddy = providerId === "codebuddy-cn" || providerId === "codebuddy-intl";
+    const isCodeBuddyIntl = providerId === "codebuddy-intl";
     const usesDynamicCatalog = isCompatible || isCodeBuddy;
     const alias = PROVIDER_ID_TO_ALIAS[providerId] || providerId;
     const acceptedAliases = new Set(
@@ -139,11 +140,10 @@ export async function POST(request, { params }) {
     const isClinePass = providerId === "clinepass" || providerId === "cline-pass";
     const pingOptions = {
       connectionId: id,
-
-      stream: isClinePass,
-
-      timeoutMs: isClinePass ? 60_000 : undefined,
-
+      providerId,
+      stream: isClinePass || isCodeBuddyIntl,
+      probeFormat: isCodeBuddyIntl ? "codebuddy-intl" : undefined,
+      timeoutMs: isClinePass || isCodeBuddyIntl ? 60_000 : undefined,
       signal: request.signal,
     };
     const selected = requestedModel
