@@ -1,6 +1,6 @@
 {
   "name": "swayrouter",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Self-hosted AI gateway with a clean local dashboard",
   "license": "MIT",
   "repository": {
