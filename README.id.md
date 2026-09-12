@@ -37,6 +37,7 @@ dashboard simpel untuk mengatur model, routing, dan usage.
 - [Dashboard](#dashboard-yang-enak-dipakai)
 - [Migrasi dari 9Router](#migrasi-dari-9router)
 - [Providers](#providers)
+- [CLI Tools yang didukung](#cli-tools-yang-didukung)
 - [Fitur lengkap](#fitur-yang-tersedia)
 - [Perbandingan](#sway-router-vs-9router-vs-omniroute)
 - [Operasional dan keamanan](#operasional-dan-keamanan)
@@ -387,6 +388,20 @@ Perplexity AI memakai [Perplexity Router API resmi](https://docs.perplexity.ai/d
 | Provider | ID |
 | --- | --- |
 | OpenCode Free | `opencode` |
+
+## CLI Tools yang didukung
+
+Sway Router bisa mendeteksi dan mengatur coding tools berikut agar memakai
+gateway:
+
+- Claude Code
+- Codex CLI
+- OpenCode
+- Hermes Agent
+- Claude Cowork
+- Kilo Code
+- Grok Build
+- OMP (oh-my-pi)
 
 ## Fitur yang tersedia
 

@@ -718,7 +718,13 @@ export default function Provider() {
     }
 
     if (usesConnectionCatalog) {
-
+      rows.push(...(connectionModelsQ.data ?? []));
+      if (
+        !testConnId &&
+        (providerId === "codebuddy-cn" || providerId === "codebuddy-intl")
+      ) {
+        rows.push(...normalizeProviderModelRows(selected.models, providerId));
+      }
     } else {
 
       const acceptedProviderIds = new Set(
@@ -736,7 +742,7 @@ export default function Provider() {
       }
     }
     return mergeModelRows(rows, providerId);
-  }, [connectionModelsQ.data, customTick, customModelsQ.data, importedModelRows, liveModelsQ.data, selected, usesConnectionCatalog]);
+  }, [connectionModelsQ.data, customTick, customModelsQ.data, importedModelRows, liveModelsQ.data, selected, testConnId, usesConnectionCatalog]);
 
   const modelsLoading = usesConnectionCatalog
     ? customModelsQ.isLoading || customModelsQ.isFetching || connectionModelsQ.isLoading || connectionModelsQ.isFetching
@@ -996,6 +1002,10 @@ export default function Provider() {
 
   async function runImportModels() {
     if (!selected) return;
+    if (selected.id === "codebuddy-cn" || selected.id === "codebuddy-intl") {
+      flash("CodeBuddy uses the static registry — add new models manually", "default");
+      return;
+    }
     setImportingModels(true);
     try {
 
@@ -1319,6 +1329,13 @@ export default function Provider() {
     apiKey?: string;
     importToken?: string;
     codeBuddyToken?: string;
+    codeBuddyTokens?: Array<{
+      credentialToken?: string;
+      accessToken?: string;
+      refreshToken?: string;
+      name?: string;
+      autoName?: boolean;
+    }>;
     machineId?: string;
     oauthCode?: string;
     oauthState?: string;
@@ -1354,6 +1371,43 @@ export default function Provider() {
       body.proxyPoolId && body.proxyPoolId !== "pool_none"
         ? body.proxyPoolId
         : null;
+    if (body.codeBuddyTokens?.length) {
+      if (selected.id !== "codebuddy-cn" && selected.id !== "codebuddy-intl") {
+        throw new Error("Token batches are only supported for CodeBuddy");
+      }
+      let added = 0;
+      let skippedDuplicates = 0;
+      for (const tokenSet of body.codeBuddyTokens) {
+        try {
+          await createConnection({
+            provider: selected.id,
+            credentialToken: tokenSet.credentialToken,
+            accessToken: tokenSet.accessToken,
+            refreshToken: tokenSet.refreshToken,
+            name: tokenSet.name,
+            autoName: tokenSet.autoName,
+            proxyPoolId: null,
+          });
+          added += 1;
+        } catch (error) {
+          if (axios.isAxiosError(error) && error.response?.status === 409) {
+            skippedDuplicates += 1;
+            continue;
+          }
+          throw error;
+        }
+      }
+      void qc.invalidateQueries({ queryKey: ["connections"] });
+      void qc.invalidateQueries({ queryKey: ["providers-available"] });
+      setAddOpen(false);
+      flash(
+        skippedDuplicates > 0
+          ? `Added ${added} connections, skipped ${skippedDuplicates} duplicates`
+          : `Added ${added} connections`,
+        skippedDuplicates > 0 ? "warning" : "success"
+      );
+      return;
+    }
     if (body.bulkKeys?.length) {
 
       let added = 0;

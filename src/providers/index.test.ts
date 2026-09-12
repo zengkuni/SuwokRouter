@@ -59,6 +59,47 @@ describe("registry", () => {
     ]);
   });
 
+  test("CodeBuddy Intl exposes the tested cbai model catalog", () => {
+    const codeBuddyIntl = REGISTRY.find((entry) => entry.id === "codebuddy-intl") as {
+      alias?: string;
+      models?: Array<{ id?: string }>;
+    } | undefined;
+    expect(codeBuddyIntl?.alias).toBe("cbai");
+    expect(codeBuddyIntl?.models?.map((model) => model.id)).toEqual([
+      "auto",
+      "balanced-model",
+      "claude-opus-4.6",
+      "claude-opus-4.7-1m",
+      "claude-opus-5",
+      "claude-sonnet-4.6",
+      "deep-model",
+      "deepseek-v3-0324",
+      "deepseek-v4.1-flash",
+      "default-model",
+      "fast-model",
+      "gemini-3.1-pro",
+      "glm-5.1",
+      "glm-5.2",
+      "glm-5.3",
+      "glm-5v-turbo",
+      "gpt-5.3-codex",
+      "gpt-5.4",
+      "gpt-5.5",
+      "gpt-5.6-luna",
+      "gpt-5.6-sol",
+      "gpt-5.6-terra",
+      "hy3",
+      "hy4-preview",
+      "hy4-preview-x",
+      "kimi-k2.5",
+      "kimi-k2.6",
+      "kimi-k2.7",
+      "kimi-k3",
+      "minimax-m3",
+      "primary-model",
+    ]);
+  });
+
   test("Meta AI terdaftar sebagai provider OpenAI-compatible passthrough", () => {
     const meta = REGISTRY.find((entry) => entry.id === "meta") as {
       display?: { name?: string };

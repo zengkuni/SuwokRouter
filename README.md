@@ -37,6 +37,7 @@ dashboard to manage models, routing, and usage.
 - [Dashboard](#the-dashboard-you-actually-want-to-use)
 - [Migrate from 9Router](#migrate-from-9router)
 - [Providers](#providers)
+- [Supported CLI Tools](#supported-cli-tools)
 - [Features](#what-sway-router-can-do)
 - [Comparison](#sway-router-vs-9router-vs-omniroute)
 - [Operations and security](#operations-and-security)
@@ -386,6 +387,19 @@ Perplexity AI uses the official [Perplexity Router API](https://docs.perplexity.
 | Provider | ID |
 | --- | --- |
 | OpenCode Free | `opencode` |
+
+## Supported CLI Tools
+
+Sway Router can detect and configure these coding tools to use the gateway:
+
+- Claude Code
+- Codex CLI
+- OpenCode
+- Hermes Agent
+- Claude Cowork
+- Kilo Code
+- Grok Build
+- OMP (oh-my-pi)
 
 ## What Sway Router can do
 

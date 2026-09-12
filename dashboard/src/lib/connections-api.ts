@@ -46,6 +46,12 @@ export type AvailableProvider = {
   apiType?: string;
 
   authModes?: string[];
+  models?: Array<{
+    id: string;
+    name?: string;
+    capabilities?: Record<string, unknown>;
+    thinkingLevels?: string[];
+  }>;
   thinkingConfig?: {
     options?: string[];
     defaultMode?: string;
@@ -404,7 +410,9 @@ export async function testProviderKey(body: {
 
 export async function testCodeBuddyToken(body: {
   provider: string;
-  credentialToken: string;
+  credentialToken?: string;
+  accessToken?: string;
+  refreshToken?: string;
 }) {
   const { data } = await api.post<{
     valid: boolean;
