@@ -58,22 +58,45 @@ export function getDownloadStatus() {
   return { downloading: dlState.downloading, progress: dlState.progress };
 }
 
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function removeFile(filePath) {
+  try {
+    fs.unlinkSync(filePath);
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+}
+
 function downloadFile(url, dest) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(dest);
+    let settled = false;
+
+    const fail = (error) => {
+      if (settled) return;
+      settled = true;
+      dlState.downloading = false;
+      dlState.progress = 0;
+      file.destroy();
+      try { removeFile(dest); } catch {}
+      reject(error);
+    };
 
     https.get(url, (response) => {
       if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
-        file.close();
-        fs.unlinkSync(dest);
-        downloadFile(response.headers.location, dest).then(resolve).catch(reject);
+        response.resume();
+        file.destroy();
+        try { removeFile(dest); } catch (error) { fail(error); return; }
+        downloadFile(response.headers.location, dest).then(resolve).catch(fail);
         return;
       }
 
       if (response.statusCode !== 200) {
-        file.close();
-        fs.unlinkSync(dest);
-        reject(new Error(`Download failed with status ${response.statusCode}`));
+        response.resume();
+        fail(new Error(`Download failed with status ${response.statusCode}`));
         return;
       }
 
@@ -90,25 +113,18 @@ function downloadFile(url, dest) {
       response.pipe(file);
 
       file.on("finish", () => {
-        dlState.downloading = false;
-        dlState.progress = 100;
-        file.close(() => resolve(dest));
+        file.once("close", () => {
+          if (settled) return;
+          settled = true;
+          dlState.downloading = false;
+          dlState.progress = 100;
+          resolve(dest);
+        });
       });
 
-      file.on("error", (err) => {
-        dlState.downloading = false;
-        dlState.progress = 0;
-        file.close();
-        fs.unlinkSync(dest);
-        reject(err);
-      });
-    }).on("error", (err) => {
-      dlState.downloading = false;
-      dlState.progress = 0;
-      file.close();
-      if (fs.existsSync(dest)) fs.unlinkSync(dest);
-      reject(err);
-    });
+      file.on("error", fail);
+      response.on("error", fail);
+    }).on("error", fail);
   });
 }
 
@@ -131,6 +147,38 @@ function isValidBinary(filePath) {
   }
 }
 
+async function installDownloadedBinary(downloadPath) {
+  if (!isValidBinary(downloadPath)) {
+    throw new Error("Downloaded cloudflared binary is invalid");
+  }
+
+  let lastError = null;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    try {
+      if (fs.existsSync(BIN_PATH)) removeFile(BIN_PATH);
+      fs.renameSync(downloadPath, BIN_PATH);
+      if (!isValidBinary(BIN_PATH)) throw new Error("Installed cloudflared binary is invalid");
+      return;
+    } catch (error) {
+      lastError = error;
+      if (IS_WINDOWS && fs.existsSync(downloadPath)) {
+        try {
+          fs.copyFileSync(downloadPath, BIN_PATH);
+          if (isValidBinary(BIN_PATH)) {
+            try { removeFile(downloadPath); } catch {}
+            return;
+          }
+        } catch (copyError) {
+          lastError = copyError;
+        }
+      }
+      await wait(150 * (attempt + 1));
+    }
+  }
+
+  throw new Error(`Unable to install cloudflared binary: ${lastError?.message || "unknown file error"}`);
+}
+
 let downloadPromise = null;
 
 export async function ensureCloudflared() {
@@ -146,7 +194,9 @@ async function _ensureCloudflared() {
 
   const tmpPath = `${BIN_PATH}.tmp`;
   if (fs.existsSync(tmpPath)) {
-    try { fs.unlinkSync(tmpPath); } catch {              }
+    try { removeFile(tmpPath); } catch (error) {
+      throw new Error(`Unable to clear stale cloudflared download: ${error.message}`);
+    }
   }
 
   if (fs.existsSync(BIN_PATH)) {
@@ -165,11 +215,16 @@ async function _ensureCloudflared() {
 
   await downloadFile(url, downloadDest);
 
-  if (isArchive) {
-    execSync(`tar -xzf "${downloadDest}" -C "${BIN_DIR}"`, { stdio: "pipe", windowsHide: true });
-    fs.unlinkSync(downloadDest);
-  } else {
-    fs.renameSync(downloadDest, BIN_PATH);
+  try {
+    if (isArchive) {
+      execSync(`tar -xzf "${downloadDest}" -C "${BIN_DIR}"`, { stdio: "pipe", windowsHide: true });
+      removeFile(downloadDest);
+    } else {
+      await installDownloadedBinary(downloadDest);
+    }
+  } catch (error) {
+    try { removeFile(downloadDest); } catch {}
+    throw error;
   }
 
   if (!IS_WINDOWS) {
