@@ -32,6 +32,7 @@ dashboard to manage models, routing, and usage.
 ## Contents
 
 - [Get started](#get-started)
+- [Uninstall](#uninstall)
 - [Requirements](#requirements)
 - [HTTP API](#one-http-api-for-your-whole-stack)
 - [Dashboard](#the-dashboard-you-actually-want-to-use)
@@ -96,6 +97,21 @@ installed, skip the first step.
 
 The CLI keeps Sway Router's runtime data under `%APPDATA%\.swayrouter`.
 You do not need to create a `.env` file for a normal local install.
+
+### Uninstall
+
+Stop the local router before removing the global CLI:
+
+```powershell
+swayrouter stop
+bun remove -g swayrouter
+```
+
+If you installed it with npm, use `npm uninstall -g swayrouter` instead.
+Uninstalling the package does not remove your provider credentials, settings,
+API keys, or usage data. To remove those as well, export a JSON backup first,
+stop the router, then delete `%APPDATA%\.swayrouter` on Windows or
+`~/.swayrouter` on Linux/macOS.
 
 ### Windows — run from source
 
