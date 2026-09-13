@@ -2,6 +2,14 @@
 
 All notable changes to Sway Router are documented here.
 
+## [1.0.3] - 2026-09-13
+
+- Improve mobile and tablet responsiveness across the dashboard.
+- Fix provider connection and model lists being clipped or difficult to scroll on iOS.
+- Improve mobile status visibility and Sway Chat layout behavior.
+
+[1.0.3]: https://github.com/envielxyz/SwayRouter/releases/tag/v1.0.3
+
 ## [1.0.1] - 2026-09-12
 
 - Publish the Sway Router package as `swayrouter` on npm.

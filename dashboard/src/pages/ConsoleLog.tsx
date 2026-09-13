@@ -481,7 +481,7 @@ export default function ConsoleLog() {
   const shownCount = visible.length;
 
   return (
-    <div className="space-y-4">
+    <div className="flex min-h-full min-w-0 max-w-full flex-col gap-4 overflow-x-hidden lg:h-full">
       <Header
         title="Console Logs"
         actions={
@@ -497,8 +497,8 @@ export default function ConsoleLog() {
         }
       />
 
-      <Frame className="overflow-hidden">
-        <FrameHeader className="gap-3 border-b border-border px-3 py-3 sm:px-4">
+      <Frame className="flex min-h-[24rem] min-w-0 flex-1 flex-col overflow-hidden">
+        <FrameHeader className="shrink-0 gap-3 border-b border-border px-3 py-3 sm:px-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-2">
               <StatusDot status={connected ? "active" : "down"} pulse={connected} />
@@ -558,7 +558,7 @@ export default function ConsoleLog() {
           </div>
         </FrameHeader>
 
-        <FramePanel className="border-b border-border p-2">
+        <FramePanel className="shrink-0 border-b border-border p-2">
           <div className="flex gap-1 overflow-x-auto" role="group" aria-label="Filter logs by level">
             <LevelFilter
               label="All"
@@ -580,13 +580,13 @@ export default function ConsoleLog() {
           </div>
         </FramePanel>
 
-        <FramePanel className="min-h-0 p-0">
+        <FramePanel className="flex min-h-0 min-w-0 flex-1 p-0">
           <ScrollArea
             overscrollContain
             scrollFade
             scrollbarGutter
             viewportRef={viewportRef}
-            className="h-[calc(100dvh-285px)] min-h-[24rem]"
+            className="min-h-0 flex-1"
           >
             <div className="font-mono text-xs leading-relaxed">
               {visible.length === 0 ? (

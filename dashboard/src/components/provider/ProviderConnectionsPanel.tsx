@@ -130,10 +130,9 @@ export function ProviderConnectionsPanel({
   return (
                   <TabsContent
                     value="connections"
-                    keepMounted
-                    className="flex min-h-0 h-full flex-1 flex-col overflow-hidden p-1.5 sm:p-5"
+                    className="flex min-h-0 min-w-0 flex-1 basis-0 flex-col overflow-hidden p-1.5 sm:p-5"
                   >
-                    <div className="flex min-h-0 h-full flex-1 flex-col gap-1.5 overflow-hidden sm:gap-3">
+                    <div className="flex min-h-0 min-w-0 flex-1 basis-0 flex-col gap-1.5 overflow-hidden sm:gap-3">
                       <div className="flex shrink-0 flex-wrap items-end justify-between gap-2">
                         <div className="min-w-0 flex-1 space-y-1.5 sm:space-y-2">
                           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 sm:gap-x-3 sm:gap-y-2">
@@ -444,7 +443,7 @@ export function ProviderConnectionsPanel({
                                             ) : null}
                                             {result && !result.ok ? (
                                               <>
-                                                <span className="max-w-[4.5rem] shrink truncate text-[10px] font-medium text-destructive sm:max-w-none">
+                                                <span className="hidden max-w-[4.5rem] shrink truncate text-[10px] font-medium text-destructive sm:inline sm:max-w-none">
                                                   {result.label}
                                                 </span>
                                                 <Tooltip label="Copy full error">
@@ -498,6 +497,37 @@ export function ProviderConnectionsPanel({
                                               </>
                                             ) : null}
                                           </div>
+                                          {result || healthStatus || checkedLabel || credentialStale ? (
+                                            <div className="mt-1 flex flex-wrap items-center gap-1.5 sm:hidden">
+                                            {result ? (
+                                              <Tooltip label={result.message || result.label}>
+                                                <StatusBadge
+                                                  tone={result.ok ? "ok" : "err"}
+                                                  className="text-[10px] font-semibold"
+                                                >
+                                                  {result.ok ? "Success" : result.label}
+                                                </StatusBadge>
+                                              </Tooltip>
+                                            ) : healthStatus ? (
+                                              <StatusBadge
+                                                tone={healthStatus === "healthy" ? "ok" : "err"}
+                                                className="text-[10px] font-semibold"
+                                              >
+                                                {healthStatus === "healthy" ? "Healthy" : "Error"}
+                                              </StatusBadge>
+                                            ) : null}
+                                            {checkedLabel ? (
+                                              <span className="text-[10px] text-muted-foreground">
+                                                checked {checkedLabel}
+                                              </span>
+                                            ) : null}
+                                            {credentialStale ? (
+                                              <StatusBadge tone="warn" className="text-[10px] font-semibold">
+                                                Stale
+                                              </StatusBadge>
+                                            ) : null}
+                                            </div>
+                                          ) : null}
                                         </div>
                                       </div>
                                       <div className="ml-auto flex shrink-0 flex-nowrap items-center gap-0.5 sm:gap-1.5">

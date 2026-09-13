@@ -5,7 +5,6 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { TestBtn } from "@/components/provider/TestBtn";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip } from "@/components/ui/tooltip";
 import { TabsContent } from "@/components/ui/tabs";
 import { type AvailableProvider } from "@/lib/connections-api";
@@ -84,14 +83,9 @@ export function ProviderModelsPanel({
   onToggleDisabled,
 }: ProviderModelsPanelProps) {
   return (
-                  <TabsContent value="models" className="min-h-0 flex-1 basis-0">
-                    <ScrollArea
-                      overscrollContain
-                      scrollFade
-                      scrollbarGutter
-                      className="h-full"
-                    >
-                    <div className="space-y-3 p-3 sm:p-5">
+                  <TabsContent value="models" className="flex min-h-0 min-w-0 flex-1 basis-0 flex-col overflow-hidden">
+                    <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch]">
+                    <div className="min-w-0 space-y-3 p-3 sm:p-5">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <span className="text-xs text-muted-foreground">
                           {visibleModels.length} models
@@ -130,33 +124,36 @@ export function ProviderModelsPanel({
                           ) : null}
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="grid min-w-0 grid-cols-1 gap-2 sm:flex">
                         <Input
                           placeholder="Search models…"
                           value={modelQuery}
                           onChange={(e) => onModelQueryChange(e.target.value)}
-                          className="min-w-0 flex-1"
+                          className="min-w-0 sm:flex-1"
                         />
-                        <Input
-                          placeholder="model-id"
-                          value={newModel}
-                          disabled={addingModel}
-                          onChange={(e) => onNewModelChange(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key !== "Enter") return;
-                            void onAddModel();
-                          }}
-                          className="min-w-0 flex-1"
-                        />
-                        <RippleButton
-                          size="sm"
-                          variant="outline"
-                          disabled={addingModel || !newModel.trim()}
-                          onClick={() => void onAddModel()}
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                          Add
-                        </RippleButton>
+                        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2 sm:contents">
+                          <Input
+                            placeholder="model-id"
+                            value={newModel}
+                            disabled={addingModel}
+                            onChange={(e) => onNewModelChange(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key !== "Enter") return;
+                              void onAddModel();
+                            }}
+                            className="min-w-0"
+                          />
+                          <RippleButton
+                            size="sm"
+                            variant="outline"
+                            disabled={addingModel || !newModel.trim()}
+                            onClick={() => void onAddModel()}
+                            className="w-full sm:w-auto"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            Add
+                          </RippleButton>
+                        </div>
                       </div>
                       {modelsLoading ? (
                         <p className="text-sm text-muted-foreground">Loading models…</p>
@@ -227,7 +224,7 @@ export function ProviderModelsPanel({
                                           <Tooltip label={r.message || r.label}>
                                             <StatusBadge
                                               tone={r.ok ? "ok" : "err"}
-                                              className="max-w-[9rem] truncate text-[10px]"
+                                              className="max-w-[9rem] truncate text-[10px] font-semibold"
                                             >
                                               {r.label}
                                             </StatusBadge>
@@ -371,7 +368,7 @@ export function ProviderModelsPanel({
                         </motion.div>
                       )}
                     </div>
-                    </ScrollArea>
+                    </div>
                   </TabsContent>
   );
 }
