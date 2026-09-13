@@ -112,8 +112,8 @@ export function ProtectedLayout() {
                 isSwayChatRoute
                   ? "hidden"
                   : location.pathname === "/dashboard/provider"
-                    ? "overflow-hidden"
-                    : "overflow-y-auto"
+                    ? "overflow-x-hidden overflow-y-auto lg:overflow-hidden"
+                    : "overflow-x-hidden overflow-y-auto"
               )}
             >
               <Outlet />

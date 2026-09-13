@@ -1275,7 +1275,7 @@ export default function SwayChat() {
   }
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 w-full max-w-full overflow-x-hidden pb-2">
+    <div className="flex h-full min-h-0 min-w-0 w-full max-w-full flex-col overflow-hidden pb-[max(0.25rem,env(safe-area-inset-bottom))] sm:pb-2">
       <div className="flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col gap-0">
         <Header
           title="Sway Chat"
@@ -1308,7 +1308,7 @@ export default function SwayChat() {
         ) : null}
 
         <Frame className="flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-hidden rounded-xl bg-transparent p-0 sm:rounded-2xl sm:bg-muted/72 sm:p-1">
-          <FramePanel className="flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-hidden rounded-lg border-border/80 p-0 sm:rounded-xl">
+          <FramePanel className="flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-hidden rounded-lg border border-border/80 p-0 sm:rounded-xl sm:border-x sm:border-b sm:border-t-0">
             <ScrollArea viewportRef={transcriptViewportRef} onScroll={handleTranscriptScroll} overscrollContain scrollbarGutter className="min-h-0 min-w-0 w-full max-w-full flex-1">
               <div className="w-full min-w-0 max-w-full px-2.5 py-3 sm:px-5 sm:py-4">
                 {!isNearBottom && messages.length > 0 ? (
@@ -1455,8 +1455,8 @@ export default function SwayChat() {
                       </button>
                       <AnimatePresence>
                       {modelMenuOpen ? (
-                        <motion.div initial={{ opacity: 0, scale: 0.95, y: 6 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97, y: 4 }} transition={{ type: "spring", stiffness: 420, damping: 30, mass: 0.5 }} className="absolute bottom-[calc(100%+6px)] left-0 z-40 w-[min(20rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)]">
-                          <div className="flex h-72 max-h-[min(18rem,calc(100vh-8rem))] min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card">
+                        <motion.div initial={{ opacity: 0, scale: 0.95, y: 6 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97, y: 4 }} transition={{ type: "spring", stiffness: 420, damping: 30, mass: 0.5 }} className="absolute bottom-[calc(100%+6px)] left-0 z-40 w-[min(20rem,calc(100vw-4rem))] max-w-[calc(100vw-4rem)] sm:w-[min(20rem,calc(100vw-2rem))] sm:max-w-[calc(100vw-2rem)]">
+                          <div className="flex h-72 max-h-[min(18rem,calc(100dvh-8rem))] min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card">
                             <div className="shrink-0 border-b border-border bg-card p-1.5">
                                <div className="relative"><Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" /><Input ref={searchRef} value={modelQuery} onChange={(e) => setModelQuery(e.target.value)} placeholder="Search models…" aria-label="Search models" className="h-8 pl-7 text-xs" /></div>
                             </div>

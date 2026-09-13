@@ -521,7 +521,7 @@ export default function QuotaMonitor() {
     || usageQueries.some((query) => query?.isFetching);
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 max-w-full space-y-4 overflow-x-hidden">
       <Header
         title="Quota"
         actions={
@@ -623,7 +623,7 @@ function ProviderSection({
   resettingId: string | null;
 }) {
   return (
-    <Frame>
+    <Frame className="min-w-0 max-w-full overflow-hidden">
       <FrameHeader className="flex flex-row items-start justify-between gap-3 p-4">
         <div className="flex min-w-0 items-center gap-3">
           <ProviderMark provider={group.provider} />
@@ -647,7 +647,7 @@ function ProviderSection({
         </Tooltip>
       </FrameHeader>
 
-      <FramePanel className="p-3">
+      <FramePanel className="min-w-0 p-3">
         {pageState.error ? (
           <div className="mb-3 rounded-lg border border-destructive/25 bg-destructive/10 px-3 py-2 text-[11px] text-destructive">
             Some {providerName(group.provider)} accounts could not be loaded. Refresh this section to retry.
@@ -725,7 +725,7 @@ function ProviderCard({
     : card.quotas.slice(0, QUOTA_VISIBLE_ROWS);
 
   return (
-    <Frame className="flex flex-col">
+    <Frame className="flex min-w-0 flex-col overflow-hidden">
       <FrameHeader className="flex flex-row items-start justify-between gap-3 p-4">
         <div className="flex min-w-0 items-center gap-2">
           <ProviderMark provider={conn.provider} />
@@ -754,7 +754,7 @@ function ProviderCard({
         </div>
       </FrameHeader>
 
-      <FramePanel className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+      <FramePanel className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 p-4">
         {card.plan ? (
           <Badge variant="outline" className="w-fit text-[10px]">
             {card.plan}
@@ -844,7 +844,7 @@ function QuotaRow({ quota }: { quota: NormalizedQuota }) {
   const countdown = formatResetTime(quota.resetAt);
   const resetWord = quota.recurring ? "Reset" : "Expires";
   return (
-    <div className="space-y-1.5">
+    <div className="min-w-0 space-y-1.5 overflow-hidden">
       <div className="flex items-center justify-between gap-2">
         <span className="min-w-0 truncate text-xs font-medium">{quota.name}</span>
         <span className={cn("shrink-0 text-xs font-medium tabular-nums", colors.text)}>

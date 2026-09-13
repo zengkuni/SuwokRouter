@@ -458,7 +458,7 @@ export default function Usage() {
 
   return (
 
-    <div className="flex h-full min-h-0 w-full flex-col gap-2.5">
+    <div className="flex min-h-full h-auto w-full min-w-0 flex-col gap-2.5 overflow-x-hidden lg:h-full">
       <Header
         className="mb-0 shrink-0 sm:mb-0"
         title="Usage & Cost"
@@ -549,7 +549,7 @@ export default function Usage() {
         </Frame>
       </div>
 
-      <Frame className="flex min-h-0 flex-1 flex-col rounded-xl bg-transparent p-0 sm:rounded-2xl sm:bg-muted/72 sm:p-1">
+      <Frame className="flex min-h-[24rem] flex-none flex-col rounded-xl bg-transparent p-0 sm:rounded-2xl sm:bg-muted/72 sm:p-1 lg:min-h-0 lg:flex-1">
         <FrameHeader className="border-b border-border/70 px-3 py-3 sm:border-0 sm:px-5 sm:py-4">
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
             <div>

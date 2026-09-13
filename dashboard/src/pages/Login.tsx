@@ -71,6 +71,7 @@ export default function Login() {
                 placeholder="Password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
+                autoComplete="current-password"
                 autoFocus
                 required
                 className="pr-10"
