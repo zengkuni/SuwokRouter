@@ -62,7 +62,7 @@ export function ProviderSidebar({
           className={cn(
             "flex shrink-0 flex-col overflow-hidden",
 
-            "w-full h-[24dvh] max-h-[24dvh] min-h-0 sm:h-[30dvh] sm:max-h-[30dvh] lg:h-full lg:max-h-none lg:min-h-0 lg:w-[300px] xl:w-[340px]"
+            "w-full h-[30dvh] max-h-[30dvh] min-h-[13rem] sm:h-[30dvh] sm:max-h-[30dvh] lg:h-full lg:max-h-none lg:min-h-0 lg:w-[300px] xl:w-[340px]"
           )}
         >
           <FrameHeader className="space-y-1.5 border-b border-border p-2.5 sm:space-y-2 sm:p-4">

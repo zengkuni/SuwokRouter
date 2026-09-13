@@ -627,19 +627,26 @@ export default function Provider() {
     getScrollElement: () => connListRef.current,
     estimateSize: () =>
       typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches
-        ? 48
+        ? 64
         : 72,
     overscan: 10,
     getItemKey: (index) => conns[index]?.id ?? index,
     enabled: detailTab === "connections",
   });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (detailTab !== "connections") return;
-    const id = requestAnimationFrame(() => {
+    let secondFrame = 0;
+    const firstFrame = requestAnimationFrame(() => {
       connVirtualizer.measure();
+      secondFrame = requestAnimationFrame(() => {
+        connVirtualizer.measure();
+      });
     });
-    return () => cancelAnimationFrame(id);
+    return () => {
+      cancelAnimationFrame(firstFrame);
+      cancelAnimationFrame(secondFrame);
+    };
   }, [detailTab, conns.length, selectedId, connVirtualizer]);
 
   useEffect(() => {
@@ -1631,7 +1638,7 @@ export default function Provider() {
 
     <div
       className={cn(
-        "flex h-full w-full flex-col gap-1.5 overflow-hidden sm:gap-3 lg:gap-4"
+        "flex min-h-full h-auto w-full flex-col gap-1.5 overflow-visible sm:gap-3 lg:h-full lg:gap-4 lg:overflow-hidden"
       )}
     >
       <Header
@@ -1648,7 +1655,7 @@ export default function Provider() {
         }
       />
 
-      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden sm:gap-3 lg:flex-row lg:gap-4">
+      <div className="flex min-h-0 flex-none flex-col gap-2 overflow-visible sm:gap-3 lg:flex-1 lg:flex-row lg:gap-4 lg:overflow-hidden">
         <ProviderSidebar
           byProvider={byProvider}
           filter={filter}
@@ -1663,7 +1670,7 @@ export default function Provider() {
           onSelectProvider={selectProvider}
           onToggleProviderHidden={toggleProviderHidden}
         />
-        <Frame className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <Frame className="flex min-h-[32rem] min-w-0 flex-none flex-col overflow-hidden lg:min-h-0 lg:flex-1">
           {!selected ? (
             <div className="flex flex-1 items-center justify-center p-6 text-sm text-muted-foreground">
               Select a provider
