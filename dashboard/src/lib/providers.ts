@@ -184,6 +184,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   nvidia: HardDrive,
   ollama: Boxes,
   opencode: Terminal,
+  "opencode-zen": Terminal,
   "opencode-go": Terminal,
   perplexity: Search,
   poolside: Waves,
@@ -285,6 +286,7 @@ const ALIAS_TO_CANONICAL: Record<string, string> = (() => {
     kr: "kiro",
     mimo: "xiaomi-mimo",
     ocg: "opencode-go",
+    ocz: "opencode-zen",
   });
   return map;
 })();

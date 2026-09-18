@@ -10,7 +10,7 @@ export type ProviderType =
   | "groq" | "kilo-gateway" | "kilocode" | "kimchi" | "kimi"
   | "kiro" | "minimax" | "minimax-cn" | "mistral"
   | "morph" | "nebius" | "nvidia" | "ollama" | "ollama-local"
-  | "openai" | "opencode" | "opencode-go" | "openrouter" | "perplexity"
+  | "openai" | "opencode" | "opencode-zen" | "opencode-go" | "openrouter" | "perplexity"
   | "poolside" | "qoder" | "tencent"
   | "together" | "trae" | "venice" | "vercel-ai-gateway"
   | "sumopod" | "vertex" | "vertex-partner" | "windsurf" | "xai" | "xiaomi-mimo"

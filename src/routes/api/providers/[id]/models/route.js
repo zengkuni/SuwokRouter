@@ -14,6 +14,7 @@ import { resolveCodeBuddyModels } from "open-sse/services/codebuddyModels.js";
 import { getCapabilitiesForModel } from "open-sse/providers/capabilities.js";
 import { getThinkingLevels } from "open-sse/providers/thinkingLevels.js";
 import { AGENTROUTER_MODELS_URL, AGENTROUTER_OPENAI_HEADERS } from "open-sse/providers/shared.js";
+import { OPENCODE_USER_AGENT } from "open-sse/utils/opencode.js";
 import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy.js";
 import { logRouteError } from "@/lib/errors/publicError";
 
@@ -243,6 +244,33 @@ const PROVIDER_MODELS_CONFIG = {
   },
   "codebuddy-intl": {
     customResolver: async () => ({ models: getStaticProviderModels("codebuddy-intl") }),
+  },
+  opencode: {
+    customResolver: async () => ({ models: getStaticProviderModels("opencode") }),
+  },
+  "opencode-zen": {
+    url: "https://opencode.ai/zen/v1/models",
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "User-Agent": OPENCODE_USER_AGENT,
+      "x-opencode-client": "desktop",
+    },
+    authHeader: "Authorization",
+    authPrefix: "Bearer ",
+    parseResponse: parseOpenAIStyleModels,
+  },
+  "opencode-go": {
+    url: "https://opencode.ai/zen/go/v1/models",
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "User-Agent": OPENCODE_USER_AGENT,
+      "x-opencode-client": "desktop",
+    },
+    authHeader: "Authorization",
+    authPrefix: "Bearer ",
+    parseResponse: parseOpenAIStyleModels,
   },
   antigravity: {
     customResolver: buildOAuthResolver({

@@ -9,6 +9,7 @@ import { normalizeProviderId } from "@/lib/providerNormalization";
 import { logRouteError } from "@/lib/errors/publicError";
 import { KiroService } from "@/lib/oauth/services/kiro";
 import { AGENTROUTER_MODELS_URL, AGENTROUTER_OPENAI_HEADERS } from "open-sse/providers/shared.js";
+import { OPENCODE_USER_AGENT } from "open-sse/utils/opencode.js";
 import { resolveCodeBuddyModels } from "@/services/codebuddyModels.js";
 
 const VALIDATION_TIMEOUT_MS = 15000;
@@ -393,18 +394,20 @@ export async function POST(request) {
           break;
         }
 
+        case "opencode-zen":
         case "opencode-go": {
-          const res = await fetchWithTimeout("https://opencode.ai/zen/go/v1/chat/completions", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-            body: JSON.stringify({
-              model: getDefaultModel("opencode-go"),
-              messages: [{ role: "user", content: "ping" }],
-              max_tokens: 1,
-              stream: false,
-            }),
-          });
-          isValid = res.status !== 401 && res.status !== 403;
+          const res = await fetchWithTimeout(
+            provider === "opencode-go" ? "https://opencode.ai/zen/go/v1/models" : "https://opencode.ai/zen/v1/models",
+            {
+            method: "GET",
+            headers: {
+              "Authorization": `Bearer ${apiKey}`,
+              "User-Agent": OPENCODE_USER_AGENT,
+              "x-opencode-client": "desktop",
+            },
+            },
+          );
+          isValid = res.ok;
           break;
         }
 

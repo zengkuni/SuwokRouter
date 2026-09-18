@@ -2,6 +2,14 @@
 
 All notable changes to Sway Router are documented here.
 
+## [1.0.4] - 2026-09-19
+
+- Add OpenCode Free, Zen, and Go support with official endpoints, model discovery, and authentication validation.
+- Handle OpenCode fingerprint headers, tool compatibility, streaming, Responses, and Anthropic Messages transports.
+- Keep OpenCode keyless Free setup clear by hiding connection controls when no API key is required.
+
+[1.0.4]: https://github.com/envielxyz/SwayRouter/releases/tag/v1.0.4
+
 ## [1.0.3] - 2026-09-13
 
 - Improve mobile and tablet responsiveness across the dashboard.

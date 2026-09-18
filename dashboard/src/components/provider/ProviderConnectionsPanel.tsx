@@ -312,19 +312,25 @@ export function ProviderConnectionsPanel({
 
                       {connsAll.length === 0 ? (
                         <div className="rounded-lg border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
-                          No connections yet
-                          <div className="mt-3">
-                            <RippleButton
-                              size="sm"
-                              onClick={onOpenAddConnection}
-                            >
-                              <Plus className="h-3.5 w-3.5" />
-                              {connectionCtaLabel(
-                                selected.authType,
-                                selected.noAuth
-                              )}
-                            </RippleButton>
-                          </div>
+                          {selected.noAuth ? (
+                            "No connection required"
+                          ) : (
+                            <>
+                              No connections yet
+                              <div className="mt-3">
+                                <RippleButton
+                                  size="sm"
+                                  onClick={onOpenAddConnection}
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                  {connectionCtaLabel(
+                                    selected.authType,
+                                    selected.noAuth
+                                  )}
+                                </RippleButton>
+                              </div>
+                            </>
+                          )}
                         </div>
                       ) : conns.length === 0 ? (
                         <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
