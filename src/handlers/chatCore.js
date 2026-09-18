@@ -83,7 +83,9 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   const modelTargetFormat = getModelTargetFormat(alias, model);
 
   const runtimeTransport = resolveTransport(provider, sourceFormat);
-  const targetFormat = modelTargetFormat || runtimeTransport?.format || getTargetFormat(provider, credentials);
+  const executor = getExecutor(provider);
+  const defaultTargetFormat = modelTargetFormat || runtimeTransport?.format || getTargetFormat(provider, credentials);
+  const targetFormat = executor.resolveTargetFormat?.(model, defaultTargetFormat) || defaultTargetFormat;
   if (runtimeTransport && credentials) credentials.runtimeTransport = runtimeTransport;
 
   const canonicalRequest = normalizeTranslationRequest({
@@ -308,7 +310,6 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     log, provider, model, reqTag
   });
 
-  const executor = getExecutor(provider);
   const executeOptions = {
     model, body: translatedBody, stream, credentials,
     signal: streamController.signal, log, proxyOptions,

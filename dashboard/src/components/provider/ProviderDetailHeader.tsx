@@ -101,19 +101,21 @@ export function ProviderDetailHeader({
                       </Tooltip>
                     </>
                   ) : null}
-                  <div className="flex flex-wrap gap-2">
-                    <RippleButton
-                      size="sm"
-                      className="px-2 sm:px-3"
-                      onClick={onAddConnection}
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      <span className="hidden sm:inline">
-                        {connectionCtaLabel(selected.authType, selected.noAuth)}
-                      </span>
-                      <span className="sm:hidden">Add</span>
-                    </RippleButton>
-                  </div>
+                  {!selected.noAuth ? (
+                    <div className="flex flex-wrap gap-2">
+                      <RippleButton
+                        size="sm"
+                        className="px-2 sm:px-3"
+                        onClick={onAddConnection}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">
+                          {connectionCtaLabel(selected.authType, selected.noAuth)}
+                        </span>
+                        <span className="sm:hidden">Add</span>
+                      </RippleButton>
+                    </div>
+                  ) : null}
                 </div>
               </FrameHeader>
   );

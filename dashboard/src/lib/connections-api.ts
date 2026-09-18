@@ -41,6 +41,7 @@ export type AvailableProvider = {
   isCustom?: boolean;
 
   passthroughModels?: boolean;
+  modelsFetcherUrl?: string;
   baseUrl?: string;
   nodeType?: string;
   apiType?: string;
@@ -715,6 +716,8 @@ export async function importModels(body: {
   }
   const type = body.provider?.toLowerCase().includes("openrouter")
     ? "openrouter-free"
+    : body.provider?.toLowerCase() === "opencode-zen"
+      ? "opencode-all"
     : body.provider?.toLowerCase().includes("opencode")
       ? "opencode-free"
       : body.provider?.toLowerCase().includes("mimo")

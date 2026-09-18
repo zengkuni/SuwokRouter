@@ -1,16 +1,16 @@
 import { BaseExecutor } from "./base.js";
 import { PROVIDERS } from "../config/providers.js";
 import { injectReasoningContent } from "../utils/reasoningContentInjector.js";
-import { ANTHROPIC_API_VERSION } from "../providers/shared.js";
+import { applyOpenCodeFingerprint, buildOpenCodeHeaders } from "../utils/opencode.js";
 
 const MESSAGES_FORMAT_MODELS = new Set([
   "minimax-m3",
   "minimax-m2.7",
-  "minimax-m2.5",
   "qwen3.7-max",
-  "qwen3.7-plus",
-  "qwen3.6-plus",
+  "claude-opus-5",
 ]);
+const RESPONSES_FORMAT_MODELS = new Set(["grok-4.5"]);
+const modelId = (model) => typeof model === "string" ? model.split("/").pop() : model;
 
 const BASE = "https://opencode.ai/zen/go/v1";
 
@@ -19,29 +19,36 @@ export class OpenCodeGoExecutor extends BaseExecutor {
     super("opencode-go", PROVIDERS["opencode-go"]);
   }
 
+  resolveTargetFormat(model, currentFormat) {
+    const id = modelId(model);
+    if (RESPONSES_FORMAT_MODELS.has(id)) return "openai-responses";
+    return MESSAGES_FORMAT_MODELS.has(id) ? "claude" : currentFormat;
+  }
+
   buildUrl(model) {
-    this._lastModel = model;
-    return MESSAGES_FORMAT_MODELS.has(model)
+    return MESSAGES_FORMAT_MODELS.has(modelId(model))
       ? `${BASE}/messages`
       : `${BASE}/chat/completions`;
   }
 
-  buildHeaders(credentials, stream = true) {
-    const key = credentials?.apiKey || credentials?.accessToken;
-    const headers = { "Content-Type": "application/json" };
-
-    if (MESSAGES_FORMAT_MODELS.has(this._lastModel)) {
-      headers["x-api-key"] = key;
-      headers["anthropic-version"] = ANTHROPIC_API_VERSION;
-    } else {
-      headers["Authorization"] = `Bearer ${key}`;
-    }
-
-    if (stream) headers["Accept"] = "text/event-stream";
-    return headers;
+  buildHeaders(credentials, stream = true, _url, model) {
+    const id = modelId(model);
+    const format = RESPONSES_FORMAT_MODELS.has(id)
+      ? "responses"
+      : MESSAGES_FORMAT_MODELS.has(id)
+        ? "claude"
+        : "openai";
+    return buildOpenCodeHeaders(credentials, stream, { authorization: "", format });
   }
 
   transformRequest(model, body) {
-    return injectReasoningContent({ provider: this.provider, model, body });
+    const id = modelId(model);
+    const format = RESPONSES_FORMAT_MODELS.has(id)
+      ? "responses"
+      : MESSAGES_FORMAT_MODELS.has(id)
+        ? "claude"
+        : "openai";
+    const fingerprinted = applyOpenCodeFingerprint({ ...body }, format);
+    return injectReasoningContent({ provider: this.provider, model, body: fingerprinted });
   }
 }

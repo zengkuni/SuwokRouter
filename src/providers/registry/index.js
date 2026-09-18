@@ -45,7 +45,8 @@ import p43 from "./ollama.js";
 import p44 from "./openai.js";
 import p45 from "./opencode-go.js";
 import p46 from "./opencode.js";
-import p47 from "./openrouter.js";
+import p47 from "./opencode-zen.js";
+import p48 from "./openrouter.js";
 import p50 from "./perplexity.js";
 import p51 from "./poolside.js";
 import p52 from "./qoder.js";
@@ -69,7 +70,7 @@ const REGISTRY = [
   p10, p11, p12, p13, p14, p15, p16, p17, p18, p19,
   p20, p21, p22, p23, p24, p25, p26, p27, p28, p29,
   p30, p31, p32, p33, p34, p35, p36, p37, p38, p39,
-  p40, p41, p42, p43, p44, p45, p46, p47,
+  p40, p41, p42, p43, p44, p45, p46, p47, p48,
   p50, p51, p52, p53, p54, p55, p56, p57, p58, p59,
   p60, p61, p62, p63, p64, p65, p66,
 ];
