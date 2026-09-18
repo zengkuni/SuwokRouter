@@ -49,7 +49,7 @@ export function getProviderIconSrc(providerId?: string | null): string | null {
   if (canonical === "ollama-local") {
     return "/providers/ollama.svg";
   }
-  if (canonical === "opencode-go") {
+  if (canonical === "opencode-zen" || canonical === "opencode-go") {
     return "/providers/opencode.svg";
   }
   if (canonical === "perplexity") {

@@ -738,7 +738,7 @@ export default function Provider() {
       rows.push(...(connectionModelsQ.data ?? []));
       if (
         !testConnId &&
-        (providerId === "codebuddy-cn" || providerId === "codebuddy-intl")
+        (providerId === "codebuddy-cn" || providerId === "codebuddy-intl" || providerId === "opencode" || providerId === "opencode-zen" || providerId === "opencode-go")
       ) {
         rows.push(...normalizeProviderModelRows(selected.models, providerId));
       }
@@ -1065,7 +1065,7 @@ export default function Provider() {
         selectedProviderKeys.has(String(c.provider || "").trim().toLowerCase()) &&
         typeof c.providerSpecificData?.baseUrl === "string"
       )?.providerSpecificData?.baseUrl;
-      const baseUrl = selected.baseUrl || selectedNode?.baseUrl ||
+      const baseUrl = selected.baseUrl || selected.modelsFetcherUrl || selectedNode?.baseUrl ||
         (typeof connectionBaseUrl === "string" ? connectionBaseUrl : undefined);
       if (baseUrl) body.baseUrl = baseUrl;
 

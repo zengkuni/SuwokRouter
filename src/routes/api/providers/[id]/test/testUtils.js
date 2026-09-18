@@ -23,6 +23,7 @@ import {
 } from "@/lib/oauth/constants/oauth";
 import { buildClineHeaders } from "@/shared/utils/clineAuth";
 import { AGENTROUTER_MODELS_URL, AGENTROUTER_OPENAI_HEADERS } from "open-sse/providers/shared.js";
+import { OPENCODE_USER_AGENT } from "open-sse/utils/opencode.js";
 import { buildCodeBuddyModelHeaders } from "@/services/codebuddyModels.js";
 
 const OAUTH_TEST_CONFIG = {
@@ -763,13 +764,21 @@ async function testApiKeyConnection(connection, effectiveProxy = null) {
         const valid = res.status !== 401 && res.status !== 403;
         return { valid, error: valid ? null : "Invalid SSO cookie" };
       }
+      case "opencode-zen":
       case "opencode-go": {
-        const res = await fetchWithConnectionProxy("https://opencode.ai/zen/go/v1/chat/completions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${connection.apiKey}` },
-          body: JSON.stringify({ model: getDefaultModel("opencode-go"), messages: [{ role: "user", content: "ping" }], max_tokens: 1, stream: false }),
-        }, effectiveProxy);
-        const valid = res.status !== 401 && res.status !== 403;
+        const res = await fetchWithConnectionProxy(
+          connection.provider === "opencode-go" ? "https://opencode.ai/zen/go/v1/models" : "https://opencode.ai/zen/v1/models",
+          {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${connection.apiKey}`,
+            "User-Agent": OPENCODE_USER_AGENT,
+            "x-opencode-client": "desktop",
+          },
+          },
+          effectiveProxy,
+        );
+        const valid = res.ok;
         return { valid, error: valid ? null : "Invalid API key" };
       }
       case "xiaomi-mimo":

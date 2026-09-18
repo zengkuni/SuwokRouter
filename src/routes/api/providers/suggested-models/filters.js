@@ -17,6 +17,11 @@ export const FILTERS = {
       .filter((m) => m.id?.endsWith("-free") || KNOWN_FREE_OPENCODE_MODELS.includes(m.id))
       .map((m) => ({ id: m.id, name: m.id })),
 
+  "opencode-all": (models) =>
+    models
+      .filter((m) => typeof m?.id === "string")
+      .map((m) => ({ id: m.id, name: m.name || m.id })),
+
   "mimo-free": (models) =>
     (Array.isArray(models) ? models : [])
       .filter((m) => m.id?.startsWith("mimo") || m.name?.toLowerCase().includes("mimo"))

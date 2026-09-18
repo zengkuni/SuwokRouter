@@ -8,11 +8,12 @@ export async function GET() {
     const providers = REGISTRY.filter((r) => !r.hidden)
       .map((r) => {
         const display = r.display || {};
-        const staticModels = ["codebuddy-cn", "codebuddy-intl"].includes(r.id)
+        const staticModels = ["codebuddy-cn", "codebuddy-intl", "opencode", "opencode-go"].includes(r.id)
           && Array.isArray(r.models)
           ? r.models.map((model) => ({
             id: model.id,
             name: model.name || model.id,
+            ...(model.targetFormat ? { targetFormat: model.targetFormat } : {}),
           }))
           : [];
 
@@ -38,6 +39,7 @@ export async function GET() {
           ...(r.noAuth ? { noAuth: true } : {}),
           ...(r.hasOAuth ? { hasOAuth: true } : {}),
           ...(r.passthroughModels ? { passthroughModels: true } : {}),
+          ...(r.modelsFetcher?.url ? { modelsFetcherUrl: r.modelsFetcher.url } : {}),
           ...(r.thinkingConfig ? { thinkingConfig: r.thinkingConfig } : {}),
           ...(staticModels.length ? { models: staticModels } : {}),
           ...(display.color ? { color: display.color } : {}),
