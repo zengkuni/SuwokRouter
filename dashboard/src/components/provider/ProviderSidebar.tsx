@@ -198,7 +198,10 @@ export function ProviderSidebar({
                               </Badge>
                             </div>
                             <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-muted-foreground sm:gap-x-2 sm:text-[11px]">
-                              {authModeLabels(p.authType, p.noAuth, p.authModes).map(
+                              {(p.id === "opencode"
+                                ? ["Built-in"]
+                                : authModeLabels(p.authType, p.noAuth, p.authModes)
+                              ).map(
                                 (mode) => (
                                   <span
                                     key={mode}
@@ -209,7 +212,12 @@ export function ProviderSidebar({
                                   </span>
                                 )
                               )}
-                              {connectionCount > 0 ? (
+                              {p.id === "opencode" ? (
+                                <StatusBadge tone="ok" className="text-[10px] font-medium sm:text-[11px]">
+                                  Active
+                                </StatusBadge>
+                              ) : null}
+                              {p.id === "opencode" ? null : connectionCount > 0 ? (
                                 <>
                                   {inactive > 0 ? (
                                     <span className="inline-flex items-center gap-0.5 rounded bg-muted px-1 py-px text-[10px] font-medium text-muted-foreground sm:gap-1 sm:px-1.5 sm:text-[11px]">

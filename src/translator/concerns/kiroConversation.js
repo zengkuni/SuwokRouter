@@ -173,6 +173,7 @@ function normalizeTurns(history, currentMessage, modelId) {
   for (const turn of turns) {
     if (turn.userInputMessage) {
       turn.userInputMessage.content = text(turn.userInputMessage.content);
+      turn.userInputMessage.contentType ||= "text";
       turn.userInputMessage.modelId ||= modelId;
       if (turn.userInputMessage.userInputMessageContext?.tools) {
         delete turn.userInputMessage.userInputMessageContext.tools;

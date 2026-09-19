@@ -82,6 +82,9 @@ export function ProviderModelsPanel({
   disabledModelIds,
   onToggleDisabled,
 }: ProviderModelsPanelProps) {
+  const canTestModels = selected.noAuth === true || Boolean(testConnId);
+  const directCatalog = selected.noAuth === true;
+
   return (
                   <TabsContent value="models" className="flex min-h-0 min-w-0 flex-1 basis-0 flex-col overflow-hidden">
                     <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch]">
@@ -96,14 +99,14 @@ export function ProviderModelsPanel({
                               Add models manually
                             </span>
                           ) : selected.id !== "qoder" ? (
-                            <Tooltip label={testConnId ? "Fetch GET {base}/models with this connection’s key" : "Needs a connection (API key) on this provider — or set base URL on a custom node"}>
+                            <Tooltip label={directCatalog ? "Fetch the public model catalog without a connection" : testConnId ? "Fetch GET {base}/models with this connection’s key" : "Needs a connection (API key) on this provider — or set base URL on a custom node"}>
                               <RippleButton
                                 size="sm"
                                 variant="outline"
                                 disabled={importingModels}
                                 onClick={() => void onImportModels()}
                               >
-                                {importingModels ? "Importing…" : "Import"}
+                                {importingModels ? "Importing…" : directCatalog ? "Refresh" : "Import"}
                               </RippleButton>
                             </Tooltip>
                           ) : null}
@@ -113,7 +116,7 @@ export function ProviderModelsPanel({
                               busy={batchKind === "model"}
                               label="Test all"
                               disabled={
-                                !testConnId ||
+                                !canTestModels ||
                                 modelTestLock ||
                                 (batchKind !== null && batchKind !== "model") ||
                                 (testingModels.size > 0 && batchKind !== "model")
@@ -316,13 +319,13 @@ export function ProviderModelsPanel({
                                         compact
                                         busy={busy}
                                         disabled={
-                                          !testConnId ||
+                                          !canTestModels ||
                                           modelTestLock ||
                                           batchKind === "conn" ||
                                           (!checking && testingModels.size >= 4)
                                         }
                                         onTest={() =>
-                                          void onTestModel(m, testConnId)
+                                          void onTestModel(m, directCatalog ? undefined : testConnId)
                                         }
                                         onStop={() =>
                                           batchKind === "model"
@@ -335,13 +338,13 @@ export function ProviderModelsPanel({
                                       <TestBtn
                                         busy={busy}
                                         disabled={
-                                          !testConnId ||
+                                          !canTestModels ||
                                           modelTestLock ||
                                           batchKind === "conn" ||
                                           (!checking && testingModels.size >= 4)
                                         }
                                         onTest={() =>
-                                          void onTestModel(m, testConnId)
+                                          void onTestModel(m, directCatalog ? undefined : testConnId)
                                         }
                                         onStop={() =>
                                           batchKind === "model"

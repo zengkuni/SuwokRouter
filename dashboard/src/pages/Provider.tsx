@@ -35,6 +35,7 @@ import {
   usesConnectionModelCatalog,
   testConnection,
   testConnectionModels,
+  testModelDirect,
   toggleConnection,
   updateConnection,
   type AvailableProvider,
@@ -95,6 +96,12 @@ type Result = {
 
 const CONNECTION_PAGE_SIZE = 50;
 const MAX_LOADED_CONNECTIONS = 1_000;
+
+function isProviderActive(provider: AvailableProvider): boolean {
+  // OpenCode Free is a built-in public catalog, so it is active without
+  // account connections. Other providers remain connection-driven.
+  return provider.id === "opencode" || (provider.connected || 0) > 0;
+}
 
 export function compactErrorReason(input: string, maxLength = 42): string {
   let reason = input.trim();
@@ -540,9 +547,9 @@ export default function Provider() {
   const sorted = useMemo(() => {
     let list = [...providers];
     if (filter === "active") {
-      list = list.filter((p) => (p.connected || 0) > 0);
+      list = list.filter(isProviderActive);
     } else if (filter === "idle") {
-      list = list.filter((p) => (p.connected || 0) === 0);
+      list = list.filter((p) => !isProviderActive(p));
     }
     if (query.trim()) {
       const q = query.toLowerCase();
@@ -558,9 +565,9 @@ export default function Provider() {
       const ah = hiddenProviders.includes(a.id) ? 1 : 0;
       const bh = hiddenProviders.includes(b.id) ? 1 : 0;
       if (ah !== bh) return ah - bh;
-      const ac = a.connected || 0;
-      const bc = b.connected || 0;
-      if ((ac > 0 ? 1 : 0) !== (bc > 0 ? 1 : 0)) return bc - ac;
+      const ac = isProviderActive(a) ? 1 : 0;
+      const bc = isProviderActive(b) ? 1 : 0;
+      if (ac !== bc) return bc - ac;
       return (a.name || a.id).localeCompare(b.name || b.id);
     });
     return list;
@@ -611,6 +618,10 @@ export default function Provider() {
   }, [selectedId, settings]);
 
   const selected = sorted.find((p) => p.id === selectedId) || null;
+
+  useEffect(() => {
+    if (selected?.noAuth) setDetailTab("models");
+  }, [selectedId, selected?.noAuth]);
   const connsAll = useMemo(() => {
     const list = selected ? [...(byProvider.get(selected.id) || [])] : [];
     list.sort(
@@ -963,7 +974,8 @@ export default function Provider() {
     connectionId?: string,
     signal?: AbortSignal,
   ) {
-    if (!connectionId) {
+    const directNoAuthTest = selected?.noAuth === true;
+    if (!connectionId && !directNoAuthTest) {
       flash("Add a connection first");
       return false;
     }
@@ -988,7 +1000,25 @@ export default function Provider() {
     });
     try {
 
-      const data = await testConnectionModels(connectionId, {
+      if (directNoAuthTest) {
+        const providerAlias = selected?.alias || selected?.id || "opencode";
+        const routedModel = modelId.includes("/") ? modelId : `${providerAlias}/${modelId}`;
+        const data = await testModelDirect(routedModel, {
+          signal: requestSignal,
+        });
+        const ok = data.ok === true;
+        setModelResults((p) => ({
+          ...p,
+          [modelId]: formatTestResult({
+            ok,
+            status: data.status,
+            message: (data.error || "").trim() || (ok ? "OK" : "Failed"),
+            latencyMs: data.latencyMs,
+          }),
+        }));
+        return ok;
+      }
+      const data = await testConnectionModels(connectionId!, {
         model: modelId,
         signal: requestSignal,
       });
@@ -1195,7 +1225,8 @@ export default function Provider() {
   }
 
   async function runTestAllModels() {
-    if (!testConnId) return flash("Add a connection first");
+    const directNoAuthTest = selected?.noAuth === true;
+    if (!testConnId && !directNoAuthTest) return flash("Add a connection first");
     if (modelTestLockRef.current) return;
     if (modelTestControllersRef.current.size > 0) {
       return flash("Stop individual model tests before running Test all");
@@ -1216,7 +1247,11 @@ export default function Provider() {
         while (true) {
           const index = nextIndex++;
           if (index >= modelsToTest.length || ac.signal.aborted) return;
-          outcomes[index] = await runTestModel(modelsToTest[index], testConnId, ac.signal);
+          outcomes[index] = await runTestModel(
+            modelsToTest[index],
+            directNoAuthTest ? undefined : testConnId,
+            ac.signal,
+          );
         }
       };
       await Promise.all(Array.from({ length: concurrency }, () => worker()));
@@ -1688,19 +1723,21 @@ export default function Provider() {
 
               <FramePanel className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
                 <Tabs
-                  value={detailTab}
+                  value={selected.noAuth ? "models" : detailTab}
                   onValueChange={setDetailTab}
                   defaultValue="connections"
                   className="flex min-h-0 h-full flex-1 flex-col overflow-hidden"
                 >
                   <div className="shrink-0 border-b border-border px-2 py-2 sm:px-5 sm:py-3">
                     <TabsList>
-                      <TabsTrigger value="connections">Connection</TabsTrigger>
+                      {!selected.noAuth ? (
+                        <TabsTrigger value="connections">Connection</TabsTrigger>
+                      ) : null}
                       <TabsTrigger value="models">Models</TabsTrigger>
                     </TabsList>
                   </div>
 
-                  <ProviderConnectionsPanel
+                  {!selected.noAuth ? <ProviderConnectionsPanel
                     selected={selected}
                     connsAll={connsAll}
                     conns={conns}
@@ -1752,7 +1789,7 @@ export default function Provider() {
                     onToggleConnection={(id) => onToggle(id)}
                     onEditConnection={setEditConn}
                     onDeleteConnection={setDeleteId}
-                  />
+                  /> : null}
 
                   <ProviderModelsPanel
                     selected={selected}

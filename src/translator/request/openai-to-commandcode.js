@@ -18,6 +18,23 @@ function flattenText(content) {
   return String(content);
 }
 
+function imageSource(part) {
+  if (!part || typeof part !== "object") return null;
+  const source = part.type === OPENAI_BLOCK.IMAGE_URL ? part.image_url : part;
+  if (typeof source === "string") return source;
+  if (!source || typeof source !== "object") return null;
+  return source.url || source.data || source.image || null;
+}
+
+function imageMimeType(source, part) {
+  if (part?.mimeType || part?.mediaType) return part.mimeType || part.mediaType;
+  if (typeof source === "string") {
+    const match = source.match(/^data:([^;,]+)/i);
+    if (match) return match[1];
+  }
+  return "image/*";
+}
+
 function toContentBlocks(content) {
   if (content == null) return [{ type: OPENAI_BLOCK.TEXT, text: "" }];
   if (typeof content === "string") return [{ type: OPENAI_BLOCK.TEXT, text: content }];
@@ -30,7 +47,13 @@ function toContentBlocks(content) {
         if (part.type === OPENAI_BLOCK.TEXT && typeof part.text === "string") {
           blocks.push({ type: OPENAI_BLOCK.TEXT, text: part.text });
         } else if (part.type === OPENAI_BLOCK.IMAGE_URL || part.type === OPENAI_BLOCK.IMAGE) {
-          blocks.push({ type: OPENAI_BLOCK.TEXT, text: "[image omitted]" });
+          const source = imageSource(part);
+          if (source) {
+            const mimeType = imageMimeType(source, part);
+            blocks.push({ type: "image", image: source, mimeType, mediaType: mimeType });
+          }
+        } else if (part.type === "reasoning" && typeof part.text === "string") {
+          blocks.push({ type: "reasoning", text: part.text });
         } else if (typeof part.text === "string") {
           blocks.push({ type: OPENAI_BLOCK.TEXT, text: part.text });
         }
@@ -44,7 +67,27 @@ function toContentBlocks(content) {
 function safeParseJson(s) {
   if (s == null) return {};
   if (typeof s !== "string") return s;
-  try { return JSON.parse(s); } catch { return {}; }
+  try { return JSON.parse(s); } catch { return { _raw: s }; }
+}
+
+function toolResultValue(content) {
+  if (content == null) return "";
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return content.map((part) => toolResultValue(part)).filter(Boolean).join("\n");
+  }
+  if (typeof content === "object") {
+    if (content.type === "text" && (content.text != null || content.value != null)) {
+      return String(content.text ?? content.value);
+    }
+    if (content.type === "tool-result" || content.type === "tool_result") {
+      return toolResultValue(content.output ?? content.content ?? content.value);
+    }
+    if (content.output != null) return toolResultValue(content.output);
+    if (content.value != null) return toolResultValue(content.value);
+    try { return JSON.stringify(content); } catch { return String(content); }
+  }
+  return String(content);
 }
 
 function convertMessages(messages = []) {
@@ -62,14 +105,16 @@ function convertMessages(messages = []) {
     }
 
     if (role === ROLE.TOOL) {
-      const value = typeof m.content === "string" ? m.content : flattenText(m.content);
+      const resultBlock = Array.isArray(m.content)
+        ? m.content.find((part) => part && typeof part === "object" && (part.type === "tool-result" || part.type === "tool_result"))
+        : null;
       out.push({
         role: ROLE.TOOL,
         content: [{
           type: "tool-result",
           toolCallId: m.tool_call_id || "",
-          toolName: m.name || "",
-          output: { type: "text", value },
+          toolName: m.name || resultBlock?.toolName || resultBlock?.name || "",
+          output: { type: "text", value: toolResultValue(m.content) },
         }],
       });
       continue;
@@ -77,8 +122,12 @@ function convertMessages(messages = []) {
 
     if (role === ROLE.ASSISTANT) {
       const blocks = [];
-      const text = flattenText(m.content);
-      if (text) blocks.push({ type: OPENAI_BLOCK.TEXT, text });
+      if (Array.isArray(m.content)) {
+        blocks.push(...toContentBlocks(m.content));
+      } else {
+        const text = flattenText(m.content);
+        if (text) blocks.push({ type: OPENAI_BLOCK.TEXT, text });
+      }
       if (Array.isArray(m.tool_calls)) {
         for (const tc of m.tool_calls) {
           const fn = tc.function || {};
@@ -137,6 +186,8 @@ export function openaiToCommandCodeRequest(model, body, stream                  
   const tools = convertTools(body.tools);
   if (tools) params.tools = tools;
   if (body.top_p != null) params.top_p = body.top_p;
+  const reasoningEffort = body.reasoning_effort ?? (typeof body.reasoning === "object" ? body.reasoning?.effort : null);
+  if (typeof reasoningEffort === "string" && reasoningEffort) params.reasoning_effort = reasoningEffort;
 
   const today = new Date().toISOString().slice(0, 10);
 

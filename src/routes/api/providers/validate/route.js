@@ -417,12 +417,13 @@ export async function POST(request) {
           const payload = openaiToCommandCodeRequest(model, {
             messages: [{ role: "user", content: "ping" }],
             max_tokens: 1,
-            stream: false,
-          }, false);
+            stream: true,
+          }, true);
           const res = await fetchWithTimeout(cfg.baseUrl, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              "Accept": "text/event-stream",
               ...(cfg.headers || {}),
               "x-session-id": crypto.randomUUID(),
               "Authorization": `Bearer ${apiKey}`,
