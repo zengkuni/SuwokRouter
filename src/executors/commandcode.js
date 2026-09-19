@@ -10,7 +10,9 @@ export class CommandCodeExecutor extends BaseExecutor {
   }
 
   transformRequest(model, body, stream, credentials) {
-    body.stream = true;
+    if (body?.params && typeof body.params === "object") {
+      body.params.stream = true;
+    }
     return body;
   }
 
@@ -64,6 +66,7 @@ function wrapNdjsonAsOpenAISse(originalResponse, model) {
       }
     },
     flush(controller) {
+      buffer += decoder.decode();
       const trimmed = buffer.trim();
       if (trimmed) {
         emitChunks(commandCodeToOpenAIResponse(trimmed, state), controller);

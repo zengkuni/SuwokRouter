@@ -386,6 +386,23 @@ export async function testConnectionModels(
   return data;
 }
 
+export async function testModelDirect(
+  model: string,
+  opts?: { signal?: AbortSignal }
+) {
+  const { data } = await api.post<{
+    ok?: boolean;
+    error?: string | null;
+    latencyMs?: number;
+    status?: number;
+  }>(
+    "/models/test",
+    { model, kind: "llm" },
+    { signal: opts?.signal },
+  );
+  return data;
+}
+
 export async function testProviderKey(body: {
   provider: string;
   apiKey: string;

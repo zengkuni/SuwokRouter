@@ -24,8 +24,9 @@ export default createRegistryEntry({
     baseUrl: "https://api.commandcode.ai/alpha/generate",
     format: "commandcode",
     forceStream: true,
+    thinkingFormat: "commandcode",
     headers: {
-      "x-command-code-version": "0.25.7",
+      "x-command-code-version": "1.58.0",
       "x-cli-environment": "cli",
     },
   },
@@ -41,5 +42,7 @@ export default createRegistryEntry({
     { id: "Qwen/Qwen3.6-Max-Preview", name: "Qwen 3.6 Max Preview" },
     { id: "Qwen/Qwen3.6-Plus", name: "Qwen 3.6 Plus" },
     { id: "stepfun/Step-3.5-Flash", name: "Step 3.5 Flash" },
+    { id: "poolside/laguna-s-2.1-free", name: "Laguna S 2.1 Free" },
+    { id: "ling/ling-3.0-flash-sante", name: "Ling 3.0 Flash Sante" },
   ],
 });

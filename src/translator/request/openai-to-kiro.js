@@ -298,6 +298,7 @@ export function openaiToKiroRequest(model, body, stream, credentials) {
     connectionId: credentials?.connectionId,
     modelId: upstreamModel,
     systemPrompt,
+    contentPrefix: systemPrompt,
     history,
     currentMessage,
   });
@@ -319,6 +320,7 @@ export function openaiToKiroRequest(model, body, stream, credentials) {
       currentMessage: {
         userInputMessage: {
           content: replayCurrent.content || "",
+          contentType: replayCurrent.contentType || "text",
           modelId: upstreamModel,
           origin: "AI_EDITOR",
           ...(replayCurrent.images?.length > 0 && {
@@ -337,7 +339,6 @@ export function openaiToKiroRequest(model, body, stream, credentials) {
   if (profileArn) {
     payload.profileArn = profileArn;
   }
-  if (systemPrompt) payload.systemPrompt = systemPrompt;
   if (additionalModelRequestFields) {
     payload.additionalModelRequestFields = additionalModelRequestFields;
   }

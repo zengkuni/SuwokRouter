@@ -75,7 +75,7 @@ describe("prompt transparency", () => {
     expect(result.tools.map((tool) => tool.name)).toEqual(["user_tool"]);
   });
 
-  test("OpenAI to Kiro keeps system content out of user messages", () => {
+  test("OpenAI to Kiro embeds system content in the first user message", () => {
     const result = openaiToKiroRequest("claude-sonnet-4-5", {
       messages: [
         { role: "system", content: systemPrompt },
@@ -83,18 +83,24 @@ describe("prompt transparency", () => {
       ],
     }, true, { connectionId: "prompt-openai-kiro" });
 
-    expect(result.systemPrompt).toBe(systemPrompt);
-    expect(result.conversationState.currentMessage.userInputMessage.content).toBe("Hello");
+    expect(result.systemPrompt).toBeUndefined();
+    expect(result.conversationState.currentMessage.userInputMessage.content).toBe(
+      `${systemPrompt}\n\nHello`
+    );
+    expect(result.conversationState.currentMessage.userInputMessage.contentType).toBe("text");
   });
 
-  test("Claude to Kiro forwards only the caller system prompt", () => {
+  test("Claude to Kiro embeds only the caller system prompt in the first user message", () => {
     const result = claudeToKiroRequest("claude-sonnet-4-5-agentic", {
       system: [{ type: "text", text: systemPrompt }, { type: "text", text: developerPrompt }],
       messages: [{ role: "user", content: "Hello" }],
     }, true, { connectionId: "prompt-claude-kiro" });
 
-    expect(result.systemPrompt).toBe(`${systemPrompt}\n\n${developerPrompt}`);
-    expect(result.conversationState.currentMessage.userInputMessage.content).toBe("Hello");
+    expect(result.systemPrompt).toBeUndefined();
+    expect(result.conversationState.currentMessage.userInputMessage.content).toBe(
+      `${systemPrompt}\n\n${developerPrompt}\n\nHello`
+    );
+    expect(result.conversationState.currentMessage.userInputMessage.contentType).toBe("text");
   });
 
   test("Claude to OpenAI preserves top-level and message-level system content", () => {
@@ -120,6 +126,16 @@ describe("prompt transparency", () => {
     }, true, {});
 
     expect(result.instructions).toBe(`${systemPrompt}\n\n${developerPrompt}`);
+  });
+
+  test("OpenAI Chat Completions max_tokens becomes Responses max_output_tokens", () => {
+    const result = openaiToOpenAIResponsesRequest("muse-spark-1.3-contributor-free", {
+      messages: [{ role: "user", content: "Hello" }],
+      max_tokens: 128,
+    }, true, {});
+
+    expect(result.max_output_tokens).toBe(128);
+    expect(result.max_tokens).toBeUndefined();
   });
 
   test("OpenAI to Gemini combines all caller system messages", () => {
