@@ -269,6 +269,11 @@ export async function buildModelsList(kindFilter, options = {}) {
       activeConnectionByProvider.set(conn.provider, conn);
     }
   }
+  for (const [providerId, providerConfig] of Object.entries(PROVIDERS)) {
+    if (providerConfig?.noAuth === true && !activeConnectionByProvider.has(providerId)) {
+      activeConnectionByProvider.set(providerId, null);
+    }
+  }
 
   const models = [];
 
@@ -285,8 +290,7 @@ export async function buildModelsList(kindFilter, options = {}) {
     models.push(entry);
   }
 
-  if (connections.length > 0) {
-    for (const [providerId, conn] of activeConnectionByProvider.entries()) {
+  for (const [providerId, conn] of activeConnectionByProvider.entries()) {
       if (!providerMatchesKinds(providerId, kindFilter)) continue;
 
       const staticAlias = PROVIDER_ID_TO_ALIAS[providerId] || providerId;
@@ -399,7 +403,6 @@ export async function buildModelsList(kindFilter, options = {}) {
         if (thinkingLevels) model.thinkingLevels = thinkingLevels;
         models.push(model);
       }
-    }
   }
 
   const dedupedModels = [];
