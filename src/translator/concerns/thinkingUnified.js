@@ -14,6 +14,7 @@ const FORMAT_TO_NATIVE = {
   vertex: "gemini-budget",
   antigravity: "gemini-budget",
   kiro: "kiro",
+  commandcode: "commandcode",
 };
 
 export function stripThinkingSuffix(model) {
@@ -198,6 +199,11 @@ function stripAll(body) {
   delete body.output_config;
   if (body.generationConfig) delete body.generationConfig.thinkingConfig;
   if (body.request?.generationConfig) delete body.request.generationConfig.thinkingConfig;
+  if (body.params && typeof body.params === "object") {
+    delete body.params.reasoning_effort;
+    delete body.params.thinking;
+    delete body.params.reasoning;
+  }
 }
 
 function applyFormat(fmt, body, cfg, caps, supportedLevels) {
@@ -288,6 +294,16 @@ function applyFormat(fmt, body, cfg, caps, supportedLevels) {
       if (none && canDisable) break;
       const level = toLevel(eff);
       if (level) body.reasoning_effort = level === "xhigh" || level === "max" ? "high" : level;
+      break;
+    }
+    case "commandcode": {
+      const target = body.params && typeof body.params === "object" ? body.params : body;
+      if (none && canDisable) {
+        target.reasoning_effort = "none";
+        break;
+      }
+      const level = toLevel(eff);
+      if (level) target.reasoning_effort = level;
       break;
     }
     case "kiro":

@@ -115,6 +115,22 @@ export const PROVIDER_CAPABILITIES = {
     "laguna-s-2.1":  { reasoning: true, thinkingFormat: "openai", contextWindow: 1000000, maxOutput: 32000 },
     "laguna-xs-2.1": { reasoning: true, thinkingFormat: "openai", contextWindow: 200000, maxOutput: 32000 },
   },
+
+  "commandcode": {
+    "deepseek/deepseek-v4-pro": { reasoning: true, thinkingFormat: "commandcode", contextWindow: 1000000, maxOutput: 384000 },
+    "deepseek/deepseek-v4-flash": { reasoning: true, thinkingFormat: "commandcode", contextWindow: 1000000, maxOutput: 384000 },
+    "moonshotai/Kimi-K2.6": { reasoning: true, thinkingFormat: "commandcode", contextWindow: 262144, maxOutput: 262144 },
+    "moonshotai/Kimi-K2.5": { reasoning: true, thinkingFormat: "commandcode", contextWindow: 262144, maxOutput: 262144 },
+    "zai-org/GLM-5.1": { reasoning: true, thinkingFormat: "commandcode", contextWindow: 200000, maxOutput: 128000 },
+    "zai-org/GLM-5": { reasoning: true, thinkingFormat: "commandcode", contextWindow: 200000, maxOutput: 128000 },
+    "MiniMaxAI/MiniMax-M2.7": { reasoning: true, thinkingFormat: "commandcode", contextWindow: 204800, maxOutput: 131072 },
+    "MiniMaxAI/MiniMax-M2.5": { reasoning: true, thinkingFormat: "commandcode", contextWindow: 200000, maxOutput: 131072 },
+    "Qwen/Qwen3.6-Max-Preview": { reasoning: true, thinkingFormat: "commandcode", contextWindow: 1000000, maxOutput: 65536 },
+    "Qwen/Qwen3.6-Plus": { reasoning: true, thinkingFormat: "commandcode", contextWindow: 1000000, maxOutput: 65536 },
+    "stepfun/Step-3.5-Flash": { reasoning: true, thinkingFormat: "commandcode", contextWindow: 128000, maxOutput: 64000 },
+    "poolside/laguna-s-2.1-free": { reasoning: true, thinkingFormat: "commandcode", contextWindow: 200000, maxOutput: 32000 },
+    "ling/ling-3.0-flash-sante": { reasoning: true, thinkingFormat: "commandcode", contextWindow: 128000, maxOutput: 64000 },
+  },
 };
 
 export const PATTERN_CAPABILITIES = [

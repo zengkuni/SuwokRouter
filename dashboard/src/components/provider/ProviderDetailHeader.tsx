@@ -46,24 +46,33 @@ export function ProviderDetailHeader({
                       <span className="font-mono text-xs">
                         {selected.alias || selected.id}
                       </span>
-                      {conns.length > 0 ? (
-                        <StatusBadge tone="ok">Active</StatusBadge>
+                      {selected.id === "opencode" ? (
+                        <>
+                          <StatusBadge tone="ok">Active</StatusBadge>
+                          <StatusBadge tone="muted">Built-in</StatusBadge>
+                        </>
                       ) : (
-                        <StatusBadge tone="muted">Idle</StatusBadge>
+                        <>
+                          {conns.length > 0 ? (
+                            <StatusBadge tone="ok">Active</StatusBadge>
+                          ) : (
+                            <StatusBadge tone="muted">Idle</StatusBadge>
+                          )}
+                          <span>
+                            {conns.length} connection
+                            {conns.length === 1 ? "" : "s"}
+                            {conns.filter((c) => c.healthStatus === "healthy").length > 0
+                              ? ` · ${conns.filter((c) => c.healthStatus === "healthy").length} OK`
+                              : ""}
+                            {conns.filter((c) => c.healthStatus === "error").length > 0
+                              ? ` · ${conns.filter((c) => c.healthStatus === "error").length} error${conns.filter((c) => c.healthStatus === "error").length === 1 ? "" : "s"}`
+                              : ""}
+                            {activeConns.length < conns.length
+                              ? ` · ${conns.length - activeConns.length} off`
+                              : ""}
+                          </span>
+                        </>
                       )}
-                      <span>
-                        {conns.length} connection
-                        {conns.length === 1 ? "" : "s"}
-                        {conns.filter((c) => c.healthStatus === "healthy").length > 0
-                          ? ` · ${conns.filter((c) => c.healthStatus === "healthy").length} OK`
-                          : ""}
-                        {conns.filter((c) => c.healthStatus === "error").length > 0
-                          ? ` · ${conns.filter((c) => c.healthStatus === "error").length} error${conns.filter((c) => c.healthStatus === "error").length === 1 ? "" : "s"}`
-                          : ""}
-                        {activeConns.length < conns.length
-                          ? ` · ${conns.length - activeConns.length} off`
-                          : ""}
-                      </span>
                       {selected.isCustom && selected.baseUrl ? (
                         <span className="hidden truncate text-xs sm:inline">
                           {selected.baseUrl}

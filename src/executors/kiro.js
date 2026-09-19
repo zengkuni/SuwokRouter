@@ -205,7 +205,9 @@ export class KiroExecutor extends BaseExecutor {
     const headers = {
       ...this.config.headers,
       "Amz-Sdk-Request": "attempt=1; max=3",
-      "Amz-Sdk-Invocation-Id": uuidv4()
+      "Amz-Sdk-Invocation-Id": uuidv4(),
+      "x-amzn-kiro-agent-mode": "vibe",
+      "x-amzn-codewhisperer-machine-id": "kiro-desktop",
     };
     if (url.includes("://codewhisperer.")) {
       headers["X-Amz-Target"] = KIRO_CODEWHISPERER_TARGET;
@@ -214,7 +216,7 @@ export class KiroExecutor extends BaseExecutor {
     }
 
     const authMethod = credentials?.providerSpecificData?.authMethod;
-    const isApiKey = authMethod === "api_key";
+    const isApiKey = authMethod === "api_key" || authMethod === "apikey" || !!credentials?.apiKey;
     const isExternalIdp = authMethod === "external_idp";
 
     const apiKey = credentials?.apiKey || (isApiKey ? credentials?.accessToken : null);
@@ -226,6 +228,10 @@ export class KiroExecutor extends BaseExecutor {
       if (isExternalIdp) {
         headers["TokenType"] = "EXTERNAL_IDP";
       }
+    }
+
+    if (credentials?.accessToken && !isApiKey) {
+      headers["x-amz-sso-bearer"] = credentials.accessToken;
     }
 
     return headers;
