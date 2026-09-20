@@ -20,7 +20,7 @@ services:
       - /tmp:rw,noexec,nosuid,size=64m
       - /run:rw,noexec,nosuid,size=16m
     ports:
-      - "127.0.0.1:14045:14045"
+      - "127.0.0.1:1212:1212"
     volumes:
       - ${SWAY_DATA_VOLUME:-swayrouter-data}:/app/data
 
@@ -39,7 +39,7 @@ services:
 
     environment:
       DATA_DIR: /app/data
-      PORT: "14045"
+      PORT: "1212"
       HOSTNAME: "0.0.0.0"
       NODE_ENV: production
       JWT_SECRET: ${JWT_SECRET:-}
