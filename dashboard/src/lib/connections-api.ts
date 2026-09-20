@@ -62,13 +62,27 @@ export type AvailableProvider = {
 };
 
 export function usesConnectionModelCatalog(
-  provider: Pick<AvailableProvider, "isCustom" | "nodeType" | "passthroughModels"> | null | undefined,
+  provider:
+    | Pick<AvailableProvider, "isCustom" | "nodeType" | "passthroughModels">
+    | null
+    | undefined,
 ): boolean {
-  return Boolean(provider?.isCustom || provider?.nodeType || provider?.passthroughModels);
+  return Boolean(
+    provider?.isCustom || provider?.nodeType || provider?.passthroughModels,
+  );
 }
 
-export async function getConnectionModels(connectionId: string, refresh = false) {
-  const { data } = await api.get<{ provider?: string; connectionId?: string; models?: unknown[]; warning?: string; cached?: boolean }>(
+export async function getConnectionModels(
+  connectionId: string,
+  refresh = false,
+) {
+  const { data } = await api.get<{
+    provider?: string;
+    connectionId?: string;
+    models?: unknown[];
+    warning?: string;
+    cached?: boolean;
+  }>(
     `/providers/${encodeURIComponent(connectionId)}/models`,
     refresh ? { params: { refresh: "1" } } : undefined,
   );
@@ -117,7 +131,7 @@ export type ProviderCount = {
 
 export async function listProviderCounts(): Promise<ProviderCount[]> {
   const { data } = await api.get<{ counts: ProviderCount[] }>(
-    "/providers/counts"
+    "/providers/counts",
   );
   return data.counts ?? [];
 }
@@ -125,13 +139,11 @@ export async function listProviderCounts(): Promise<ProviderCount[]> {
 export async function getProviderCatalog(): Promise<AvailableProvider[]> {
   try {
     const { data } = await api.get<{ providers?: AvailableProvider[] }>(
-      "/providers/catalog"
+      "/providers/catalog",
     );
     const list = data.providers ?? [];
     if (list.length) return list;
-  } catch {
-
-  }
+  } catch {}
   return [];
 }
 
@@ -141,13 +153,14 @@ export async function listAvailableProviders(): Promise<AvailableProvider[]> {
     listProviderCounts(),
     api.get<{ nodes: ProviderNode[] }>("/provider-nodes"),
   ]);
-  const catalogList = catalog.length
-    ? catalog
-    : getBuiltinProviders();
+  const catalogList = catalog.length ? catalog : getBuiltinProviders();
   const nodes = nodesRes.data.nodes ?? [];
 
   const providerKey = (value: unknown) =>
-    String(value || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+    String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
   const countMap = new Map<string, ProviderCount>();
   for (const row of counts) {
     const value = String(row.provider).trim().toLowerCase();
@@ -156,37 +169,47 @@ export async function listAvailableProviders(): Promise<AvailableProvider[]> {
   }
 
   for (const provider of catalogList) {
-    const candidates = [provider.id, provider.alias].filter(Boolean).flatMap((value) => {
-      const normalized = String(value).trim().toLowerCase();
-      return [normalized, providerKey(normalized)];
-    });
+    const candidates = [provider.id, provider.alias]
+      .filter(Boolean)
+      .flatMap((value) => {
+        const normalized = String(value).trim().toLowerCase();
+        return [normalized, providerKey(normalized)];
+      });
     const count = candidates.map((key) => countMap.get(key)).find(Boolean);
     if (count) {
       for (const key of candidates) countMap.set(key, count);
     }
   }
   for (const node of nodes) {
-    const candidates = [node.id, node.prefix].filter(Boolean).flatMap((value) => {
-      const normalized = String(value).trim().toLowerCase();
-      return [normalized, providerKey(normalized)];
-    });
+    const candidates = [node.id, node.prefix]
+      .filter(Boolean)
+      .flatMap((value) => {
+        const normalized = String(value).trim().toLowerCase();
+        return [normalized, providerKey(normalized)];
+      });
     const count = candidates.map((key) => countMap.get(key)).find(Boolean);
     if (count) {
       for (const key of candidates) countMap.set(key, count);
     }
   }
 
-  const connectedProviders = Array.from(new Set(
-    counts.map((row) => String(row.provider).trim())
-  ));
+  const connectedProviders = Array.from(
+    new Set(counts.map((row) => String(row.provider).trim())),
+  );
   const connectedKeys = new Set<string>();
-  const canonicalConnectedProviders = connectedProviders.filter((providerId) => {
-    const key = providerKey(providerId);
-    if (connectedKeys.has(key)) return false;
-    connectedKeys.add(key);
-    return true;
-  });
-  connectedProviders.splice(0, connectedProviders.length, ...canonicalConnectedProviders);
+  const canonicalConnectedProviders = connectedProviders.filter(
+    (providerId) => {
+      const key = providerKey(providerId);
+      if (connectedKeys.has(key)) return false;
+      connectedKeys.add(key);
+      return true;
+    },
+  );
+  connectedProviders.splice(
+    0,
+    connectedProviders.length,
+    ...canonicalConnectedProviders,
+  );
 
   const seen = new Set<string>();
   const out: AvailableProvider[] = [];
@@ -197,9 +220,11 @@ export async function listAvailableProviders(): Promise<AvailableProvider[]> {
     const compact = providerKey(normalized);
     return catalogList.find((provider) =>
       [provider.id, provider.alias].some((value) => {
-        const candidate = String(value || "").trim().toLowerCase();
+        const candidate = String(value || "")
+          .trim()
+          .toLowerCase();
         return candidate === normalized || providerKey(candidate) === compact;
-      })
+      }),
     );
   };
   const findCount = (providerId: string): ProviderCount | undefined => {
@@ -214,8 +239,9 @@ export async function listAvailableProviders(): Promise<AvailableProvider[]> {
           countMap.get(String(catalogProvider.id).trim().toLowerCase()) ||
           countMap.get(providerKey(catalogProvider.id)) ||
           (catalogProvider.alias
-            ? countMap.get(String(catalogProvider.alias).trim().toLowerCase()) ||
-              countMap.get(providerKey(catalogProvider.alias))
+            ? countMap.get(
+                String(catalogProvider.alias).trim().toLowerCase(),
+              ) || countMap.get(providerKey(catalogProvider.alias))
             : undefined)
         );
       })()
@@ -223,7 +249,9 @@ export async function listAvailableProviders(): Promise<AvailableProvider[]> {
   };
 
   for (const provider of catalogList) {
-    const count = findCount(provider.id) || (provider.alias ? findCount(provider.alias) : undefined);
+    const count =
+      findCount(provider.id) ||
+      (provider.alias ? findCount(provider.alias) : undefined);
     if (!count) continue;
     const canonical = provider.id.trim().toLowerCase();
     countMap.set(canonical, count);
@@ -308,7 +336,7 @@ export async function createConnection(body: {
 }) {
   const { data } = await api.post<{ connection: Connection }>(
     "/providers",
-    body
+    body,
   );
   return data.connection;
 }
@@ -320,29 +348,26 @@ export async function updateConnection(
     priority?: number;
     isActive?: boolean;
     proxyPoolId?: string | null;
-  }
+  },
 ) {
   const { data } = await api.put<{ connection: Connection }>(
     `/providers/${id}`,
-    body
+    body,
   );
   return data.connection;
 }
 
 export async function deleteConnection(id: string) {
   const { data } = await api.delete<{ success: boolean; id: string }>(
-    `/providers/${id}`
+    `/providers/${id}`,
   );
   return data;
 }
 
-export async function toggleConnection(
-  id: string,
-  currentActive: boolean
-) {
+export async function toggleConnection(id: string, currentActive: boolean) {
   const { data } = await api.put<{ connection: Connection }>(
     `/providers/${id}`,
-    { isActive: !currentActive }
+    { isActive: !currentActive },
   );
   return data.connection;
 }
@@ -350,9 +375,8 @@ export async function toggleConnection(
 export async function testConnection(
   id: string,
   body?: { model?: string; forceChat?: boolean },
-  opts?: { signal?: AbortSignal }
+  opts?: { signal?: AbortSignal },
 ) {
-
   const { data } = await api.post<{
     valid: boolean;
     error?: string | null;
@@ -367,7 +391,7 @@ export async function testConnection(
 
 export async function testConnectionModels(
   id: string,
-  opts?: { model?: string; signal?: AbortSignal }
+  opts?: { model?: string; signal?: AbortSignal },
 ) {
   const { data } = await api.post<{
     provider?: string;
@@ -482,13 +506,15 @@ export function getOAuthRedirectUri(
     (typeof window !== "undefined" ? window.location.protocol : "http:");
   const port =
     locationLike?.port ||
-    (typeof window !== "undefined" ? window.location.port : "14045") ||
+    (typeof window !== "undefined" ? window.location.port : "1212") ||
     (protocol === "https:" ? "443" : "80");
   const hostname =
     locationLike?.hostname ||
     (typeof window !== "undefined" ? window.location.hostname : "localhost");
   const callbackHost =
-    hostname === "127.0.0.1" || hostname === "localhost" ? hostname : "localhost";
+    hostname === "127.0.0.1" || hostname === "localhost"
+      ? hostname
+      : "localhost";
   return `http://${callbackHost}:${port}/callback`;
 }
 
@@ -547,11 +573,15 @@ export async function stopOAuthProxy(provider: string) {
   return data;
 }
 
-export function oauthStatusIsDone(status: OAuthSessionStatus["status"]): boolean {
+export function oauthStatusIsDone(
+  status: OAuthSessionStatus["status"],
+): boolean {
   return status === "done";
 }
 
-export function oauthStatusIsError(status: OAuthSessionStatus["status"]): boolean {
+export function oauthStatusIsError(
+  status: OAuthSessionStatus["status"],
+): boolean {
   return status === "error";
 }
 
@@ -582,7 +612,10 @@ export async function startDeviceCode(
     codeVerifier?: string;
     state?: string;
     [key: string]: unknown;
-  }>(`/oauth/${provider}/device-code`, Object.keys(params).length ? { params } : undefined);
+  }>(
+    `/oauth/${provider}/device-code`,
+    Object.keys(params).length ? { params } : undefined,
+  );
   return data;
 }
 
@@ -593,7 +626,7 @@ export async function pollDeviceCode(
     codeVerifier?: string;
     displayName?: string;
     email?: string;
-  }
+  },
 ) {
   const { data } = await api.post<{
     success: boolean;
@@ -613,7 +646,7 @@ export async function exchangeOAuth(
     state?: string;
     displayName?: string;
     email?: string;
-  }
+  },
 ) {
   const { data } = await api.post<{
     success: boolean;
@@ -631,7 +664,7 @@ export async function importToken(
     machineId?: string;
     email?: string;
     displayName?: string;
-  }
+  },
 ) {
   if (provider === "codex") {
     const { data } = await api.post<{
@@ -739,11 +772,11 @@ export async function importModels(body: {
     ? "openrouter-free"
     : body.provider?.toLowerCase() === "opencode-zen"
       ? "opencode-all"
-    : body.provider?.toLowerCase().includes("opencode")
-      ? "opencode-free"
-      : body.provider?.toLowerCase().includes("mimo")
-        ? "mimo-free"
-        : "openrouter-free";
+      : body.provider?.toLowerCase().includes("opencode")
+        ? "opencode-free"
+        : body.provider?.toLowerCase().includes("mimo")
+          ? "mimo-free"
+          : "openrouter-free";
   try {
     const { data } = await api.get<{
       data?: Array<{ id: string; name?: string }>;

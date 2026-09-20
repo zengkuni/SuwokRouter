@@ -21,7 +21,7 @@ LABEL org.opencontainers.image.source="https://github.com/envielxyz/SwayRouter"
 LABEL org.opencontainers.image.licenses="MIT"
 
 ENV NODE_ENV=production
-ENV PORT=14045
+ENV PORT=1212
 ENV HOSTNAME=0.0.0.0
 ENV DATA_DIR=/app/data
 
@@ -39,9 +39,9 @@ RUN mkdir -p /app/data && chown -R bun:bun /app && \
 
 USER bun
 
-EXPOSE 14045
+EXPOSE 1212
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD ["bun", "-e", "fetch('http://127.0.0.1:14045/api/health/ready').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+  CMD ["bun", "-e", "fetch('http://127.0.0.1:1212/api/health/ready').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
 
 CMD ["bun", "run", "start"]

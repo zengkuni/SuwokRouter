@@ -42,8 +42,17 @@ export interface EnvConfig {
 }
 
 const DEFAULT_PASSWORD = "123456";
-const INSECURE_JWT_SECRETS = new Set(["", "change-me", "secret", "development-secret"]);
-const INSECURE_API_KEY_SECRETS = new Set(["", "endpoint-proxy-api-key-secret", "change-me"]);
+const INSECURE_JWT_SECRETS = new Set([
+  "",
+  "change-me",
+  "secret",
+  "development-secret",
+]);
+const INSECURE_API_KEY_SECRETS = new Set([
+  "",
+  "endpoint-proxy-api-key-secret",
+  "change-me",
+]);
 
 function parsePort(value: string): number {
   const port = Number.parseInt(value, 10);
@@ -65,64 +74,98 @@ function parseBoolean(value: string): boolean {
   return value === "true" || value === "1";
 }
 
-function parsePositiveInt(value: string | undefined, fallback: number, max: number): number {
+function parsePositiveInt(
+  value: string | undefined,
+  fallback: number,
+  max: number,
+): number {
   const parsed = Number.parseInt(value ?? "", 10);
   if (!Number.isFinite(parsed) || parsed < 1) return fallback;
   return Math.min(parsed, max);
 }
 
 function parseNodeEnv(value: string): NodeEnv {
-  if (value === "development" || value === "production" || value === "test") return value;
+  if (value === "development" || value === "production" || value === "test")
+    return value;
   throw new Error("NODE_ENV must be development, test, or production");
 }
 
-export function loadEnv(source: Record<string, string | undefined> = process.env): EnvConfig {
+export function loadEnv(
+  source: Record<string, string | undefined> = process.env,
+): EnvConfig {
   const nodeEnv = parseNodeEnv(source.NODE_ENV ?? "development");
-  const jwtSecret = source.JWT_SECRET ?? (nodeEnv === "production" ? "" : "change-me");
-  const apiKeySecret = source.API_KEY_SECRET ?? (nodeEnv === "production" ? "" : "endpoint-proxy-api-key-secret");
+  const jwtSecret =
+    source.JWT_SECRET ?? (nodeEnv === "production" ? "" : "change-me");
+  const apiKeySecret =
+    source.API_KEY_SECRET ??
+    (nodeEnv === "production" ? "" : "endpoint-proxy-api-key-secret");
 
   const initialPassword = DEFAULT_PASSWORD;
 
   if (nodeEnv === "production") {
     if (INSECURE_JWT_SECRETS.has(jwtSecret) || jwtSecret.length < 32) {
-      throw new Error("JWT_SECRET must be explicitly configured with at least 32 characters in production");
+      throw new Error(
+        "JWT_SECRET must be explicitly configured with at least 32 characters in production",
+      );
     }
-    if (INSECURE_API_KEY_SECRETS.has(apiKeySecret) || apiKeySecret.length < 32) {
-      throw new Error("API_KEY_SECRET must be explicitly configured with at least 32 characters in production");
+    if (
+      INSECURE_API_KEY_SECRETS.has(apiKeySecret) ||
+      apiKeySecret.length < 32
+    ) {
+      throw new Error(
+        "API_KEY_SECRET must be explicitly configured with at least 32 characters in production",
+      );
     }
   }
 
   const dataDir = source.DATA_DIR?.trim() || "";
-  const baseUrl = source.BASE_URL?.trim() || source.NEXT_PUBLIC_BASE_URL?.trim() || "";
+  const baseUrl =
+    source.BASE_URL?.trim() || source.NEXT_PUBLIC_BASE_URL?.trim() || "";
   const metricsToken = source.SWAY_METRICS_TOKEN?.trim() || "";
-  const resource = deriveResourceProfile(undefined, source.SWAY_PERFORMANCE_PROFILE);
-  const routerMaxConcurrent = parsePositiveInt(source.SWAY_ROUTER_MAX_CONCURRENT, resource.maxConcurrent, 100_000);
+  const resource = deriveResourceProfile(
+    undefined,
+    source.SWAY_PERFORMANCE_PROFILE,
+  );
+  const routerMaxConcurrent = parsePositiveInt(
+    source.SWAY_ROUTER_MAX_CONCURRENT,
+    resource.maxConcurrent,
+    100_000,
+  );
   const routerInitialConcurrent = Math.min(
     routerMaxConcurrent,
-    parsePositiveInt(source.SWAY_ROUTER_INITIAL_CONCURRENT, resource.initialConcurrent, 100_000),
+    parsePositiveInt(
+      source.SWAY_ROUTER_INITIAL_CONCURRENT,
+      resource.initialConcurrent,
+      100_000,
+    ),
   );
   const routerMinConcurrent = Math.min(
     routerInitialConcurrent,
-    parsePositiveInt(source.SWAY_ROUTER_MIN_CONCURRENT, resource.minConcurrent, 100_000),
+    parsePositiveInt(
+      source.SWAY_ROUTER_MIN_CONCURRENT,
+      resource.minConcurrent,
+      100_000,
+    ),
   );
-  const routerBodyBudgetBytes = parsePositiveInt(
-    source.SWAY_ROUTER_BODY_BUDGET_MB,
-    resource.bodyBudgetMb,
-    16 * 1024,
-  ) * 1024 * 1024;
-  const routerMemoryHighWaterBytes = parsePositiveInt(
-    source.SWAY_ROUTER_MEMORY_HIGH_WATER_MB,
-    0,
-    1024 * 1024,
-  ) * 1024 * 1024;
-  const routerMemoryCriticalWaterBytes = parsePositiveInt(
-    source.SWAY_ROUTER_MEMORY_CRITICAL_MB,
-    0,
-    1024 * 1024,
-  ) * 1024 * 1024;
+  const routerBodyBudgetBytes =
+    parsePositiveInt(
+      source.SWAY_ROUTER_BODY_BUDGET_MB,
+      resource.bodyBudgetMb,
+      16 * 1024,
+    ) *
+    1024 *
+    1024;
+  const routerMemoryHighWaterBytes =
+    parsePositiveInt(source.SWAY_ROUTER_MEMORY_HIGH_WATER_MB, 0, 1024 * 1024) *
+    1024 *
+    1024;
+  const routerMemoryCriticalWaterBytes =
+    parsePositiveInt(source.SWAY_ROUTER_MEMORY_CRITICAL_MB, 0, 1024 * 1024) *
+    1024 *
+    1024;
 
   return Object.freeze({
-    port: parsePort(source.PORT ?? "14045"),
+    port: parsePort(source.PORT ?? "1212"),
     hostname: parseHostname(source.HOSTNAME),
     dataDir,
     baseUrl,
@@ -144,18 +187,34 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
     routerMaxConcurrent,
     routerInitialConcurrent,
     routerMinConcurrent,
-    routerMaxQueue: parsePositiveInt(source.SWAY_ROUTER_MAX_QUEUE, resource.maxQueue, 1_000_000),
+    routerMaxQueue: parsePositiveInt(
+      source.SWAY_ROUTER_MAX_QUEUE,
+      resource.maxQueue,
+      1_000_000,
+    ),
     routerQueueWaitMs: parsePositiveInt(
       source.SWAY_ROUTER_QUEUE_WAIT_MS,
       resource.queueWaitMs,
       10 * 60 * 1000,
     ),
     routerBodyBudgetBytes,
-    routerBodyReadTimeoutMs: parsePositiveInt(source.SWAY_ROUTER_BODY_TIMEOUT_MS, 30_000, 10 * 60 * 1000),
+    routerBodyReadTimeoutMs: parsePositiveInt(
+      source.SWAY_ROUTER_BODY_TIMEOUT_MS,
+      30_000,
+      10 * 60 * 1000,
+    ),
     routerMemoryHighWaterBytes,
     routerMemoryCriticalWaterBytes,
-    usageHistoryRetentionDays: parsePositiveInt(source.SWAY_USAGE_RETENTION_DAYS, 7, 3650),
-    usageHistoryMaxRows: parsePositiveInt(source.SWAY_USAGE_HISTORY_MAX_ROWS, 500_000, 100_000_000),
+    usageHistoryRetentionDays: parsePositiveInt(
+      source.SWAY_USAGE_RETENTION_DAYS,
+      7,
+      3650,
+    ),
+    usageHistoryMaxRows: parsePositiveInt(
+      source.SWAY_USAGE_HISTORY_MAX_ROWS,
+      500_000,
+      100_000_000,
+    ),
     upstreamMaxAttempts: parsePositiveInt(
       source.SWAY_UPSTREAM_MAX_ATTEMPTS,
       nodeEnv === "production" ? resource.upstreamMaxAttempts : 8,
