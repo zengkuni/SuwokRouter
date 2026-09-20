@@ -8,6 +8,7 @@ import {
   readRequestBodyWithLimit,
   queryCanonicalPath,
   rewritePublicAlias,
+  HOST_PEER_HEADER,
   stampClientIp,
 } from "./requestBoundary";
 
@@ -55,14 +56,45 @@ describe("request boundary", () => {
   });
 
   test("trusts forwarding headers only from loopback peers", () => {
+    const trust = { gateway: null, hostAddress: null };
     const local = new Request("http://localhost/", { headers: { "x-forwarded-for": "203.0.113.2" } });
-    stampClientIp(local, "::ffff:127.0.0.1");
+    stampClientIp(local, "::ffff:127.0.0.1", trust);
     expect(local.headers.get("x-swayrouter-real-ip")).toBe("203.0.113.2");
     expect(local.headers.get("x-forwarded-for")).toBeNull();
 
     const remote = new Request("http://localhost/", { headers: { "x-forwarded-for": "203.0.113.2" } });
-    stampClientIp(remote, "198.51.100.4");
+    stampClientIp(remote, "198.51.100.4", trust);
     expect(remote.headers.get("x-swayrouter-real-ip")).toBe("198.51.100.4");
+  });
+
+  test("marks a host peer that arrives from the container gateway", () => {
+    const trust = { gateway: "172.17.0.1", hostAddress: null };
+    const local = new Request("http://localhost:14045/", { headers: { host: "localhost:14045" } });
+    stampClientIp(local, "172.17.0.1", trust);
+    expect(local.headers.get("x-swayrouter-real-ip")).toBe("172.17.0.1");
+    expect(local.headers.get(HOST_PEER_HEADER)).toBe("1");
+
+    const remote = new Request("http://localhost:14045/");
+    stampClientIp(remote, "203.0.113.9", trust);
+    expect(remote.headers.get(HOST_PEER_HEADER)).toBeNull();
+  });
+
+  test("marks a host peer that arrives from the published host-link subnet", () => {
+    const trust = { gateway: "172.17.0.1", hostAddress: "192.168.127.254" };
+    const local = new Request("http://localhost:14145/");
+    stampClientIp(local, "192.168.127.1", trust);
+    expect(local.headers.get(HOST_PEER_HEADER)).toBe("1");
+
+    const elsewhere = new Request("http://localhost:14145/");
+    stampClientIp(elsewhere, "192.168.128.1", trust);
+    expect(elsewhere.headers.get(HOST_PEER_HEADER)).toBeNull();
+  });
+
+  test("drops a spoofed host-peer marker from the wire", () => {
+    const trust = { gateway: "172.17.0.1", hostAddress: "192.168.127.254" };
+    const request = new Request("http://localhost:14045/", { headers: { [HOST_PEER_HEADER]: "1" } });
+    stampClientIp(request, "203.0.113.9", trust);
+    expect(request.headers.get(HOST_PEER_HEADER)).toBeNull();
   });
 
   test("downgrades h2c requests to ordinary HTTP semantics", () => {

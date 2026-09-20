@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/segmented";
 import { getErrorMessage } from "@/lib/api";
 import { type AvailableProvider } from "@/lib/connections-api";
+import { CUSTOM_PROVIDER_FALLBACK_ICON, resolveCustomProviderIcon } from "@/lib/provider-icon";
 
 export function CustomProviderDialog({
   open,
@@ -27,6 +28,7 @@ export function CustomProviderDialog({
     name: string;
     prefix: string;
     baseUrl?: string;
+    iconUrl?: string;
     type: "openai-compatible" | "anthropic-compatible";
     apiType?: "chat" | "responses";
   }) => Promise<void>;
@@ -34,6 +36,7 @@ export function CustomProviderDialog({
   const [name, setName] = useState("");
   const [prefix, setPrefix] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
+  const [iconUrl, setIconUrl] = useState("");
   const [kind, setKind] = useState<"openai-compatible" | "anthropic-compatible">(
     "openai-compatible"
   );
@@ -44,6 +47,7 @@ export function CustomProviderDialog({
     setName(initial.name || "");
     setPrefix(initial.alias || "");
     setBaseUrl(initial.baseUrl || "");
+    setIconUrl(initial.iconUrl || "");
     setKind(initial.nodeType === "anthropic-compatible" ? "anthropic-compatible" : "openai-compatible");
     setApiType(initial.apiType === "responses" ? "responses" : "chat");
     setError(null);
@@ -60,6 +64,7 @@ export function CustomProviderDialog({
     setName("");
     setPrefix("");
     setBaseUrl("");
+    setIconUrl("");
     setKind("openai-compatible");
     setApiType("chat");
     setError(null);
@@ -120,6 +125,26 @@ export function CustomProviderDialog({
             />
           </div>
           <div className="space-y-1.5">
+            <label htmlFor="custom-provider-icon" className="text-xs font-medium text-muted-foreground">
+              Icon URL
+            </label>
+            <div className="flex items-center gap-2">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-surface p-1">
+                <IconPreview src={resolveCustomProviderIcon(iconUrl)} />
+              </span>
+              <Input
+                id="custom-provider-icon"
+                placeholder="https://example.com/icon.png"
+                value={iconUrl}
+                onChange={(e) => setIconUrl(e.target.value)}
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground/70">
+              Shown in the provider list. Falls back to the Sway Router mark when empty
+              or unreachable.
+            </p>
+          </div>
+          <div className="space-y-1.5">
             <p className="text-xs text-muted-foreground">API format</p>
             <Segmented
               size="sm"
@@ -170,6 +195,7 @@ export function CustomProviderDialog({
                 name: name.trim(),
                 prefix: prefix.trim().toLowerCase().replace(/\s+/g, "-"),
                 baseUrl: baseUrl.trim() || undefined,
+                iconUrl: iconUrl.trim() || undefined,
                 type: kind,
                 apiType: kind === "openai-compatible" ? apiType : undefined,
               })
@@ -184,5 +210,20 @@ export function CustomProviderDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function IconPreview({ src }: { src: string }) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => setFailed(false), [src]);
+
+  return (
+    <img
+      src={failed ? CUSTOM_PROVIDER_FALLBACK_ICON : src}
+      alt=""
+      className="size-6 object-contain"
+      onError={() => setFailed(true)}
+    />
   );
 }

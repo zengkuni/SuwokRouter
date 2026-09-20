@@ -27,6 +27,7 @@ export type AppSettings = {
   providerThinking?: Record<string, string>;
   comboStrategy?: string;
   comboStickyRoundRobinLimit?: number;
+  comboOrder?: string[];
   rtkEnabled?: boolean;
 
   cavemanEnabled?: boolean;

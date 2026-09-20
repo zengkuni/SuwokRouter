@@ -15,16 +15,23 @@ export function isBuiltinProvider(providerId?: string | null): boolean {
   return KATALOG_KNOWN.has(canonical) || KATALOG_KNOWN.has(normalized);
 }
 
+export const CUSTOM_PROVIDER_FALLBACK_ICON = "/providers/SwayCustom.svg";
+
+export function resolveCustomProviderIcon(iconUrl?: string | null): string {
+  const trimmed = iconUrl?.trim();
+  return trimmed ? trimmed : CUSTOM_PROVIDER_FALLBACK_ICON;
+}
+
 export function getProviderIconSrc(providerId?: string | null): string | null {
   if (!providerId) return null;
   const normalized = providerId.trim().toLowerCase();
 
   if (!isBuiltinProvider(normalized)) {
-    return "/providers/SwayCustom.svg";
+    return CUSTOM_PROVIDER_FALLBACK_ICON;
   }
 
   const canonical = resolveProviderId(normalized).toLowerCase();
-  if (canonical === "agentrouter") return "/providers/SwayCustom.svg";
+  if (canonical === "agentrouter") return CUSTOM_PROVIDER_FALLBACK_ICON;
   if (canonical === "alicode-intl" || canonical === "alims-intl") {
     return "/providers/alicode.svg";
   }
