@@ -5,6 +5,7 @@ import pkg from "../package.json" with { type: "json" };
 import { env } from "@/lib/env";
 import {
   stampClientIp,
+  resolveHostPeerTrust,
   downgradeH2c,
   isQueryReadOnlyPath,
   normalizeQueryRequest,
@@ -187,6 +188,8 @@ initTranslators();
 
 restoreMetrics().catch((e) => console.error("[metrics:restore]", e));
 
+const hostPeerTrust = await resolveHostPeerTrust();
+
 const server = Bun.serve({
   port: env.port,
   hostname: env.hostname,
@@ -285,7 +288,7 @@ const server = Bun.serve({
       }
       const dispatchRequest = bounded.request;
 
-      stampClientIp(dispatchRequest, server.requestIP(request)?.address ?? null);
+      stampClientIp(dispatchRequest, server.requestIP(request)?.address ?? null, hostPeerTrust);
       downgradeH2c(dispatchRequest);
 
       const isQuery = dispatchRequest.method.toUpperCase() === "QUERY";

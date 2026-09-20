@@ -69,6 +69,7 @@ import {
   formatTokenCount,
   groupModels,
   isAcceptedImage,
+  isContentBlockedError,
   readAssistantText,
   readAssistantThinking,
   readStreamUsage,
@@ -1223,7 +1224,7 @@ export default function SwayChat() {
     } catch (err) {
       const name = err instanceof Error ? err.name : "";
       if (name === "AbortError") { updateMessage(assistantMsg.id, { status: "stopped" }); toast.info("Streaming stopped"); }
-      else { const msg = getErrorMessage(err, "Failed to send message"); updateMessage(assistantMsg.id, { status: "error" }); setInlineError(msg); toast.error(msg); }
+      else { const msg = getErrorMessage(err, "Failed to send message"); updateMessage(assistantMsg.id, { status: "error", errorMessage: msg }); setInlineError(msg); toast.error(msg); }
     } finally {
       updateMessage(assistantMsg.id, { durationMs: normalizeChatDuration(Date.now() - (assistantMsg.startAt || startAt)) });
 
@@ -1263,7 +1264,7 @@ export default function SwayChat() {
     try { await runAssistantTurn(compactedHistory, assistantMsg, systemPrompt, model, controller.signal); }
     catch (err) {
       if (err instanceof Error && err.name === "AbortError") { updateMessage(assistantMsg.id, { status: "stopped" }); toast.info("Streaming stopped"); }
-      else { const msg = getErrorMessage(err, "Failed to send message"); updateMessage(assistantMsg.id, { status: "error" }); setInlineError(msg); toast.error(msg); }
+      else { const msg = getErrorMessage(err, "Failed to send message"); updateMessage(assistantMsg.id, { status: "error", errorMessage: msg }); setInlineError(msg); toast.error(msg); }
     } finally {
       updateMessage(assistantMsg.id, { durationMs: normalizeChatDuration(Date.now() - (assistantMsg.startAt || Date.now())) });
 
@@ -1386,11 +1387,16 @@ export default function SwayChat() {
                             <div className="min-w-0 flex-1 text-[13px] leading-5 sm:text-sm sm:leading-6">
                             <div className={cn("px-0.5 pb-2 pt-0.5 sm:pb-2.5", m.content && "rounded-2xl rounded-bl-md border border-border/70 bg-muted/45 px-3 py-2.5 sm:px-3.5 sm:pt-2.5")}>
                             {m.status === "error" && !m.content ? (
-                              <div className="flex items-center gap-2">
-                                <p className="text-destructive">Failed to get a response.</p>
+                              <div className="flex flex-col gap-1.5">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-destructive">{m.errorMessage || "Failed to get a response."}</p>
                                   <Tooltip label="Retry from the last user turn"><button type="button" onClick={() => { const prev = messages[messages.indexOf(m) - 1]; if (prev && prev.role === "user") void retryFrom(prev.id); }} className="inline-flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[11px] text-foreground transition-colors hover:bg-surface-hover" aria-label="Retry from the last user turn">
                                   <RotateCcw className="h-3 w-3" />Retry
                                 </button></Tooltip>
+                                </div>
+                                {m.errorMessage && isContentBlockedError(m.errorMessage) ? (
+                                  <p className="text-[11px] text-muted-foreground">The provider's content filter rejected this request. Try rephrasing your message, deleting recent messages, or starting a new chat.</p>
+                                ) : null}
                               </div>
                             ) : (
                               <>
@@ -1401,6 +1407,7 @@ export default function SwayChat() {
                                   <div className="mt-2 flex items-center gap-1.5 text-muted-foreground">
                                     <Tooltip label="Copy response"><button type="button" onClick={() => { navigator.clipboard?.writeText(m.content).then(() => toast.info("Copied")).catch(() => {}); }} className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] transition-colors hover:bg-surface-hover hover:text-foreground" aria-label="Copy response"><Copy className="h-3 w-3" />Copy</button></Tooltip>
                                     {m.status === "done" ? <Tooltip label="Regenerate response"><button type="button" onClick={() => { const prev = messages[messages.indexOf(m) - 1]; if (prev?.role === "user") void retryFrom(prev.id); }} className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] transition-colors hover:bg-surface-hover hover:text-foreground" aria-label="Regenerate response"><RotateCcw className="h-3 w-3" />Retry</button></Tooltip> : isStreaming ? <span className="ml-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground/70" role="status" aria-live="polite"><span className="size-1.5 animate-pulse rounded-full bg-emerald-400 motion-reduce:animate-none" />Streaming</span> : null}
+                                    <Tooltip label="Delete message"><button type="button" onClick={() => deleteMessage(m.id)} className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] transition-colors hover:bg-surface-hover hover:text-destructive" aria-label="Delete message"><Trash2 className="h-3 w-3" /></button></Tooltip>
                                   </div>
                                 ) : null}
                               </>

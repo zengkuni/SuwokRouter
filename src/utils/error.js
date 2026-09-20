@@ -31,6 +31,10 @@ export async function writeStreamError(writer, statusCode, message) {
   await writer.write(encoder.encode(`data: ${JSON.stringify(errorBody)}\n\n`));
 }
 
+/**
+ * @param {Response} response
+ * @param {{ parseError?: (response: Response, bodyText: string) => { status?: number, message?: string, resetsAtMs?: number } } | null} [executor]
+ */
 export async function parseUpstreamError(response, executor = null) {
   let bodyText = "";
   try {
@@ -45,19 +49,27 @@ export async function parseUpstreamError(response, executor = null) {
       if (parsed && typeof parsed === "object") {
         return {
           statusCode: parsed.status || response.status,
-          message: executor?.provider === "codebuddy-intl" && parsed.message
-            ? parsed.message
-            : DEFAULT_ERROR_MESSAGES[response.status] || "Upstream provider request failed",
+          message: extractUpstreamMessage(parsed.message) || extractUpstreamMessage(bodyText) || DEFAULT_ERROR_MESSAGES[response.status] || "Upstream provider request failed",
           resetsAtMs: parsed.resetsAtMs,
         };
       }
-    } catch {                                       }
+    } catch {}
   }
 
   return {
     statusCode: response.status,
-    message: DEFAULT_ERROR_MESSAGES[response.status] || "Upstream provider request failed",
+    message: extractUpstreamMessage(bodyText) || DEFAULT_ERROR_MESSAGES[response.status] || "Upstream provider request failed",
   };
+}
+
+function extractUpstreamMessage(bodyText) {
+  if (!bodyText) return "";
+  try {
+    const parsed = JSON.parse(bodyText);
+    const message = parsed?.error?.message || parsed?.message || parsed?.error;
+    if (typeof message === "string") return message.slice(0, 200);
+  } catch {}
+  return String(bodyText).trim().slice(0, 200);
 }
 
 export function classifyUnsupportedParameter(bodyText, ctx = {}) {
@@ -116,5 +128,9 @@ export function formatProviderError(error, provider, model, statusCode) {
   if (code === 401 || code === 403) return DEFAULT_ERROR_MESSAGES[code] || "Authentication failed";
   if (code === 429) return DEFAULT_ERROR_MESSAGES[code] || "Rate limit exceeded";
   if (code >= 500) return DEFAULT_ERROR_MESSAGES[code] || "Upstream provider request failed";
+  // Preserve upstream message for other errors (400/404/406/422...) so error
+  // classification (content-blocked, unknown parameter, ...) can match the real cause.
+  const upstreamMessage = (error?.message || "").trim();
+  if (upstreamMessage) return upstreamMessage.slice(0, 200);
   return DEFAULT_ERROR_MESSAGES[code] || "Provider request failed";
 }

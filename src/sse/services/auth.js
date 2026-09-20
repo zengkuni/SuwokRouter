@@ -390,6 +390,7 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
     ({ tier, action, cooldownMs, deprioitizeUntil: deprioitizeUntilMs } = decision);
     shouldFallback = action !== "retry-same" || cooldownMs > 0;
   }
+  if (action === "passthrough") return { shouldFallback: false, cooldownMs: 0 };
   if (!shouldFallback) return { shouldFallback: false, cooldownMs: 0 };
 
   const reason = typeof errorText === "string" ? errorText.slice(0, 100) : "Provider error";

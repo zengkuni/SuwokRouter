@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { createProviderNode, deleteProviderNode } from "./nodesRepo.js";
+import { createProviderNode, deleteProviderNode, getProviderNodeById, updateProviderNode } from "./nodesRepo.js";
 
 describe("custom provider identity", () => {
   test("rejects duplicate names and prefixes case-insensitively", async () => {
@@ -39,6 +39,33 @@ describe("custom provider identity", () => {
       await deleteProviderNode(firstId);
       await deleteProviderNode(`repo-test-node-name-${suffix}`);
       await deleteProviderNode(`repo-test-node-prefix-${suffix}`);
+    }
+  });
+});
+
+describe("custom provider icon", () => {
+  test("stores an Icon URL and clears it when omitted", async () => {
+    const suffix = crypto.randomUUID();
+    const id = `repo-test-icon-${suffix}`;
+
+    try {
+      await createProviderNode({
+        id,
+        type: "openai-compatible",
+        name: `Icon ${suffix}`,
+        prefix: `repo-test-icon-${suffix}`,
+        apiType: "chat",
+        baseUrl: "https://example.test/v1",
+        iconUrl: "  https://cdn.example.test/logo.png  ",
+      });
+
+      expect((await getProviderNodeById(id))?.iconUrl).toBe("https://cdn.example.test/logo.png");
+
+      await updateProviderNode(id, { iconUrl: undefined });
+
+      expect((await getProviderNodeById(id))?.iconUrl).toBeUndefined();
+    } finally {
+      await deleteProviderNode(id);
     }
   });
 });

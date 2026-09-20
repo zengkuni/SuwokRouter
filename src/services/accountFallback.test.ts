@@ -84,6 +84,17 @@ describe("A4.2 classifyError — 3-tier T1/T2/T3", () => {
     const rUnknown = classifyError(0, "ECONNRESET", 0);
     expect(rUnknown.tier).toBe(ERROR_TIERS.T2);
   });
+  test("400 with an explicit invalid-parameter message does not retry the same payload", () => {
+    const result = classifyError(400, "Unknown parameter: reasoning_effort", 0);
+    expect(result.tier).toBe(ERROR_TIERS.T3);
+    expect(result.action).toBe("deprioritize");
+  });
+  test("400 content-blocked passes through to client without locking the account", () => {
+    const result = classifyError(400, "content-blocked (request id: abc123)", 0);
+    expect(result.tier).toBe(ERROR_TIERS.T3);
+    expect(result.action).toBe("passthrough");
+    expect(result.cooldownMs).toBe(0);
+  });
 
   test("T3: 401/403/404 + permanent text → deprioritize action + deprioitizeUntil window", () => {
     const r401 = classifyError(401, "invalid api key", 0);

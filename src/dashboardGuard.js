@@ -1,3 +1,4 @@
+import { HOST_PEER_HEADER } from "./transport/requestBoundary";
 import { NextResponse } from "next/server";
 import { getSettings, validateApiKey } from "@/lib/localDb";
 import { getConsistentMachineId } from "@/shared/utils/machineId";
@@ -82,11 +83,17 @@ export function isLocalRequest(request) {
 
   if (request.headers.get("x-swayrouter-via-proxy")) return false;
 
+  // A container never sees loopback for host-local traffic: the boundary stamps
+  // HOST_PEER_HEADER only when the peer address belongs to the machine hosting this
+  // container, and strips any inbound copy, so the marker is not client-controlled.
+  // The marker additionally requires a loopback Host header, so a reverse proxy on
+  // the host cannot turn remote traffic into local traffic by rewriting only the peer.
   const realIp = request.headers.get("x-swayrouter-real-ip");
+  const hostPeer = request.headers.get(HOST_PEER_HEADER) === "1";
+  const loopbackHost = isLoopbackHostname(request.headers.get("host"));
   if (realIp) {
-    if (!isLoopbackHostname(realIp)) return false;
-  } else if (!isLoopbackHostname(request.headers.get("host"))) {
-
+    if (!isLoopbackHostname(realIp) && !(hostPeer && loopbackHost)) return false;
+  } else if (!loopbackHost) {
     return false;
   }
   const origin = request.headers.get("origin");

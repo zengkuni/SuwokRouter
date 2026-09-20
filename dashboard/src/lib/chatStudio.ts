@@ -33,6 +33,8 @@ export type ChatMessage = {
   content: string;
   status?: "streaming" | "done" | "error" | "stopped";
 
+  errorMessage?: string;
+
   interrupted?: boolean;
   model?: string;
 
@@ -103,6 +105,10 @@ export type ThinkingPhaseInput = {
   thinking?: string;
 };
 
+export function isContentBlockedError(message: string): boolean {
+  return /content[\s-]?blocked/i.test(message);
+}
+
 export function getThinkingPhase(input: ThinkingPhaseInput):
   | "Thinking"
   | "Writing"
@@ -166,9 +172,11 @@ export function buildRequestMessages(
   const msgs: Array<Record<string, unknown>> = [];
   const sys = (system || "").trim();
   if (sys) msgs.push({ role: "system", content: sys });
+  
   for (const m of history) {
     if (m.deleted) continue;
     if (m.status === "error") continue;
+    
     if (m.role === "user" && m.attachments && m.attachments.length > 0) {
       const parts: Array<Record<string, unknown>> = [];
       const text = m.content || "";
@@ -179,7 +187,12 @@ export function buildRequestMessages(
       msgs.push({ role: "user", content: parts });
       continue;
     }
-    msgs.push({ role: m.role, content: m.content || "" });
+    const msg: Record<string, unknown> = { role: m.role, content: m.content || "" };
+    // Strip reasoning_content for assistant messages to avoid upstream 400 on providers that require thinking mode continuity
+    if (m.role === "assistant" && m.thinking) {
+      msg.reasoning_content = m.thinking;
+    }
+    msgs.push(msg);
   }
   return [...msgs, ...continuation];
 }

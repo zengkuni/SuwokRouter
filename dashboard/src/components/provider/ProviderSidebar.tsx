@@ -180,6 +180,7 @@ export function ProviderSidebar({
                           >
                             <ProviderBrandIcon
                               id={p.id}
+                              iconUrl={p.iconUrl}
                               color="var(--background)"
                               size={20}
                               fallbackIcon={Icon}
