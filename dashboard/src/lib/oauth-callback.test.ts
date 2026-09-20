@@ -20,7 +20,7 @@ describe("OAuth callback transport", () => {
   test("extracts and validates a full loopback callback URL", () => {
     expect(
       parseOAuthCallbackInput(
-        "http://127.0.0.1:14045/callback?state=state-1&code=callback-code&scope=email",
+        "http://127.0.0.1:1212/callback?state=state-1&code=callback-code&scope=email",
         "state-1",
       ),
     ).toEqual({ code: "callback-code", state: "state-1" });
@@ -29,32 +29,32 @@ describe("OAuth callback transport", () => {
   test("rejects stale, incomplete, and failed callback URLs", () => {
     expect(() =>
       parseOAuthCallbackInput(
-        "http://localhost:14045/callback?state=stale&code=callback-code",
+        "http://localhost:1212/callback?state=stale&code=callback-code",
         "state-1",
       ),
     ).toThrow("different OAuth session");
     expect(() =>
       parseOAuthCallbackInput(
-        "http://localhost:14045/callback?state=state-1",
+        "http://localhost:1212/callback?state=state-1",
         "state-1",
       ),
     ).toThrow("does not contain an authorization code");
     expect(() =>
       parseOAuthCallbackInput(
-        "http://localhost:14045/callback?state=state-1&error=access_denied&error_description=Denied",
+        "http://localhost:1212/callback?state=state-1&error=access_denied&error_description=Denied",
         "state-1",
       ),
     ).toThrow("Denied");
   });
 
   test("targets both exact loopback aliases without using a wildcard", () => {
-    expect(getOAuthCallbackTargetOrigins("http://localhost:14045")).toEqual([
-      "http://localhost:14045",
-      "http://127.0.0.1:14045",
+    expect(getOAuthCallbackTargetOrigins("http://localhost:1212")).toEqual([
+      "http://localhost:1212",
+      "http://127.0.0.1:1212",
     ]);
-    expect(getOAuthCallbackTargetOrigins("https://router.example.com")).toEqual([
-      "https://router.example.com",
-    ]);
+    expect(getOAuthCallbackTargetOrigins("https://router.example.com")).toEqual(
+      ["https://router.example.com"],
+    );
     expect(getOAuthCallbackTargetOrigins("not-an-origin")).toEqual([]);
   });
 
@@ -101,7 +101,9 @@ describe("OAuth callback transport", () => {
       code: "stored-code",
       state: "state-1",
     });
-    expect(parseOAuthCallbackStorageValue(value, storedAt + 10 * 60 * 1000 + 1)).toBeNull();
+    expect(
+      parseOAuthCallbackStorageValue(value, storedAt + 10 * 60 * 1000 + 1),
+    ).toBeNull();
     expect(parseOAuthCallbackStorageValue("not-json", storedAt)).toBeNull();
   });
 
@@ -113,8 +115,8 @@ describe("OAuth callback transport", () => {
     });
     const popup = {};
     const options = {
-      origin: "http://localhost:14045",
-      eventOrigin: "http://localhost:14045",
+      origin: "http://localhost:1212",
+      eventOrigin: "http://localhost:1212",
       expectedState: "state-1",
       expectedProvider: "antigravity",
       eventSource: popup,
@@ -124,16 +126,25 @@ describe("OAuth callback transport", () => {
       code: "callback-code",
     });
     expect(
-      validateOAuthCallbackMessage(message, { ...options, eventOrigin: "https://evil.test" }),
+      validateOAuthCallbackMessage(message, {
+        ...options,
+        eventOrigin: "https://evil.test",
+      }),
     ).toBeNull();
     expect(
       validateOAuthCallbackMessage(message, { ...options, eventSource: {} }),
     ).toBeNull();
     expect(
-      validateOAuthCallbackMessage(message, { ...options, expectedProvider: "claude" }),
+      validateOAuthCallbackMessage(message, {
+        ...options,
+        expectedProvider: "claude",
+      }),
     ).toBeNull();
     expect(
-      validateOAuthCallbackMessage(message, { ...options, expectedState: "stale" }),
+      validateOAuthCallbackMessage(message, {
+        ...options,
+        expectedState: "stale",
+      }),
     ).toBeNull();
     expect(
       validateOAuthCallbackMessage({ ...message, source: "other" }, options),
@@ -147,8 +158,8 @@ describe("OAuth callback transport", () => {
       state: "state-1",
     });
     const options = {
-      origin: "http://localhost:14045",
-      eventOrigin: "http://localhost:14045",
+      origin: "http://localhost:1212",
+      eventOrigin: "http://localhost:1212",
       expectedState: "state-1",
     };
     expect(validateOAuthCallbackMessage(message, options)).toMatchObject({

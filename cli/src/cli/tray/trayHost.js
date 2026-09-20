@@ -7,15 +7,19 @@ const LOCK_FILE = "swayrouter-tray.json";
 
 function defaultDataDirectory() {
   return process.platform === "win32"
-    ? path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), ".swayrouter")
+    ? path.join(
+        process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"),
+        ".swayrouter",
+      )
     : path.join(os.homedir(), ".swayrouter");
 }
 
 function trayLockPath(installation = {}) {
   const configured = String(installation.dataDir || "");
-  const dataDir = configured && !configured.startsWith("docker-volume:")
-    ? configured
-    : defaultDataDirectory();
+  const dataDir =
+    configured && !configured.startsWith("docker-volume:")
+      ? configured
+      : defaultDataDirectory();
   return path.join(dataDir, "runtime", LOCK_FILE);
 }
 
@@ -40,7 +44,9 @@ function processAlive(pid) {
 function removeLockIfOwned(lockPath, pid) {
   const record = readLock(lockPath);
   if (record?.pid !== pid) return false;
-  try { fs.rmSync(lockPath, { force: true }); } catch {}
+  try {
+    fs.rmSync(lockPath, { force: true });
+  } catch {}
   return true;
 }
 
@@ -49,7 +55,8 @@ function stopLegacyTrayHosts(installation) {
 
   const lockPath = trayLockPath(installation);
   const activePid = readLock(lockPath)?.pid || 0;
-  const installDir = path.resolve(installation.installDir || process.cwd())
+  const installDir = path
+    .resolve(installation.installDir || process.cwd())
     .toLowerCase()
     .replace(/'/g, "''");
   const script = [
@@ -69,12 +76,17 @@ function stopLegacyTrayHosts(installation) {
 
   let pids = [];
   try {
-    const output = execFileSync("powershell.exe", ["-NoProfile", "-Command", script], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-      windowsHide: true,
-    });
-    pids = String(output).split(/\r?\n/)
+    const output = execFileSync(
+      "powershell.exe",
+      ["-NoProfile", "-Command", script],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+        windowsHide: true,
+      },
+    );
+    pids = String(output)
+      .split(/\r?\n/)
       .map((value) => Number.parseInt(value.trim(), 10))
       .filter((pid) => Number.isInteger(pid) && pid > 0);
   } catch {
@@ -99,12 +111,15 @@ function acquireTrayLock(installation, port) {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
       const fd = fs.openSync(lockPath, "wx", 0o600);
-      fs.writeFileSync(fd, `${JSON.stringify({
-        pid: process.pid,
-        installDir: path.resolve(installation.installDir || process.cwd()),
-        port: Number(port) || 14045,
-        startedAt: new Date().toISOString(),
-      })}\n`);
+      fs.writeFileSync(
+        fd,
+        `${JSON.stringify({
+          pid: process.pid,
+          installDir: path.resolve(installation.installDir || process.cwd()),
+          port: Number(port) || 1212,
+          startedAt: new Date().toISOString(),
+        })}\n`,
+      );
       fs.closeSync(fd);
 
       let released = false;
@@ -120,7 +135,9 @@ function acquireTrayLock(installation, port) {
       if (error?.code !== "EEXIST") return null;
       const existing = readLock(lockPath);
       if (existing?.pid && processAlive(existing.pid)) return null;
-      try { fs.rmSync(lockPath, { force: true }); } catch {}
+      try {
+        fs.rmSync(lockPath, { force: true });
+      } catch {}
     }
   }
 
@@ -140,7 +157,11 @@ async function stopTrayHost(installation) {
           windowsHide: true,
         });
       } else {
-        try { process.kill(-record.pid, "SIGTERM"); } catch { process.kill(record.pid, "SIGTERM"); }
+        try {
+          process.kill(-record.pid, "SIGTERM");
+        } catch {
+          process.kill(record.pid, "SIGTERM");
+        }
       }
     } catch {}
 
@@ -154,4 +175,9 @@ async function stopTrayHost(installation) {
   return true;
 }
 
-module.exports = { acquireTrayLock, stopLegacyTrayHosts, stopTrayHost, trayLockPath };
+module.exports = {
+  acquireTrayLock,
+  stopLegacyTrayHosts,
+  stopTrayHost,
+  trayLockPath,
+};

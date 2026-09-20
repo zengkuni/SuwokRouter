@@ -3,13 +3,20 @@ const https = require("https");
 const fs = require("fs");
 const path = require("path");
 
-const DEFAULT_PORT = 14045;
+const DEFAULT_PORT = 1212;
 const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_MODEL = "xai/grok-imagine-video";
 const DEFAULT_TIMEOUT_SEC = 600;
 const DEFAULT_POLL_INTERVAL_MS = 5000;
 
-const TERMINAL_STATUSES = new Set(["done", "failed", "completed", "error", "expired", "cancelled"]);
+const TERMINAL_STATUSES = new Set([
+  "done",
+  "failed",
+  "completed",
+  "error",
+  "expired",
+  "cancelled",
+]);
 const FAILED_STATUSES = new Set(["failed", "error", "expired", "cancelled"]);
 
 const HELP = `
@@ -34,7 +41,10 @@ Options:
 `;
 
 function sanitizeText(text) {
-  return String(text ?? "").replace(/Bearer\s+[A-Za-z0-9._~+/=-]{8,}/gi, "Bearer [redacted]");
+  return String(text ?? "").replace(
+    /Bearer\s+[A-Za-z0-9._~+/=-]{8,}/gi,
+    "Bearer [redacted]",
+  );
 }
 
 function parseArgs(argv) {
@@ -57,11 +67,14 @@ function parseArgs(argv) {
     else if (a === "--aspect-ratio") opts.aspectRatio = next();
     else if (a === "--resolution") opts.resolution = next();
     else if (a === "--image") opts.image = next();
-    else if (a === "--timeout") opts.timeoutSec = parseInt(next(), 10) || DEFAULT_TIMEOUT_SEC;
-    else if (a === "--port" || a === "-p") opts.port = parseInt(next(), 10) || DEFAULT_PORT;
+    else if (a === "--timeout")
+      opts.timeoutSec = parseInt(next(), 10) || DEFAULT_TIMEOUT_SEC;
+    else if (a === "--port" || a === "-p")
+      opts.port = parseInt(next(), 10) || DEFAULT_PORT;
     else if (a === "--host" || a === "-H") opts.host = next() || DEFAULT_HOST;
     else if (a === "--api-key") opts.apiKey = next();
-    else if (a === "--poll-interval-ms") opts.pollIntervalMs = parseInt(next(), 10) || DEFAULT_POLL_INTERVAL_MS;
+    else if (a === "--poll-interval-ms")
+      opts.pollIntervalMs = parseInt(next(), 10) || DEFAULT_POLL_INTERVAL_MS;
     else if (a === "-h" || a === "--help") opts.help = true;
     else {
       throw new Error(`Unknown option: ${a}`);
@@ -74,7 +87,12 @@ function imageInputToUrl(input) {
   if (/^(https?:|data:)/i.test(input)) return input;
   const buf = fs.readFileSync(input);
   const ext = path.extname(input).toLowerCase();
-  const mime = ext === ".png" ? "image/png" : ext === ".webp" ? "image/webp" : "image/jpeg";
+  const mime =
+    ext === ".png"
+      ? "image/png"
+      : ext === ".webp"
+        ? "image/webp"
+        : "image/jpeg";
   return `data:${mime};base64,${buf.toString("base64")}`;
 }
 
@@ -88,15 +106,25 @@ function gatewayRequest({ host, port, apiKey, method, reqPath, body, signal }) {
     }
     if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
 
-    const req = http.request({ hostname: host, port, path: reqPath, method, headers, signal }, (res) => {
-      let data = "";
-      res.on("data", (c) => (data += c));
-      res.on("end", () => {
-        let parsed = null;
-        try { parsed = data ? JSON.parse(data) : null; } catch {                }
-        resolve({ status: res.statusCode, headers: res.headers, body: parsed, raw: data });
-      });
-    });
+    const req = http.request(
+      { hostname: host, port, path: reqPath, method, headers, signal },
+      (res) => {
+        let data = "";
+        res.on("data", (c) => (data += c));
+        res.on("end", () => {
+          let parsed = null;
+          try {
+            parsed = data ? JSON.parse(data) : null;
+          } catch {}
+          resolve({
+            status: res.statusCode,
+            headers: res.headers,
+            body: parsed,
+            raw: data,
+          });
+        });
+      },
+    );
     req.on("error", reject);
     if (payload) req.write(payload);
     req.end();
@@ -106,49 +134,98 @@ function gatewayRequest({ host, port, apiKey, method, reqPath, body, signal }) {
 const sleep = (ms, signal) =>
   new Promise((resolve, reject) => {
     const t = setTimeout(resolve, ms);
-    signal?.addEventListener?.("abort", () => { clearTimeout(t); reject(new Error("aborted")); }, { once: true });
+    signal?.addEventListener?.(
+      "abort",
+      () => {
+        clearTimeout(t);
+        reject(new Error("aborted"));
+      },
+      { once: true },
+    );
   });
 
-async function pollUntilDone({ host, port, apiKey, requestId, connectionId, timeoutSec, pollIntervalMs, signal, onProgress }) {
+async function pollUntilDone({
+  host,
+  port,
+  apiKey,
+  requestId,
+  connectionId,
+  timeoutSec,
+  pollIntervalMs,
+  signal,
+  onProgress,
+}) {
   const deadline = Date.now() + timeoutSec * 1000;
   while (true) {
     if (signal?.aborted) throw new Error("aborted");
     if (Date.now() > deadline) {
-      throw new Error(`Timed out after ${timeoutSec}s waiting for video job ${requestId}`);
+      throw new Error(
+        `Timed out after ${timeoutSec}s waiting for video job ${requestId}`,
+      );
     }
 
-    const res = await gatewayRequestWithConnection({ host, port, apiKey, requestId, connectionId, signal });
+    const res = await gatewayRequestWithConnection({
+      host,
+      port,
+      apiKey,
+      requestId,
+      connectionId,
+      signal,
+    });
     if (res.status === 200 && res.body) {
       const status = String(res.body.status || "").toLowerCase();
       onProgress?.(status || "pending", res.body.progress);
       if (FAILED_STATUSES.has(status)) {
-        const msg = res.body.error?.message || res.body.error || "video generation failed";
-        throw new Error(`Job ${requestId} failed: ${sanitizeText(typeof msg === "string" ? msg : JSON.stringify(msg))}`);
+        const msg =
+          res.body.error?.message ||
+          res.body.error ||
+          "video generation failed";
+        throw new Error(
+          `Job ${requestId} failed: ${sanitizeText(typeof msg === "string" ? msg : JSON.stringify(msg))}`,
+        );
       }
       if (TERMINAL_STATUSES.has(status)) return res.body;
     } else if (res.status >= 400 && res.status !== 429 && res.status !== 503) {
-      throw new Error(`Polling failed (HTTP ${res.status}): ${sanitizeText(res.raw?.slice(0, 300))}`);
+      throw new Error(
+        `Polling failed (HTTP ${res.status}): ${sanitizeText(res.raw?.slice(0, 300))}`,
+      );
     }
     await sleep(pollIntervalMs, signal);
   }
 }
 
-function gatewayRequestWithConnection({ host, port, apiKey, requestId, connectionId, signal }) {
+function gatewayRequestWithConnection({
+  host,
+  port,
+  apiKey,
+  requestId,
+  connectionId,
+  signal,
+}) {
   return new Promise((resolve, reject) => {
     const headers = { Accept: "application/json" };
     if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
     if (connectionId) headers["x-connection-id"] = connectionId;
     const req = http.request(
-      { hostname: host, port, path: `/v1/videos/${encodeURIComponent(requestId)}`, method: "GET", headers, signal },
+      {
+        hostname: host,
+        port,
+        path: `/v1/videos/${encodeURIComponent(requestId)}`,
+        method: "GET",
+        headers,
+        signal,
+      },
       (res) => {
         let data = "";
         res.on("data", (c) => (data += c));
         res.on("end", () => {
           let parsed = null;
-          try { parsed = data ? JSON.parse(data) : null; } catch {                }
+          try {
+            parsed = data ? JSON.parse(data) : null;
+          } catch {}
           resolve({ status: res.statusCode, body: parsed, raw: data });
         });
-      }
+      },
     );
     req.on("error", reject);
     req.end();
@@ -159,19 +236,31 @@ async function downloadToFile(url, outputPath, { signal } = {}) {
   const partPath = `${outputPath}.part`;
   await new Promise((resolve, reject) => {
     const cleanupAnd = (fn) => (err) => {
-      try { fs.unlinkSync(partPath); } catch {                       }
+      try {
+        fs.unlinkSync(partPath);
+      } catch {}
       fn(err);
     };
     const get = (target, redirectsLeft) => {
       const mod = target.startsWith("https:") ? https : http;
       const req = mod.get(target, { signal }, (res) => {
-        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && redirectsLeft > 0) {
+        if (
+          res.statusCode >= 300 &&
+          res.statusCode < 400 &&
+          res.headers.location &&
+          redirectsLeft > 0
+        ) {
           res.resume();
-          return get(new URL(res.headers.location, target).toString(), redirectsLeft - 1);
+          return get(
+            new URL(res.headers.location, target).toString(),
+            redirectsLeft - 1,
+          );
         }
         if (res.statusCode !== 200) {
           res.resume();
-          return cleanupAnd(reject)(new Error(`Download failed: HTTP ${res.statusCode}`));
+          return cleanupAnd(reject)(
+            new Error(`Download failed: HTTP ${res.statusCode}`),
+          );
         }
         const out = fs.createWriteStream(partPath);
         res.pipe(out);
@@ -209,7 +298,9 @@ async function run(argv) {
   const partPath = `${opts.output}.part`;
   const onSigint = () => {
     controller.abort();
-    try { fs.unlinkSync(partPath); } catch {              }
+    try {
+      fs.unlinkSync(partPath);
+    } catch {}
     console.error("\nCancelled");
     process.exit(130);
   };
@@ -224,15 +315,28 @@ async function run(argv) {
 
     console.log(`Requesting video (${opts.model})…`);
     const create = await gatewayRequest({
-      host: opts.host, port: opts.port, apiKey: opts.apiKey,
-      method: "POST", reqPath: "/v1/videos/generations", body, signal: controller.signal,
+      host: opts.host,
+      port: opts.port,
+      apiKey: opts.apiKey,
+      method: "POST",
+      reqPath: "/v1/videos/generations",
+      body,
+      signal: controller.signal,
     });
 
     if (create.status !== 200 || !create.body?.request_id) {
-      const detail = create.body?.error?.message || create.body?.error || create.raw || `HTTP ${create.status}`;
-      console.error(`Error: Create failed: ${sanitizeText(typeof detail === "string" ? detail : JSON.stringify(detail)).slice(0, 500)}`);
+      const detail =
+        create.body?.error?.message ||
+        create.body?.error ||
+        create.raw ||
+        `HTTP ${create.status}`;
+      console.error(
+        `Error: Create failed: ${sanitizeText(typeof detail === "string" ? detail : JSON.stringify(detail)).slice(0, 500)}`,
+      );
       if (create.status === 400 && /No credentials/i.test(String(detail))) {
-        console.error("   Connect an xAI account first: dashboard → Providers → xAI (Grok).");
+        console.error(
+          "   Connect an xAI account first: dashboard → Providers → xAI (Grok).",
+        );
       }
       return 1;
     }
@@ -243,9 +347,13 @@ async function run(argv) {
 
     let lastLine = "";
     const result = await pollUntilDone({
-      host: opts.host, port: opts.port, apiKey: opts.apiKey,
-      requestId, connectionId,
-      timeoutSec: opts.timeoutSec, pollIntervalMs: opts.pollIntervalMs,
+      host: opts.host,
+      port: opts.port,
+      apiKey: opts.apiKey,
+      requestId,
+      connectionId,
+      timeoutSec: opts.timeoutSec,
+      pollIntervalMs: opts.pollIntervalMs,
       signal: controller.signal,
       onProgress: (status, progress) => {
         const line = `${status}${Number.isFinite(progress) ? ` ${progress}%` : ""}`;
@@ -277,4 +385,11 @@ async function run(argv) {
   }
 }
 
-module.exports = { run, parseArgs, pollUntilDone, downloadToFile, imageInputToUrl, sanitizeText };
+module.exports = {
+  run,
+  parseArgs,
+  pollUntilDone,
+  downloadToFile,
+  imageInputToUrl,
+  sanitizeText,
+};

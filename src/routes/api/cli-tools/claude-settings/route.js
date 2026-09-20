@@ -1,12 +1,12 @@
 "use server";
 
-import { NextResponse } from "next/server";
-import { exec } from "child_process";
-import { promisify } from "util";
-import fs from "fs/promises";
-import path from "path";
-import os from "os";
 import { DEFAULT_PLUGINS } from "@/shared/constants/coworkPlugins";
+import { exec } from "child_process";
+import fs from "fs/promises";
+import { NextResponse } from "next/server";
+import os from "os";
+import path from "path";
+import { promisify } from "util";
 
 const execAsync = promisify(exec);
 
@@ -54,7 +54,10 @@ const checkClaudeInstalled = async () => {
     const isWindows = os.platform() === "win32";
     const command = isWindows ? "where claude" : "which claude";
     const env = isWindows
-      ? { ...process.env, PATH: `${process.env.APPDATA}\\npm;${process.env.PATH}` }
+      ? {
+          ...process.env,
+          PATH: `${process.env.APPDATA}\\npm;${process.env.PATH}`,
+        }
       : process.env;
     await execAsync(command, { windowsHide: true, env });
     return true;
@@ -69,12 +72,12 @@ const checkClaudeInstalled = async () => {
 };
 
 const SWAY_ROUTER_MATCH_HOSTS = [
-  "127.0.0.1:14045",
-  "localhost:14045",
+  "127.0.0.1:1212",
+  "localhost:1212",
   "localhost",
   "127.0.0.1",
 ];
-const SWAY_ROUTER_URL_HOST_RE = /^(?:127\.0\.0\.1|localhost)(?::14045)?$/;
+const SWAY_ROUTER_URL_HOST_RE = /^(?:127\.0\.0\.1|localhost)(?::1212)?$/;
 
 function isSwayRouterBaseUrl(baseUrl) {
   if (typeof baseUrl !== "string" || !baseUrl) return false;
@@ -82,7 +85,8 @@ function isSwayRouterBaseUrl(baseUrl) {
     const u = new URL(baseUrl);
     return (
       u.pathname.endsWith("/v1") &&
-      (SWAY_ROUTER_URL_HOST_RE.test(u.host) || SWAY_ROUTER_MATCH_HOSTS.includes(u.host))
+      (SWAY_ROUTER_URL_HOST_RE.test(u.host) ||
+        SWAY_ROUTER_MATCH_HOSTS.includes(u.host))
     );
   } catch {
     return false;
@@ -132,7 +136,7 @@ export async function GET() {
     console.log("Error checking claude settings:", error);
     return NextResponse.json(
       { error: "Failed to check claude settings" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -144,7 +148,7 @@ export async function POST(request) {
     if (!env || typeof env !== "object") {
       return NextResponse.json(
         { error: "Invalid env object" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -188,7 +192,9 @@ export async function POST(request) {
 
     if (EXA_PLUGIN) {
       const shouldEnableExa = exaMcpEnabled !== false;
-      await writeClaudeJsonMcp(shouldEnableExa ? { exa: buildExaMcpEntry() } : null);
+      await writeClaudeJsonMcp(
+        shouldEnableExa ? { exa: buildExaMcpEntry() } : null,
+      );
     }
 
     return NextResponse.json({
@@ -199,7 +205,7 @@ export async function POST(request) {
     console.log("Error updating claude settings:", error);
     return NextResponse.json(
       { error: "Failed to update claude settings" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -255,7 +261,7 @@ export async function DELETE() {
     console.log("Error resetting claude settings:", error);
     return NextResponse.json(
       { error: "Failed to reset claude settings" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

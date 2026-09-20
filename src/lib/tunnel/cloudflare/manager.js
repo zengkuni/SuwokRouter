@@ -1,10 +1,15 @@
-import { loadState, saveState, generateShortId } from "../shared/state.js";
-import { spawnQuickTunnel, killCloudflared, isCloudflaredRunning, setUnexpectedExitHandler } from "./cloudflared.js";
-import { clearPid } from "./pid.js";
-import { waitForHealth, probeUrlAlive } from "./healthCheck.js";
-import { WORKER_URL } from "./config.js";
-import { getPublicTunnelUrl } from "./publicUrl.js";
 import { getSettings, updateSettings } from "@/lib/localDb";
+import { generateShortId, loadState, saveState } from "../shared/state.js";
+import {
+  isCloudflaredRunning,
+  killCloudflared,
+  setUnexpectedExitHandler,
+  spawnQuickTunnel,
+} from "./cloudflared.js";
+import { WORKER_URL } from "./config.js";
+import { probeUrlAlive, waitForHealth } from "./healthCheck.js";
+import { clearPid } from "./pid.js";
+import { getPublicTunnelUrl } from "./publicUrl.js";
 
 const svc = {
   cancelToken: { cancelled: false },
@@ -13,18 +18,26 @@ const svc = {
   activeLocalPort: null,
 };
 
-export function getTunnelService() { return svc; }
-export function isTunnelManuallyDisabled() { return svc.cancelToken.cancelled; }
-export function isTunnelReconnecting() { return svc.spawnInProgress; }
+export function getTunnelService() {
+  return svc;
+}
+export function isTunnelManuallyDisabled() {
+  return svc.cancelToken.cancelled;
+}
+export function isTunnelReconnecting() {
+  return svc.spawnInProgress;
+}
 
 let onUnexpectedExit = null;
-export function setTunnelUnexpectedExitCallback(cb) { onUnexpectedExit = cb; }
+export function setTunnelUnexpectedExitCallback(cb) {
+  onUnexpectedExit = cb;
+}
 
 async function registerTunnelUrl(shortId, tunnelUrl) {
   await fetch(`${WORKER_URL}/api/tunnel/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ shortId, tunnelUrl })
+    body: JSON.stringify({ shortId, tunnelUrl }),
   });
 }
 
@@ -32,7 +45,7 @@ function throwIfCancelled(token) {
   if (token.cancelled) throw new Error("tunnel cancelled");
 }
 
-export async function enableTunnel(localPort = 14045) {
+export async function enableTunnel(localPort = 1212) {
   console.log(`[Tunnel] enable start (port=${localPort})`);
   svc.cancelToken = { cancelled: false };
   svc.activeLocalPort = localPort;
@@ -51,9 +64,17 @@ export async function enableTunnel(localPort = 14045) {
         ]);
         if (directOk && publicOk) {
           console.log(`[Tunnel] already running, reuse: ${existing.tunnelUrl}`);
-          return { success: true, tunnelUrl: existing.tunnelUrl, shortId: existing.shortId, publicUrl, alreadyRunning: true };
+          return {
+            success: true,
+            tunnelUrl: existing.tunnelUrl,
+            shortId: existing.shortId,
+            publicUrl,
+            alreadyRunning: true,
+          };
         }
-        console.log(`[Tunnel] stale (direct=${directOk} public=${publicOk}), respawn`);
+        console.log(
+          `[Tunnel] stale (direct=${directOk} public=${publicOk}), respawn`,
+        );
       }
     }
 
@@ -73,7 +94,9 @@ export async function enableTunnel(localPort = 14045) {
     };
 
     setUnexpectedExitHandler(() => {
-      console.warn("[Tunnel] cloudflared exited unexpectedly, scheduling respawn");
+      console.warn(
+        "[Tunnel] cloudflared exited unexpectedly, scheduling respawn",
+      );
       if (onUnexpectedExit) onUnexpectedExit();
     });
 
@@ -85,13 +108,17 @@ export async function enableTunnel(localPort = 14045) {
     await registerTunnelUrl(shortId, tunnelUrl);
     saveState({ shortId, tunnelUrl });
     await updateSettings({ tunnelEnabled: true, tunnelUrl });
-    console.log(`[Tunnel] registered shortId=${shortId} publicUrl=${publicUrl}`);
+    console.log(
+      `[Tunnel] registered shortId=${shortId} publicUrl=${publicUrl}`,
+    );
 
     await waitForHealth(publicUrl, token);
     console.log("[Tunnel] public URL healthy");
 
     if (!(await probeUrlAlive(tunnelUrl))) {
-      console.warn("[Tunnel] direct URL not reachable yet, continuing via publicUrl");
+      console.warn(
+        "[Tunnel] direct URL not reachable yet, continuing via publicUrl",
+      );
     } else {
       console.log("[Tunnel] direct URL healthy");
     }
@@ -99,7 +126,6 @@ export async function enableTunnel(localPort = 14045) {
     console.log("[Tunnel] enable success");
     return { success: true, tunnelUrl, shortId, publicUrl };
   } catch (e) {
-
     if (!/cloudflared killed|tunnel cancelled/.test(e.message)) {
       console.error(`[Tunnel] enable error: ${e.message}`);
     }
@@ -115,7 +141,11 @@ export async function disableTunnel() {
   svc.cancelToken.cancelled = true;
   setUnexpectedExitHandler(null);
 
-  try { killCloudflared(svc.activeLocalPort); } catch (e) { console.warn(`[Tunnel] kill warn: ${e.message}`); }
+  try {
+    killCloudflared(svc.activeLocalPort);
+  } catch (e) {
+    console.warn(`[Tunnel] kill warn: ${e.message}`);
+  }
   clearPid();
 
   const state = loadState();
@@ -144,6 +174,6 @@ export async function getTunnelStatus() {
     tunnelUrl,
     shortId,
     publicUrl,
-    running
+    running,
   };
 }

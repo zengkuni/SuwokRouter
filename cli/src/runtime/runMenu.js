@@ -7,7 +7,11 @@ const { openBrowser } = require("./uiAdapters");
 const { installPackageVersion } = require("./update");
 const lifecycle = require("./lifecycle");
 const { initTray, killTray } = require("../cli/tray/tray");
-const { acquireTrayLock, stopLegacyTrayHosts, stopTrayHost } = require("../cli/tray/trayHost");
+const {
+  acquireTrayLock,
+  stopLegacyTrayHosts,
+  stopTrayHost,
+} = require("../cli/tray/trayHost");
 const pkg = require("../../../package.json");
 
 function trayOptions(installation, port) {
@@ -15,20 +19,33 @@ function trayOptions(installation, port) {
     port,
     onOpenDashboard: () => openBrowser(dashboardUrl(installation, port)),
     onQuit: () => {
-      try { lifecycle.stop(installation); } catch {}
+      try {
+        lifecycle.stop(installation);
+      } catch {}
     },
   };
 }
 
 function initializeTray(installation, port) {
-  try { return initTray(trayOptions(installation, port)); } catch { return null; }
+  try {
+    return initTray(trayOptions(installation, port));
+  } catch {
+    return null;
+  }
 }
 
 function trayHostArgs(installation, port) {
   const cliEntry = path.resolve(__dirname, "..", "..", "cli.js");
   const args = [];
   if (fs.existsSync(cliEntry)) args.push(cliEntry);
-  args.push("--tray", "--skip-update", "--dir", installation.installDir, "--port", String(port));
+  args.push(
+    "--tray",
+    "--skip-update",
+    "--dir",
+    installation.installDir,
+    "--port",
+    String(port),
+  );
   if (installation.host) args.push("--host", installation.host);
   return args;
 }
@@ -49,7 +66,7 @@ function startTrayHost(installation, port) {
 }
 
 async function runTrayHost(installation, options = {}) {
-  const port = Number(options.port || installation.port || 14045);
+  const port = Number(options.port || installation.port || 1212);
   const trayLock = acquireTrayLock(installation, port);
   if (!trayLock) return;
 
@@ -62,15 +79,19 @@ async function runTrayHost(installation, options = {}) {
     });
   }
   if (!running) {
-    await withProgress("Starting Sway Router", (progress) => {
-      progress.update(35, "Starting Sway Router");
-      return lifecycle.start(installation, {
-        background: true,
-        showLog: options.showLog,
-        port,
-        host: options.host,
-      });
-    }, { doneMessage: "Sway Router started" });
+    await withProgress(
+      "Starting Sway Router",
+      (progress) => {
+        progress.update(35, "Starting Sway Router");
+        return lifecycle.start(installation, {
+          background: true,
+          showLog: options.showLog,
+          port,
+          host: options.host,
+        });
+      },
+      { doneMessage: "Sway Router started" },
+    );
   }
 
   const tray = initializeTray(installation, port);
@@ -80,8 +101,12 @@ async function runTrayHost(installation, options = {}) {
   }
 
   const shutdown = () => {
-    try { lifecycle.stop(installation); } catch {}
-    try { void killTray(); } catch {}
+    try {
+      lifecycle.stop(installation);
+    } catch {}
+    try {
+      void killTray();
+    } catch {}
     trayLock.release();
   };
   process.once("SIGINT", shutdown);
@@ -103,20 +128,30 @@ function startTrayForMenu(installation, port) {
 }
 
 function dashboardUrl(installation, port) {
-  return `http://localhost:${port || installation.port || 14045}/dashboard`;
+  return `http://localhost:${port || installation.port || 1212}/dashboard`;
 }
 
 async function startAndShow(installation, options, background) {
   try {
-    const result = await withProgress("Starting Sway Router", (progress) => {
-      progress.update(35, "Starting Sway Router");
-      return lifecycle.start(installation, { ...options, background });
-    }, { doneMessage: "Sway Router started" });
+    const result = await withProgress(
+      "Starting Sway Router",
+      (progress) => {
+        progress.update(35, "Starting Sway Router");
+        return lifecycle.start(installation, { ...options, background });
+      },
+      { doneMessage: "Sway Router started" },
+    );
     if (background) {
       const tray = startTrayForMenu(installation, result.port);
-      showStatus(`${backgroundStatusMessage(installation, result.port)}${tray ? " with the tray enabled" : ""}`, "success");
+      showStatus(
+        `${backgroundStatusMessage(installation, result.port)}${tray ? " with the tray enabled" : ""}`,
+        "success",
+      );
     } else {
-      showStatus(`Sway Router is ready at ${dashboardUrl(installation, result.port)}`, "success");
+      showStatus(
+        `Sway Router is ready at ${dashboardUrl(installation, result.port)}`,
+        "success",
+      );
     }
     return true;
   } catch (error) {
@@ -126,9 +161,15 @@ async function startAndShow(installation, options, background) {
 }
 
 async function closeTray(installation) {
-  try { await killTray(); } catch {}
-  try { await stopTrayHost(installation); } catch {}
-  try { stopLegacyTrayHosts(installation); } catch {}
+  try {
+    await killTray();
+  } catch {}
+  try {
+    await stopTrayHost(installation);
+  } catch {}
+  try {
+    stopLegacyTrayHosts(installation);
+  } catch {}
 }
 
 async function disableTray(installation) {
@@ -141,17 +182,28 @@ function menuItems(updateInfo = null) {
     { id: "restart", label: "Restart Sway Router" },
     { id: "stop", label: "Stop Sway Router" },
   ];
-  if (updateInfo?.updateAvailable && updateInfo.updateSupported && updateInfo.latestVersion) {
-    items.push({ id: "update", label: `Update to v${updateInfo.latestVersion}` });
+  if (
+    updateInfo?.updateAvailable &&
+    updateInfo.updateSupported &&
+    updateInfo.latestVersion
+  ) {
+    items.push({
+      id: "update",
+      label: `Update to v${updateInfo.latestVersion}`,
+    });
   }
   items.push({ id: "exit", label: "Exit & Stop Router" });
   return items;
 }
 
 async function stopManaged(installation) {
-  const result = await withProgress("Stopping Sway Router", () => lifecycle.stop(installation), {
-    doneMessage: "Sway Router stopped",
-  });
+  const result = await withProgress(
+    "Stopping Sway Router",
+    () => lifecycle.stop(installation),
+    {
+      doneMessage: "Sway Router stopped",
+    },
+  );
   await disableTray(installation);
   return result;
 }
@@ -166,7 +218,10 @@ function menuStatusText(status, version = pkg.version) {
 
 async function stopWithMessage(installation) {
   const result = await stopManaged(installation);
-  showStatus(result.stopped ? "Sway Router stopped." : "Sway Router was not running.", result.stopped ? "success" : "info");
+  showStatus(
+    result.stopped ? "Sway Router stopped." : "Sway Router was not running.",
+    result.stopped ? "success" : "info",
+  );
 }
 
 async function updateAndRestart(installation, options, updateInfo) {
@@ -184,12 +239,15 @@ async function updateAndRestart(installation, options, updateInfo) {
     const restarted = await startAndShow(installation, options, true);
     if (!restarted) return false;
   }
-  showStatus(`Updated to v${updateInfo.latestVersion}. Closing menu.`, "success");
+  showStatus(
+    `Updated to v${updateInfo.latestVersion}. Closing menu.`,
+    "success",
+  );
   return true;
 }
 
 async function runMenu(installation, options = {}) {
-  const port = Number(options.port || installation.port || 14045);
+  const port = Number(options.port || installation.port || 1212);
   const updateInfo = options.updateInfo || null;
   while (true) {
     const current = currentStatus(installation);
@@ -210,7 +268,10 @@ async function runMenu(installation, options = {}) {
     if (selectedItem.id === "background") {
       if (current.running) {
         const tray = startTrayForMenu(installation, port);
-        showStatus(`Sway Router will keep running in the background${tray ? " with the tray enabled" : ""}. Closing menu.`, "success");
+        showStatus(
+          `Sway Router will keep running in the background${tray ? " with the tray enabled" : ""}. Closing menu.`,
+          "success",
+        );
       } else {
         const started = await startAndShow(installation, options, true);
         if (!started) {
@@ -222,7 +283,10 @@ async function runMenu(installation, options = {}) {
     }
     if (selectedItem.id === "restart") {
       if (!currentStatus(installation).running) {
-        showStatus("Sway Router is stopped. Start it with `swayrouter start` first.", "warning");
+        showStatus(
+          "Sway Router is stopped. Start it with `swayrouter start` first.",
+          "warning",
+        );
       } else {
         await stopManaged(installation);
         await startAndShow(installation, options, true);
@@ -247,4 +311,11 @@ async function runMenu(installation, options = {}) {
   }
 }
 
-module.exports = { runMenu, dashboardUrl, menuItems, menuStatusText, runTrayHost, startTrayHost };
+module.exports = {
+  runMenu,
+  dashboardUrl,
+  menuItems,
+  menuStatusText,
+  runTrayHost,
+  startTrayHost,
+};
