@@ -8,6 +8,7 @@ export type CreateNodeInput = {
   name: string;
   prefix: string;
   baseUrl?: string;
+  iconUrl?: string;
   type?: "openai-compatible" | "anthropic-compatible";
   apiType?: "chat" | "responses";
 };

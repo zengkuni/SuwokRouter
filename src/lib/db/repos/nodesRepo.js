@@ -42,6 +42,12 @@ function normalizeNodeIdentity(value) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
 
+function normalizeIconUrl(value) {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 function duplicateNodeError(field, value) {
   const label = field === "prefix" ? "prefix" : "name";
   const error = new Error(`A custom provider with this ${label} already exists`);
@@ -90,6 +96,7 @@ export async function createProviderNode(data) {
     prefix: data.prefix,
     apiType: data.apiType,
     baseUrl: data.baseUrl,
+    iconUrl: normalizeIconUrl(data.iconUrl),
     createdAt: now,
     updatedAt: now,
   };
@@ -107,6 +114,7 @@ export async function updateProviderNode(id, data) {
     const row = db.get(`SELECT * FROM providerNodes WHERE id = ?`, [id]);
     if (!row) return;
     const merged = { ...rowToNode(row), ...data, updatedAt: new Date().toISOString() };
+    merged.iconUrl = normalizeIconUrl(merged.iconUrl);
     assertUniqueNode(db, merged, id);
     upsert(db, merged);
     result = merged;

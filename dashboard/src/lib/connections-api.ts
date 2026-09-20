@@ -45,6 +45,7 @@ export type AvailableProvider = {
   baseUrl?: string;
   nodeType?: string;
   apiType?: string;
+  iconUrl?: string;
 
   authModes?: string[];
   models?: Array<{
@@ -261,6 +262,7 @@ export async function listAvailableProviders(): Promise<AvailableProvider[]> {
       baseUrl: node?.baseUrl,
       nodeType: node?.type,
       apiType: node?.apiType,
+      iconUrl: node?.iconUrl,
       connected: count?.total ?? 0,
     });
     seen.add(canonicalId);
@@ -277,6 +279,7 @@ export async function listAvailableProviders(): Promise<AvailableProvider[]> {
       baseUrl: n.baseUrl,
       nodeType: n.type,
       apiType: n.apiType,
+      iconUrl: n.iconUrl,
       icon: "sway",
       connected: 0,
     });
@@ -434,6 +437,7 @@ export type ProviderNode = {
   prefix?: string;
   apiType?: string;
   baseUrl?: string;
+  iconUrl?: string;
   type?: string;
 };
 

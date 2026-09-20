@@ -13,6 +13,7 @@ import {
   shouldCompact,
   readAssistantText,
   readAssistantThinking,
+  isContentBlockedError,
   readStreamUsage,
   groupModels,
   isAcceptedImage,
@@ -117,6 +118,15 @@ describe("A7.1 Model Studio engine — request building", () => {
     const out = buildRequestMessages(h, "");
     expect(out.length).toBe(1);
     expect((out[0] as { content: string }).content).toBe("keep");
+  });
+  test("includes reasoning_content for assistant messages with thinking", () => {
+    const h = [um("hi"), am("hello", { thinking: "because reasons" })];
+    const out = buildRequestMessages(h, "Be terse.");
+    expect(out[2]).toEqual({
+      role: "assistant",
+      content: "hello",
+      reasoning_content: "because reasons",
+    });
   });
 
   test("appends ephemeral assistant tool calls and tool results after chat history", () => {
@@ -244,5 +254,14 @@ describe("A7.1 Model Studio engine — misc", () => {
     expect(typeof id).toBe("string");
     expect(id.length).toBeGreaterThan(0);
     expect(createId()).not.toBe(id);
+  });
+});
+
+describe("content-blocked error detection", () => {
+  test("detects upstream content-filter errors", () => {
+    expect(isContentBlockedError("content-blocked (request id: abc123)")).toBe(true);
+    expect(isContentBlockedError("Content Blocked by provider")).toBe(true);
+    expect(isContentBlockedError("Rate limit exceeded")).toBe(false);
+    expect(isContentBlockedError("")).toBe(false);
   });
 });

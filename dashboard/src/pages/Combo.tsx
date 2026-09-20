@@ -1,23 +1,31 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { Fragment, useMemo, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Check,
+  ArrowRight,
   ChevronDown,
-  CircleAlert,
+  GripVertical,
+  Hash,
   Pencil,
   Plus,
+  Route,
   Search,
+  Sparkles,
   Trash2,
   X,
 } from "lucide-react";
-import { Header } from "@/components/Header";
-import { RippleButton } from "@/components/animate/ripple-button";
 import {
-  ProviderModelAccordion,
-  ProviderModelIcon,
-} from "@/components/ProviderModelAccordion";
-import { Badge } from "@/components/ui/badge";
+  ComboModelBoard,
+  ModelCapabilityChips,
+  ModelPickDialog,
+  modelProviderId,
+  modelShortName,
+} from "@/components/ComboModelBoard";
+import { ProviderModelIcon } from "@/components/ProviderModelAccordion";
+import { Header } from "@/components/Header";
+import { CopyButton } from "@/components/animate/copy-button";
+import { RippleButton } from "@/components/animate/ripple-button";
+import { StatusBadge } from "@/components/StatusBadge";
+import { TestBtn } from "@/components/provider/TestBtn";
 import {
   Dialog,
   DialogContent,
@@ -29,18 +37,8 @@ import {
 } from "@/components/ui/dialog";
 import { Frame, FramePanel } from "@/components/ui/frame";
 import { Input } from "@/components/ui/input";
-import { Segmented } from "@/components/ui/segmented";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip } from "@/components/ui/tooltip";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { getErrorMessage } from "@/lib/api";
 import {
   createCombo,
@@ -51,7 +49,6 @@ import {
   type ComboStrategy,
   type ComboStrategyConfig,
 } from "@/lib/admin-extras-api";
-import { groupModels, type ModelInfo } from "@/lib/chatStudio";
 import { listGatewayModels } from "@/lib/model-catalog-api";
 import {
   fetchSettings,
@@ -59,244 +56,21 @@ import {
   type AppSettings,
 } from "@/lib/settings-api";
 import { probeEnabled } from "@/lib/live-mode";
+import { comboNameError } from "@/lib/comboForm";
+import {
+  distinctModelIds,
+  formatModelTestResult,
+  runModelTests,
+  testGatewayModel,
+  type ModelTestStatus,
+} from "@/lib/comboModelTest";
 import { toast } from "@/components/ui/toast";
 
-type ModelPickerProps = {
-  models: ModelInfo[];
-  selected: string[];
-  onChange: (models: string[]) => void;
-  loading?: boolean;
-  error?: unknown;
-  multiple?: boolean;
-  placeholder?: string;
+const STRATEGY_META: Record<ComboStrategy, { label: string; hint: string }> = {
+  fallback: { label: "Fallback", hint: "first healthy model answers" },
+  "round-robin": { label: "Round-robin", hint: "load spread across models" },
+  fusion: { label: "Fusion", hint: "a judge routes each request" },
 };
-
-type ModelPickerPopupPosition = {
-  left: number;
-  top?: number;
-  bottom?: number;
-  width: number;
-  listHeight: number;
-};
-
-function ModelPicker({
-  models,
-  selected,
-  onChange,
-  loading = false,
-  error,
-  multiple = true,
-  placeholder = "Select models",
-}: ModelPickerProps) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const rootRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const popupRef = useRef<HTMLDivElement>(null);
-  const [popupPosition, setPopupPosition] = useState<ModelPickerPopupPosition | null>(null);
-
-  function updatePopupPosition() {
-    const trigger = triggerRef.current;
-    if (!trigger) return;
-
-    const rect = trigger.getBoundingClientRect();
-    const edgeGap = 12;
-    const popupGap = 6;
-    const spaceBelow = window.innerHeight - rect.bottom - edgeGap;
-    const spaceAbove = rect.top - edgeGap;
-    const openAbove = spaceBelow < 230 && spaceAbove > spaceBelow;
-    const availableSpace = Math.max(144, openAbove ? spaceAbove : spaceBelow);
-    const listHeight = Math.max(120, Math.min(256, availableSpace - 54));
-    const width = rect.width;
-    const left = Math.min(
-      Math.max(edgeGap, rect.left),
-      Math.max(edgeGap, window.innerWidth - width - edgeGap),
-    );
-
-    setPopupPosition(
-      openAbove
-        ? { left, bottom: window.innerHeight - rect.top + popupGap, width, listHeight }
-        : { left, top: rect.bottom + popupGap, width, listHeight },
-    );
-  }
-
-  useEffect(() => {
-    if (!open) return;
-    function onDocumentMouseDown(event: MouseEvent) {
-      const target = event.target as Node;
-      if (
-        rootRef.current &&
-        !rootRef.current.contains(target) &&
-        !popupRef.current?.contains(target)
-      ) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", onDocumentMouseDown);
-    return () => document.removeEventListener("mousedown", onDocumentMouseDown);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) {
-      setPopupPosition(null);
-      return;
-    }
-
-    updatePopupPosition();
-    const onViewportChange = () => updatePopupPosition();
-    window.addEventListener("resize", onViewportChange);
-    window.addEventListener("scroll", onViewportChange, true);
-    return () => {
-      window.removeEventListener("resize", onViewportChange);
-      window.removeEventListener("scroll", onViewportChange, true);
-    };
-  }, [open]);
-
-  const catalog = useMemo(() => {
-    const known = new Set(models.map((model) => model.id));
-    const missing = selected
-      .filter((id) => id && !known.has(id))
-      .map((id) => {
-        const parts = id.split("/").filter(Boolean);
-        return {
-          id,
-          name: parts[parts.length - 1] || id,
-          provider: parts.length > 1 ? parts[0] : "other",
-        } satisfies ModelInfo;
-      });
-    return [...models, ...missing];
-  }, [models, selected]);
-
-  const groups = useMemo(() => groupModels(catalog, query), [catalog, query]);
-
-  function toggleModel(id: string) {
-    if (!multiple) {
-      onChange([id]);
-      setOpen(false);
-      return;
-    }
-    onChange(selected.includes(id) ? selected.filter((item) => item !== id) : [...selected, id]);
-  }
-
-  return (
-    <div ref={rootRef} className="relative">
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        className="flex min-h-9 w-full items-center gap-2 rounded-md border border-input bg-surface px-2.5 py-1.5 text-left text-sm transition-colors hover:bg-surface-hover"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-      >
-        <span className="min-w-0 flex-1 truncate text-xs text-foreground">
-          {selected.length === 0
-            ? placeholder
-            : multiple
-              ? `${selected.length} model${selected.length === 1 ? "" : "s"} selected`
-              : selected[0]}
-        </span>
-        <ChevronDown className={`size-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-
-      {selected.length > 0 ? (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {selected.map((id) => (
-            <span
-              key={id}
-              className="inline-flex max-w-full items-center gap-1 rounded-md border border-border bg-muted/45 px-2 py-1 text-[11px] text-foreground"
-            >
-              <Tooltip label={id}><span className="max-w-[15rem] truncate font-mono">{id}</span></Tooltip>
-              <button
-                type="button"
-                onClick={() => onChange(selected.filter((item) => item !== id))}
-                className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-surface-hover hover:text-foreground"
-                aria-label={`Remove ${id}`}
-              >
-                <X className="size-3" />
-              </button>
-            </span>
-          ))}
-        </div>
-      ) : null}
-
-      {open && popupPosition
-        ? createPortal(
-            <div
-              ref={popupRef}
-              className="fixed z-[100] overflow-hidden rounded-xl border border-border bg-card"
-              style={{
-                left: popupPosition.left,
-                top: popupPosition.top,
-                bottom: popupPosition.bottom,
-                width: popupPosition.width,
-              }}
-            >
-              <div className="border-b border-border p-1.5">
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    autoFocus
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Search models…"
-                    aria-label="Search models"
-                    className="h-8 pl-7 text-xs"
-                  />
-                </div>
-              </div>
-              {loading ? (
-                <p className="px-3 py-5 text-center text-xs text-muted-foreground">Loading models…</p>
-              ) : error ? (
-                <div className="flex items-start gap-2 px-3 py-4 text-xs text-destructive">
-                  <CircleAlert className="mt-0.5 size-3.5 shrink-0" />
-                  <span>{getErrorMessage(error, "Unable to load models")}</span>
-                </div>
-              ) : (
-                <ScrollArea
-                  className="min-h-0"
-                  style={{ height: popupPosition.listHeight }}
-                  overscrollContain
-                >
-                  <div role="listbox" aria-multiselectable={multiple} className="py-1">
-                    <ProviderModelAccordion
-                      groups={groups}
-                      query={query}
-                      empty={(
-                        <p className="px-3 py-5 text-center text-xs text-muted-foreground">
-                          {catalog.length ? "No models match" : "No provider models available"}
-                        </p>
-                      )}
-                      renderItem={(model, provider) => {
-                        const isSelected = selected.includes(model.id);
-                        return (
-                          <button
-                            type="button"
-                            role="option"
-                            aria-selected={isSelected}
-                            onClick={() => toggleModel(model.id)}
-                            className="flex w-full items-start gap-2 rounded-md px-2.5 py-1.5 text-left text-foreground transition-colors hover:bg-surface-hover"
-                          >
-                            <ProviderModelIcon provider={provider} className="mt-0.5 size-5" />
-                            <Tooltip label={model.id}>
-                              <span className="min-w-0 flex-1 break-all font-mono text-[11px] leading-4">
-                                {model.id}
-                              </span>
-                            </Tooltip>
-                            {isSelected ? <Check className="mt-0.5 size-3.5 shrink-0 text-primary" /> : null}
-                          </button>
-                        );
-                      }}
-                    />
-                  </div>
-                </ScrollArea>
-              )}
-            </div>,
-            document.body,
-          )
-        : null}
-    </div>
-  );
-}
 
 export default function Combo() {
   const qc = useQueryClient();
@@ -306,11 +80,27 @@ export default function Combo() {
   const [editCombo, setEditCombo] = useState<Combo | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Combo | null>(null);
   const [saving, setSaving] = useState(false);
+  const [pendingOrder, setPendingOrder] = useState<string[] | null>(null);
+  const [draggedCombo, setDraggedCombo] = useState<string | null>(null);
+  const [dragOverCombo, setDragOverCombo] = useState<string | null>(null);
+  const [orderSaving, setOrderSaving] = useState(false);
+  const orderSavingRef = useRef(false);
+  const strategySavingRef = useRef(false);
 
   const [name, setName] = useState("");
+  const [nameSubmitted, setNameSubmitted] = useState(false);
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
-  const [strategy, setStrategy] = useState<ComboStrategy>("fallback");
-  const [judgeModel, setJudgeModel] = useState("");
+  // Judge is edited from the combo card (list), not from this dialog.
+  const [judgeTarget, setJudgeTarget] = useState<Combo | null>(null);
+  const [testingModels, setTestingModels] = useState<ReadonlySet<string>>(new Set<string>());
+  const [modelTestResults, setModelTestResults] = useState<Readonly<Record<string, ModelTestStatus>>>({});
+  const [modelTestProgress, setModelTestProgress] = useState<{ settled: number; total: number } | null>(null);
+  const modelTestRunning = modelTestProgress !== null;
+  const modelTestControllersRef = useRef<Map<string, AbortController>>(new Map());
+  const modelTestBatchRef = useRef<AbortController | null>(null);
+  // Latest run owning each model's probe; a stale (cancelled) run must not
+  // touch the flag or result of the run that replaced it.
+  const modelTestOwnerRef = useRef<Map<string, AbortController>>(new Map());
 
   const combosQ = useQuery({
     queryKey: ["combos"],
@@ -327,16 +117,43 @@ export default function Combo() {
   const modelsQ = useQuery({
     queryKey: ["combos", "models"],
     queryFn: listGatewayModels,
-    enabled: probeEnabled() && createOpen,
+    enabled: probeEnabled() && (createOpen || judgeTarget !== null),
     retry: 1,
   });
 
-  const combos = combosQ.data ?? [];
+  const combos = useMemo(() => {
+    const items = combosQ.data ?? [];
+    const order = pendingOrder ?? settingsQ.data?.comboOrder ?? [];
+    const remaining = new Map(items.map((combo) => [combo.id || combo.name, combo]));
+    const ordered: Combo[] = [];
+    for (const id of order) {
+      const combo = remaining.get(id);
+      if (combo) {
+        ordered.push(combo);
+        remaining.delete(id);
+      }
+    }
+    return [...ordered, ...remaining.values()];
+  }, [combosQ.data, settingsQ.data?.comboOrder, pendingOrder]);
   const loading = combosQ.isLoading;
   const providerModels = useMemo(
     () => (modelsQ.data ?? []).filter((model) => model.provider !== "combo"),
     [modelsQ.data],
   );
+
+  const takenComboNames = useMemo(
+    () =>
+      combos
+        .filter(
+          (combo) =>
+            (combo.id || combo.name) !== (editCombo?.id || editCombo?.name)
+        )
+        .map((combo) => combo.name),
+    [combos, editCombo]
+  );
+  const nameError = comboNameError(name, takenComboNames);
+  const visibleNameError =
+    name.trim() || nameSubmitted ? nameError : "";
 
   const strategies: Record<string, ComboStrategyConfig> =
     ((settingsQ.data?.comboStrategies as Record<
@@ -360,11 +177,85 @@ export default function Combo() {
     else toast(msg);
   }
 
+  function clearDrag() {
+    setDraggedCombo(null);
+    setDragOverCombo(null);
+  }
+
+  async function onDrop(event: DragEvent<HTMLElement>, targetId: string) {
+    event.preventDefault();
+    const sourceId = draggedCombo;
+    clearDrag();
+    if (!sourceId || sourceId === targetId || orderSavingRef.current) return;
+    const order = combos.map((combo) => combo.id || combo.name);
+    const from = order.indexOf(sourceId);
+    const to = order.indexOf(targetId);
+    if (from < 0 || to < 0) return;
+    order.splice(from, 1);
+    order.splice(to, 0, sourceId);
+    orderSavingRef.current = true;
+    setOrderSaving(true);
+    setPendingOrder(order);
+    try {
+      await qc.cancelQueries({ queryKey: ["settings"] });
+      await updateSettings({ comboOrder: order });
+      qc.setQueryData<AppSettings>(["settings"], (current) => ({
+        ...current,
+        comboOrder: order,
+      }));
+    } catch (err) {
+      flash(getErrorMessage(err, "Failed to save combo order"), "error");
+    } finally {
+      setPendingOrder(null);
+      orderSavingRef.current = false;
+      setOrderSaving(false);
+    }
+  }
+
+  function dragProps(combo: Combo) {
+    const id = combo.id || combo.name;
+    return {
+      draggable: !orderSaving && !saving && !createOpen && !deleteTarget && settingsQ.isSuccess,
+      onDragStart: (event: DragEvent<HTMLElement>) => {
+        if ((event.target as HTMLElement).closest("button, input, select, textarea, a")) {
+          event.preventDefault();
+          return;
+        }
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", id);
+        setDraggedCombo(id);
+      },
+      onDragOver: (event: DragEvent<HTMLElement>) => {
+        if (!draggedCombo || orderSavingRef.current) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        setDragOverCombo(id);
+      },
+      onDragLeave: (event: DragEvent<HTMLElement>) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setDragOverCombo((current) => current === id ? null : current);
+        }
+      },
+      onDrop: (event: DragEvent<HTMLElement>) => void onDrop(event, id),
+      onDragEnd: clearDrag,
+    };
+  }
+
+  function dragClassName(combo: Combo) {
+    const id = combo.id || combo.name;
+    return `${draggedCombo === id ? "opacity-40" : ""} ${
+      dragOverCombo === id && draggedCombo !== id
+        ? "bg-primary/10 ring-2 ring-inset ring-primary/50"
+        : ""
+    }`;
+  }
+
   function resetForm() {
+    stopModelTests();
+    setModelTestResults({});
     setName("");
+    setNameSubmitted(false);
     setSelectedModels([]);
-    setStrategy("fallback");
-    setJudgeModel("");
   }
 
   function openCreate() {
@@ -374,62 +265,229 @@ export default function Combo() {
   }
 
   function openEdit(c: Combo) {
+    stopModelTests();
+    setModelTestResults({});
     setEditCombo(c);
+    setNameSubmitted(false);
     setName(c.name);
     setSelectedModels(c.models);
-    const cfg = strategies[c.name] || {};
-    setStrategy(
-      cfg.fallbackStrategy === "round-robin" ||
-        cfg.fallbackStrategy === "fusion" ||
-        cfg.fallbackStrategy === "fallback"
-        ? cfg.fallbackStrategy
-        : "fallback"
-    );
-    setJudgeModel(cfg.judgeModel || "");
     setCreateOpen(true);
   }
 
-  async function persistStrategy(
-    comboName: string,
-    cfg: ComboStrategyConfig,
-    baseSettings?: AppSettings
+  function markModelTesting(modelId: string, active: boolean) {
+    setTestingModels((previous) => {
+      const next = new Set(previous);
+      if (active) next.add(modelId);
+      else next.delete(modelId);
+      return next;
+    });
+  }
+
+  async function probeModel(modelId: string, signal: AbortSignal, owner: AbortController): Promise<ModelTestStatus | null> {
+    modelTestOwnerRef.current.set(modelId, owner);
+    markModelTesting(modelId, true);
+    const isCurrent = () => modelTestOwnerRef.current.get(modelId) === owner;
+    try {
+      const status = await testGatewayModel(modelId, signal);
+      if (isCurrent()) setModelTestResults((previous) => ({ ...previous, [modelId]: status }));
+      return status;
+    } catch (error) {
+
+      if (signal.aborted) return null;
+      const status = formatModelTestResult({
+        ok: false,
+        error: getErrorMessage(error, "Model test failed"),
+      });
+      if (isCurrent()) setModelTestResults((previous) => ({ ...previous, [modelId]: status }));
+      return status;
+    } finally {
+      if (isCurrent()) {
+        modelTestOwnerRef.current.delete(modelId);
+        markModelTesting(modelId, false);
+      }
+    }
+  }
+
+  function stopModelTests() {
+    modelTestBatchRef.current?.abort();
+    modelTestBatchRef.current = null;
+    for (const controller of modelTestControllersRef.current.values()) controller.abort();
+    modelTestControllersRef.current.clear();
+    modelTestOwnerRef.current.clear();
+    setTestingModels(new Set<string>());
+    setModelTestProgress(null);
+  }
+
+  function stopSingleModelTest(modelId: string) {
+    modelTestControllersRef.current.get(modelId)?.abort();
+    modelTestControllersRef.current.delete(modelId);
+    modelTestOwnerRef.current.delete(modelId);
+    markModelTesting(modelId, false);
+  }
+
+  async function runSingleModelTest(modelId: string) {
+    if (modelTestRunning || modelTestControllersRef.current.has(modelId)) return;
+    const controller = new AbortController();
+    modelTestControllersRef.current.set(modelId, controller);
+    try {
+      const status = await probeModel(modelId, controller.signal, controller);
+      if (status) flash(`${modelId}: ${status.message}`, status.ok ? "success" : "error");
+    } finally {
+      modelTestControllersRef.current.delete(modelId);
+    }
+  }
+
+  async function runAllModelTests() {
+    if (modelTestRunning) return;
+    if (modelTestControllersRef.current.size > 0) {
+      return flash("Cancel the running model test first");
+    }
+    const targetIds = distinctModelIds(selectedModels);
+    if (!targetIds.length) return flash("Add at least one model first");
+    const controller = new AbortController();
+    modelTestBatchRef.current = controller;
+    setModelTestProgress({ settled: 0, total: targetIds.length });
+    let passed = 0;
+    try {
+      await runModelTests({
+        targetIds,
+        signal: controller.signal,
+        onProgress: (settled) => {
+          if (modelTestBatchRef.current === controller) setModelTestProgress({ settled, total: targetIds.length });
+        },
+        run: async (modelId, signal) => {
+          const status = await probeModel(modelId, signal, controller);
+          if (status?.ok) passed += 1;
+        },
+      });
+      if (!controller.signal.aborted) {
+        flash(
+          `Models: ${passed}/${targetIds.length} passed`,
+          passed === targetIds.length ? "success" : "default",
+        );
+      }
+    } finally {
+      // A cancelled batch must not clear the progress of the run that replaced it.
+      if (modelTestBatchRef.current === controller) {
+        modelTestBatchRef.current = null;
+        setModelTestProgress(null);
+      }
+    }
+  }
+
+  function renderModelTest(modelId: string): ReactNode {
+    const status = modelTestResults[modelId];
+    const checking = testingModels.has(modelId);
+    return (
+      <>
+        {checking ? (
+          <span
+            className="inline-flex shrink-0 items-center gap-0.5 text-[11px] text-foreground/90"
+            aria-live="polite"
+            aria-label={`Checking ${modelId}`}
+          >
+            <span>Checking</span>
+            <span className="inline-flex w-3 justify-start" aria-hidden="true">
+              <span className="animate-pulse">.</span>
+              <span className="animate-pulse [animation-delay:150ms]">.</span>
+              <span className="animate-pulse [animation-delay:300ms]">.</span>
+            </span>
+          </span>
+        ) : null}
+        {status ? (
+          <Tooltip label={status.message || status.label}>
+            <StatusBadge
+              tone={status.ok ? "ok" : "err"}
+              className="max-w-[9rem] shrink-0 truncate text-[11px] font-semibold"
+            >
+              {status.label}
+            </StatusBadge>
+          </Tooltip>
+        ) : null}
+        <TestBtn
+          compact
+          busy={modelTestRunning || checking}
+          label="Test"
+          onTest={() => void runSingleModelTest(modelId)}
+          onStop={() => (modelTestRunning ? stopModelTests() : stopSingleModelTest(modelId))}
+        />
+      </>
+    );
+  }
+
+  async function persistStrategy(comboName: string, cfg: ComboStrategyConfig) {
+    if (strategySavingRef.current) return;
+    strategySavingRef.current = true;
+    try {
+      const current = settingsQ.data || {};
+      const prev =
+        (current.comboStrategies as Record<string, ComboStrategyConfig>) || {};
+      await updateSettings({
+        comboStrategies: {
+          ...prev,
+          [comboName]: { ...prev[comboName], ...cfg },
+        },
+      });
+      await qc.invalidateQueries({ queryKey: ["settings"] });
+    } finally {
+      strategySavingRef.current = false;
+    }
+  }
+
+  async function persistComboOrder(
+    order: string[],
+    rename?: { from: string; to: string },
   ) {
-    const current = baseSettings || settingsQ.data || {};
+    const current = settingsQ.data || {};
     const prev =
       (current.comboStrategies as Record<string, ComboStrategyConfig>) || {};
+    const renaming = rename !== undefined && rename.from !== rename.to;
+    let comboStrategies = prev;
+    if (renaming) {
+      // The strategy entry is keyed by combo name — carry it through a rename
+      // instead of leaving the new name on the global default.
+      const { [rename.from]: moved, ...rest } = prev;
+      comboStrategies = moved ? { ...rest, [rename.to]: moved } : rest;
+    }
     await updateSettings({
-      comboStrategies: {
-        ...prev,
-        [comboName]: { ...prev[comboName], ...cfg },
-      },
+      comboOrder: order,
+      ...(renaming ? { comboStrategies } : {}),
     });
     await qc.invalidateQueries({ queryKey: ["settings"] });
   }
 
   async function onSave() {
+    if (orderSavingRef.current) return;
     const n = name.trim();
     const models = selectedModels;
-    if (!n) return flash("Name required", "error");
+    if (nameError) {
+      setNameSubmitted(true);
+      return flash(nameError, "error");
+    }
     if (!models.length) return flash("Add at least one model", "error");
     setSaving(true);
     try {
-      const cfg: ComboStrategyConfig = {
-        fallbackStrategy: strategy,
-        judgeModel:
-          strategy === "fusion" ? judgeModel.trim() || undefined : undefined,
-      };
       if (editCombo) {
-
         await updateCombo(editCombo.id || editCombo.name, {
           models,
           name: n !== editCombo.name ? n : undefined,
         });
-        await persistStrategy(n, cfg, settingsQ.data);
+        await persistComboOrder(
+          combos.map((combo) =>
+            (combo.id || combo.name) === (editCombo.id || editCombo.name)
+              ? combo.id || n
+              : combo.id || combo.name
+          ),
+          { from: editCombo.name, to: n },
+        );
         await qc.invalidateQueries({ queryKey: ["combos"] });
         flash("Combo updated", "success");
       } else {
-        await createCombo({ name: n, models });
-        await persistStrategy(n, cfg, settingsQ.data);
+        const created = await createCombo({ name: n, models });
+        await persistComboOrder([
+          ...combos.map((combo) => combo.id || combo.name),
+          created.id || created.name,
+        ]);
         await qc.invalidateQueries({ queryKey: ["combos"] });
         flash("Combo created", "success");
       }
@@ -444,6 +502,7 @@ export default function Combo() {
   }
 
   async function onDelete() {
+    if (orderSavingRef.current) return;
     const target = deleteTarget;
     if (!target) return;
     setSaving(true);
@@ -453,12 +512,15 @@ export default function Combo() {
       const prev =
         (current.comboStrategies as Record<string, ComboStrategyConfig>) ||
         {};
-      if (prev[target.name]) {
-        const next = { ...prev };
-        delete next[target.name];
-        await updateSettings({ comboStrategies: next });
-        await qc.invalidateQueries({ queryKey: ["settings"] });
-      }
+      const next = { ...prev };
+      delete next[target.name];
+      await updateSettings({
+        comboStrategies: next,
+        comboOrder: combos
+          .filter((combo) => (combo.id || combo.name) !== (target.id || target.name))
+          .map((combo) => combo.id || combo.name),
+      });
+      await qc.invalidateQueries({ queryKey: ["settings"] });
       await qc.invalidateQueries({ queryKey: ["combos"] });
       flash("Combo deleted", "success");
       setDeleteTarget(null);
@@ -473,12 +535,12 @@ export default function Combo() {
     <div className="space-y-4">
       <Header
         title="Combos"
-        actions={combos.length > 0 ? (
+        actions={
           <RippleButton size="sm" onClick={openCreate}>
             <Plus className="h-4 w-4" />
             Add combo
           </RippleButton>
-        ) : null}
+        }
       />
 
       <div className="relative max-w-md">
@@ -500,8 +562,16 @@ export default function Combo() {
             ))}
           </div>
         ) : combos.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 px-4 py-16 text-center">
-            <p className="text-sm text-muted-foreground">No combos yet</p>
+          <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
+            <span className="flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/20">
+              <Route className="size-5" />
+            </span>
+            <div>
+              <p className="text-sm font-medium">No combos yet</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Group models into one endpoint with automatic fallback.
+              </p>
+            </div>
             <RippleButton size="sm" onClick={openCreate}>
               <Plus className="h-4 w-4" />
               Create first combo
@@ -512,132 +582,96 @@ export default function Combo() {
             No combos match your search.
           </div>
         ) : (
-          <>
-          <div className="divide-y divide-border/70 rounded-xl border border-border/70 bg-card sm:hidden">
+          <div className="grid gap-3 p-3 sm:p-4">
             {filtered.map((c) => {
               const cfg = strategies[c.name] || {};
               const strat = cfg.fallbackStrategy || "fallback";
+              const meta = STRATEGY_META[strat];
               return (
-                <article key={c.id || c.name} className="min-w-0 space-y-2.5 p-3">
-                  <div className="flex min-w-0 items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{c.name}</p>
-                      <Badge variant="outline" className="mt-1 text-[10px]">
-                        {strat}
-                      </Badge>
+                <article key={c.id || c.name} {...dragProps(c)} className={`group/card min-w-0 rounded-2xl border border-border/70 bg-card p-3.5 shadow-sm transition-all hover:border-primary/40 hover:shadow-md sm:p-4 ${dragClassName(c)}`}>
+                  <div className="flex items-start gap-3">
+                    <span title="Drag to reorder" className="mt-2 shrink-0 cursor-grab text-muted-foreground/50 transition-colors group-hover/card:text-muted-foreground"><GripVertical className="h-4 w-4" /></span>
+                    <div className="min-w-0 flex-1 space-y-3">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/20"><Route className="size-4" /></span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold leading-tight">{c.name}</p>
+                          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{c.models.length} model{c.models.length === 1 ? "" : "s"} · {meta.hint}</p>
+                        </div>
+                        <div className="relative shrink-0">
+                          <Route className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                          <select aria-label={`Strategy for ${c.name}`} value={strat} disabled={saving || orderSaving} onChange={async (event) => { try { await persistStrategy(c.name, { ...cfg, fallbackStrategy: event.target.value as ComboStrategy }); flash("Strategy updated", "success"); } catch (err) { flash(getErrorMessage(err, "Strategy update failed"), "error"); } }} className="h-8 appearance-none rounded-lg border border-border bg-surface/60 pl-7 pr-7 text-[11px] font-medium text-foreground outline-none transition-colors hover:bg-surface focus-visible:border-primary/50">
+                            <option value="fallback">Fallback</option>
+                            <option value="round-robin">Round-robin</option>
+                            <option value="fusion">Fusion</option>
+                          </select>
+                          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {c.models.map((model, index) => {
+                          const caps = providerModels.find((item) => item.id === model)?.capabilities || {};
+                          return (
+                            <Fragment key={model}>
+                              {index > 0 ? <ArrowRight aria-hidden className="size-3 shrink-0 text-muted-foreground/40" /> : null}
+                              <Tooltip label={model}>
+                                <span className="inline-flex min-w-0 max-w-[15rem] items-center gap-1.5 rounded-lg border border-border/60 bg-surface/70 py-1 pl-1 pr-2 text-[11px]">
+                                  <ProviderModelIcon provider={modelProviderId(model)} className="size-4" />
+                                  <span className="truncate font-mono">{modelShortName(model)}</span>
+                                  <ModelCapabilityChips capabilities={caps} />
+                                </span>
+                              </Tooltip>
+                            </Fragment>
+                          );
+                        })}
+                      </div>
+                      {strat === "fusion" ? (
+                        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                          <span className="text-[11px] font-medium text-muted-foreground">Judge</span>
+                          <button
+                            type="button"
+                            onClick={() => setJudgeTarget(c)}
+                            title="Pick the model that fuses panel answers"
+                            className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-dashed border-primary/40 px-1.5 py-0.5 font-mono text-[11px] text-primary transition-colors hover:border-primary hover:bg-primary/5"
+                          >
+                            <Sparkles className="size-3 shrink-0" />
+                            <span className="truncate">{cfg.judgeModel || `Auto — ${c.models[0] || "first model"}`}</span>
+                          </button>
+                          {cfg.judgeModel ? (
+                            <button
+                              type="button"
+                              title="Reset judge to Auto"
+                              aria-label={`Reset judge for ${c.name}`}
+                              onClick={async () => {
+                                try {
+                                  await persistStrategy(c.name, { ...cfg, judgeModel: undefined });
+                                  flash("Judge reset to Auto", "success");
+                                } catch (err) {
+                                  flash(getErrorMessage(err, "Judge reset failed"), "error");
+                                }
+                              }}
+                              className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                            >
+                              <X className="size-3" />
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : null}
                     </div>
-                    <div className="flex shrink-0 items-center gap-1.5">
+                    <div className="flex shrink-0 items-center gap-1 rounded-xl border border-border/60 bg-surface/40 p-1">
+                      <CopyButton value={c.name} label="" iconOnly className="h-8 w-8 border-transparent bg-transparent px-0 text-muted-foreground hover:bg-surface-hover hover:text-foreground dark:bg-transparent dark:hover:bg-surface-hover" onCopy={() => flash("Copied", "success")} onCopyError={() => flash("Copy unavailable", "error")} />
                       <Tooltip label="Edit">
-                        <button
-                          type="button"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-surface-hover hover:text-foreground"
-                          onClick={() => openEdit(c)}
-                          aria-label="Edit combo"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
+                        <button type="button" className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground" onClick={() => openEdit(c)} aria-label="Edit combo"><Pencil className="h-3.5 w-3.5" /></button>
                       </Tooltip>
                       <Tooltip label="Delete">
-                        <button
-                          type="button"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => setDeleteTarget(c)}
-                          aria-label="Delete combo"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        <button type="button" className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive" onClick={() => setDeleteTarget(c)} aria-label="Delete combo"><Trash2 className="h-3.5 w-3.5" /></button>
                       </Tooltip>
                     </div>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                      Models
-                    </p>
-                    <p className="mt-1 break-words font-mono text-[11px] leading-4 text-muted-foreground">
-                      {c.models.join(" → ")}
-                    </p>
-                    {strat === "fusion" && cfg.judgeModel ? (
-                      <p className="mt-1 break-words text-[10px] text-muted-foreground">
-                        Judge: {cfg.judgeModel}
-                      </p>
-                    ) : null}
                   </div>
                 </article>
               );
             })}
           </div>
-          <div className="hidden sm:block">
-          <Table className="min-w-[40rem] text-[13px]">
-            <TableHeader className="sticky top-0 z-10 bg-background text-[10px] uppercase text-muted-foreground">
-              <TableRow className="border-b border-border/80">
-                <TableHead className="px-4 py-2 font-medium">Name</TableHead>
-                <TableHead className="px-2 py-2 font-medium">Strategy</TableHead>
-                <TableHead className="px-2 py-2 font-medium">Models</TableHead>
-                <TableHead className="px-4 py-2 font-medium text-right">
-                  Actions
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((c) => {
-                const cfg = strategies[c.name] || {};
-                const strat = cfg.fallbackStrategy || "fallback";
-                return (
-                  <TableRow
-                    key={c.id || c.name}
-                    className="border-b border-border/60 last:border-0 hover:bg-muted/30"
-                  >
-                    <TableCell className="max-w-[12rem] truncate px-4 py-2 font-medium">
-                      {c.name}
-                    </TableCell>
-                    <TableCell className="px-2 py-2">
-                      <Badge variant="outline" className="text-[10px]">
-                        {strat}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="px-2 py-2">
-                      <div className="min-w-0">
-                        <p className="max-w-[24rem] truncate font-mono text-[11px] text-muted-foreground">
-                          {c.models.join(" → ")}
-                        </p>
-                        {strat === "fusion" && cfg.judgeModel ? (
-                          <p className="mt-0.5 text-[10px] text-muted-foreground">
-                            judge: {cfg.judgeModel}
-                          </p>
-                        ) : null}
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-4 py-2">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Tooltip label="Edit">
-                          <button
-                            type="button"
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-surface-hover hover:text-foreground"
-                            onClick={() => openEdit(c)}
-                            aria-label="Edit combo"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </button>
-                        </Tooltip>
-                        <Tooltip label="Delete">
-                          <button
-                            type="button"
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted-foreground hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
-                            onClick={() => setDeleteTarget(c)}
-                            aria-label="Delete combo"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </Tooltip>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-          </div>
-          </>
         )}
         </FramePanel>
       </Frame>
@@ -652,67 +686,85 @@ export default function Combo() {
           }
         }}
       >
-        <DialogContent className="max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>
+        <DialogContent className="max-h-[90vh] overflow-hidden sm:max-w-xl">
+          <DialogHeader className="pb-1">
+            <DialogTitle className="text-base font-semibold tracking-tight">
               {editCombo ? "Edit combo" : "Create combo"}
             </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground/70">
+              Name the route and order its models. Requests walk the list top to bottom.
+            </DialogDescription>
           </DialogHeader>
           <DialogPanel className="space-y-4">
-            <label className="block space-y-1.5">
-              <span className="text-xs text-muted-foreground">Name</span>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="smart"
-              />
-            </label>
-            <label className="block space-y-1.5">
-              <span className="text-xs text-muted-foreground">
-                Models
-              </span>
-              <ModelPicker
+            <div className="space-y-2">
+              <label
+                className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70"
+                htmlFor="combo-name"
+              >
+                Name
+              </label>
+              <div className="relative">
+                <Hash className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/70" />
+                <Input
+                  id="combo-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="smart"
+                  aria-invalid={visibleNameError ? true : undefined}
+                  className="h-10 rounded-xl border-0 bg-white/[0.03] font-mono text-sm ring-1 ring-inset ring-white/[0.06] [&_input]:pl-9 dark:bg-white/[0.03] has-focus-visible:border-transparent has-focus-visible:ring-1 has-focus-visible:ring-primary/40"
+                />
+              </div>
+              {visibleNameError ? (
+                <p className="text-xs text-destructive" role="alert">
+                  {visibleNameError}
+                </p>
+              ) : null}
+              <p className="text-[11px] text-muted-foreground/70">
+                Only letters, numbers, <code className="font-mono">-</code>,{" "}
+                <code className="font-mono">_</code> and{" "}
+                <code className="font-mono">.</code> allowed
+              </p>
+            </div>
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
+                  Route order
+                </span>
+                <span className="rounded-full bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+                  {selectedModels.length}
+                </span>
+                <div className="flex-1" />
+                {modelTestProgress ? (
+                  <span
+                    className="text-[11px] text-muted-foreground tabular-nums"
+                    aria-live="polite"
+                  >
+                    {modelTestProgress.settled}/{modelTestProgress.total} tested
+                  </span>
+                ) : null}
+                <TestBtn
+                  busy={modelTestRunning}
+                  label="Test all"
+                  disabled={selectedModels.length === 0 || testingModels.size > 0}
+                  onTest={() => void runAllModelTests()}
+                  onStop={stopModelTests}
+                />
+              </div>
+              <ComboModelBoard
                 models={providerModels}
                 selected={selectedModels}
-                onChange={setSelectedModels}
+                onModelsChange={setSelectedModels}
                 loading={modelsQ.isLoading}
                 error={modelsQ.error}
-                placeholder="Select provider models"
-              />
-            </label>
-            <div className="space-y-1.5">
-              <span className="block text-xs text-muted-foreground">
-                Strategy
-              </span>
-              <Segmented
-                size="sm"
-                value={strategy}
-                onChange={setStrategy}
-                options={[
-                  { value: "fallback", label: "Fallback" },
-                  { value: "round-robin", label: "Round-robin" },
-                  { value: "fusion", label: "Fusion" },
-                ]}
+                renderSelectedExtra={renderModelTest}
               />
             </div>
-            {strategy === "fusion" ? (
-              <label className="block space-y-1.5">
-                <span className="text-xs text-muted-foreground">
-                  Judge model
-                </span>
-                <ModelPicker
-                  models={providerModels}
-                  selected={judgeModel ? [judgeModel] : []}
-                  onChange={(models) => setJudgeModel(models[0] || "")}
-                  loading={modelsQ.isLoading}
-                  error={modelsQ.error}
-                  multiple={false}
-                  placeholder="Select judge model"
-                />
-              </label>
-            ) : null}
+
           </DialogPanel>
-          <DialogFooter>
+          <DialogFooter variant="bare" className="border-t border-white/[0.06]">
+            <span className="mr-auto hidden text-[11px] text-muted-foreground sm:block">
+              {selectedModels.length} model{selectedModels.length === 1 ? "" : "s"} in route order
+            </span>
             <RippleButton
               variant="outline"
               onClick={() => {
@@ -723,7 +775,7 @@ export default function Combo() {
             >
               Cancel
             </RippleButton>
-            <RippleButton onClick={onSave} disabled={saving}>
+            <RippleButton onClick={onSave} disabled={saving || orderSaving}>
               {saving ? "Saving…" : editCombo ? "Save" : "Create"}
             </RippleButton>
           </DialogFooter>
@@ -757,13 +809,42 @@ export default function Combo() {
             <RippleButton
               variant="destructive"
               onClick={onDelete}
-              disabled={saving}
+              disabled={saving || orderSaving}
             >
               {saving ? "Deleting…" : "Delete"}
             </RippleButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ModelPickDialog
+        open={judgeTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setJudgeTarget(null);
+        }}
+        catalog={providerModels}
+        picked={
+          judgeTarget && strategies[judgeTarget.name]?.judgeModel
+            ? new Set([strategies[judgeTarget.name].judgeModel as string])
+            : new Set<string>()
+        }
+        onToggle={(id) => {
+          const target = judgeTarget;
+          if (!target) return;
+          setJudgeTarget(null);
+          void persistStrategy(target.name, {
+            ...(strategies[target.name] || {}),
+            judgeModel: id,
+          })
+            .then(() => flash("Judge updated", "success"))
+            .catch((err) =>
+              flash(getErrorMessage(err, "Judge update failed"), "error")
+            );
+        }}
+        loading={modelsQ.isLoading}
+        error={modelsQ.error}
+        title="Select judge model"
+        description="The judge fuses panel answers. Leave Auto to use the first model in the combo."
+      />
     </div>
   );
 }

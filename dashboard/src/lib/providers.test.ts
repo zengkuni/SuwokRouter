@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { BUILTIN_PROVIDER_CATALOG } from "./provider-catalog";
-import { getProviderIconSrc } from "./provider-icon";
+import { CUSTOM_PROVIDER_FALLBACK_ICON, getProviderIconSrc, resolveCustomProviderIcon } from "./provider-icon";
 import { resolveAuthFlow } from "./providers";
 
 describe("provider auth flow resolution", () => {
@@ -42,5 +42,23 @@ describe("provider auth flow resolution", () => {
     expect(perplexity).toHaveLength(1);
     expect(perplexity[0]?.name).toBe("Perplexity AI");
     expect(perplexity[0]?.passthroughModels).toBe(true);
+  });
+});
+
+describe("custom provider icon resolution", () => {
+  test("uses the configured Icon URL when set", () => {
+    expect(resolveCustomProviderIcon("https://cdn.example.com/logo.png")).toBe(
+      "https://cdn.example.com/logo.png",
+    );
+    expect(resolveCustomProviderIcon("  https://cdn.example.com/logo.png  ")).toBe(
+      "https://cdn.example.com/logo.png",
+    );
+  });
+
+  test("falls back to the Sway Router mark when unset", () => {
+    expect(resolveCustomProviderIcon()).toBe(CUSTOM_PROVIDER_FALLBACK_ICON);
+    expect(resolveCustomProviderIcon("")).toBe(CUSTOM_PROVIDER_FALLBACK_ICON);
+    expect(resolveCustomProviderIcon("   ")).toBe(CUSTOM_PROVIDER_FALLBACK_ICON);
+    expect(getProviderIconSrc("some-custom-node")).toBe(CUSTOM_PROVIDER_FALLBACK_ICON);
   });
 });

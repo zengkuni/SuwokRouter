@@ -33,6 +33,7 @@ export function ProviderDetailHeader({
                   >
                     <ProviderBrandIcon
                       id={selected.id}
+                      iconUrl={selected.iconUrl}
                       color="var(--background)"
                       size={24}
                       fallbackIcon={providerIcon(selected.id)}

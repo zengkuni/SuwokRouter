@@ -93,6 +93,12 @@ type Result = {
   status?: number | string | null;
   detail?: string | null;
 };
+const EMPTY_MODEL_IDS: ReadonlySet<string> = new Set<string>();
+const EMPTY_MODEL_RESULTS: Readonly<Record<string, Result>> = {};
+
+function modelTestKey(providerId: string, modelId: string) {
+  return `${providerId}::${modelId}`;
+}
 
 const CONNECTION_PAGE_SIZE = 50;
 const MAX_LOADED_CONNECTIONS = 1_000;
@@ -343,7 +349,8 @@ export default function Provider() {
   const [copied, setCopied] = useState<string | null>(null);
 
   const [testingConnId, setTestingConnId] = useState<string | null>(null);
-  const [testingModels, setTestingModels] = useState<Set<string>>(() => new Set());
+  const [testingModels, setTestingModels] = useState<Record<string, Set<string>>>({});
+  const [modelTestOwnerId, setModelTestOwnerId] = useState<string | null>(null);
   const [modelTestLock, setModelTestLock] = useState(false);
   const modelTestLockRef = useRef(false);
   const modelTestControllersRef = useRef<Map<string, AbortController>>(new Map());
@@ -352,7 +359,7 @@ export default function Provider() {
   const [batchKind, setBatchKind] = useState<"conn" | "model" | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const [connResults, setConnResults] = useState<Record<string, Result>>({});
-  const [modelResults, setModelResults] = useState<Record<string, Result>>({});
+  const [modelResults, setModelResults] = useState<Record<string, Record<string, Result>>>({});
   const [detailTab, setDetailTab] = useState("connections");
   const connListRef = useRef<HTMLDivElement>(null);
   const providerListRef = useRef<HTMLDivElement>(null);
@@ -529,6 +536,7 @@ export default function Provider() {
         baseUrl: n.baseUrl,
         nodeType: n.type,
         apiType: n.apiType,
+        iconUrl: n.iconUrl,
         icon: "sway",
         connected: 0,
       });
@@ -861,6 +869,26 @@ export default function Provider() {
     });
   }
 
+  function markModelTesting(providerId: string, modelId: string, active: boolean) {
+    setTestingModels((previous) => {
+      const current = previous[providerId] ?? new Set<string>();
+      const next = new Set(current);
+      if (active) next.add(modelId);
+      else next.delete(modelId);
+      const updated = { ...previous };
+      if (next.size > 0) updated[providerId] = next;
+      else delete updated[providerId];
+      return updated;
+    });
+  }
+
+  function recordModelResult(providerId: string, modelId: string, result: Result) {
+    setModelResults((previous) => ({
+      ...previous,
+      [providerId]: { ...(previous[providerId] ?? {}), [modelId]: result },
+    }));
+  }
+
   function stopTests() {
     abortRef.current?.abort();
     for (const controller of modelTestControllersRef.current.values()) {
@@ -871,13 +899,14 @@ export default function Provider() {
     modelTestLockRef.current = false;
     setModelTestLock(false);
     setTestingConnId(null);
-    setTestingModels(new Set());
+    setTestingModels({});
+    setModelTestOwnerId(null);
     setBatchKind(null);
     flash("Tests stopped");
   }
 
-  function stopModelTest(modelId: string) {
-    const controller = modelTestControllersRef.current.get(modelId);
+  function stopModelTest(providerId: string, modelId: string) {
+    const controller = modelTestControllersRef.current.get(modelTestKey(providerId, modelId));
     if (!controller) return;
     controller.abort();
     flash("Model test stopped");
@@ -971,7 +1000,8 @@ export default function Provider() {
 
   async function runTestModel(
     modelId: string,
-    connectionId?: string,
+    connectionId: string | undefined,
+    providerId: string,
     signal?: AbortSignal,
   ) {
     const directNoAuthTest = selected?.noAuth === true;
@@ -979,9 +1009,10 @@ export default function Provider() {
       flash("Add a connection first");
       return false;
     }
+    const testKey = modelTestKey(providerId, modelId);
     if (!signal) {
       if (modelTestLockRef.current || batchKind === "conn") return false;
-      if (modelTestControllersRef.current.has(modelId)) return false;
+      if (modelTestControllersRef.current.has(testKey)) return false;
       if (modelTestControllersRef.current.size >= MODEL_TEST_CONCURRENCY) {
         flash(`Up to ${MODEL_TEST_CONCURRENCY} model tests can run at once`);
         return false;
@@ -991,13 +1022,9 @@ export default function Provider() {
     const controller = signal ? null : new AbortController();
     const requestSignal = signal || controller!.signal;
     if (controller) {
-      modelTestControllersRef.current.set(modelId, controller);
+      modelTestControllersRef.current.set(testKey, controller);
     }
-    setTestingModels((previous) => {
-      const next = new Set(previous);
-      next.add(modelId);
-      return next;
-    });
+    markModelTesting(providerId, modelId, true);
     try {
 
       if (directNoAuthTest) {
@@ -1007,15 +1034,16 @@ export default function Provider() {
           signal: requestSignal,
         });
         const ok = data.ok === true;
-        setModelResults((p) => ({
-          ...p,
-          [modelId]: formatTestResult({
+        recordModelResult(
+          providerId,
+          modelId,
+          formatTestResult({
             ok,
             status: data.status,
             message: (data.error || "").trim() || (ok ? "OK" : "Failed"),
             latencyMs: data.latencyMs,
           }),
-        }));
+        );
         return ok;
       }
       const data = await testConnectionModels(connectionId!, {
@@ -1024,10 +1052,7 @@ export default function Provider() {
       });
       if (!Array.isArray(data.results)) {
         const reason = data.message || data.error || "No model test results returned";
-        setModelResults((p) => ({
-          ...p,
-          [modelId]: formatTestResult({ ok: false, message: reason }),
-        }));
+        recordModelResult(providerId, modelId, formatTestResult({ ok: false, message: reason }));
         return false;
       }
 
@@ -1042,32 +1067,26 @@ export default function Provider() {
         );
       });
       const ok = Boolean(hit?.ok);
-      setModelResults((p) => ({
-        ...p,
-        [modelId]: formatTestResult({
+      recordModelResult(
+        providerId,
+        modelId,
+        formatTestResult({
           ok,
           status: hit?.status,
           message: (hit?.error || "").trim() || (ok ? "OK" : "Failed"),
           latencyMs: hit?.latencyMs,
         }),
-      }));
+      );
       return ok;
     } catch (err) {
       if (axios.isCancel(err) || (err as { code?: string })?.code === "ERR_CANCELED")
         return false;
-      setModelResults((p) => ({
-        ...p,
-        [modelId]: resultFromAxiosError(err),
-      }));
+      recordModelResult(providerId, modelId, resultFromAxiosError(err));
       return false;
     } finally {
-      setTestingModels((previous) => {
-        const next = new Set(previous);
-        next.delete(modelId);
-        return next;
-      });
+      markModelTesting(providerId, modelId, false);
       if (controller) {
-        modelTestControllersRef.current.delete(modelId);
+        modelTestControllersRef.current.delete(testKey);
       }
     }
   }
@@ -1225,6 +1244,8 @@ export default function Provider() {
   }
 
   async function runTestAllModels() {
+    if (!selected) return;
+    const providerId = selected.id;
     const directNoAuthTest = selected?.noAuth === true;
     if (!testConnId && !directNoAuthTest) return flash("Add a connection first");
     if (modelTestLockRef.current) return;
@@ -1235,6 +1256,7 @@ export default function Provider() {
     if (!modelsToTest.length) return flash("No models");
     modelTestLockRef.current = true;
     setModelTestLock(true);
+    setModelTestOwnerId(providerId);
     setBatchKind("model");
     const ac = new AbortController();
     abortRef.current = ac;
@@ -1250,6 +1272,7 @@ export default function Provider() {
           outcomes[index] = await runTestModel(
             modelsToTest[index],
             directNoAuthTest ? undefined : testConnId,
+            providerId,
             ac.signal,
           );
         }
@@ -1265,7 +1288,12 @@ export default function Provider() {
         flash(getErrorMessage(err, "Model test failed"), "error");
       }
     } finally {
-      setTestingModels(new Set());
+      setTestingModels((previous) => {
+        const updated = { ...previous };
+        delete updated[providerId];
+        return updated;
+      });
+      setModelTestOwnerId(null);
       setBatchKind(null);
       if (abortRef.current === ac) abortRef.current = null;
       modelTestLockRef.current = false;
@@ -1668,6 +1696,9 @@ export default function Provider() {
       ? "apikey"
       : resolveAuthFlow(selected.id, selected.authType, selected.noAuth)
     : null;
+  const scopedTestingModels = (selected && testingModels[selected.id]) || EMPTY_MODEL_IDS;
+  const scopedModelResults = (selected && modelResults[selected.id]) || EMPTY_MODEL_RESULTS;
+  const modelBatchRunning = batchKind === "model" && modelTestOwnerId === selected?.id;
 
   return (
 
@@ -1802,17 +1833,18 @@ export default function Provider() {
                     testConnId={testConnId}
                     batchKind={batchKind}
                     modelTestLock={modelTestLock}
-                    testingModels={testingModels}
+                    batchModelRunning={modelBatchRunning}
+                    testingModels={scopedTestingModels}
                     modelQuery={modelQuery}
                     newModel={newModel}
                     addingModel={addingModel}
-                    modelResults={modelResults}
+                    modelResults={scopedModelResults}
                     pinnedFor={pinnedFor}
                     copied={copied}
                     onImportModels={() => void runImportModels()}
                     onTestAllModels={() => void runTestAllModels()}
                     onStopTests={stopTests}
-                    onStopModel={stopModelTest}
+                    onStopModel={(modelId) => stopModelTest(selected.id, modelId)}
                     onModelQueryChange={setModelQuery}
                     onNewModelChange={setNewModel}
                     onAddModel={() => void runAddCustomModel()}
@@ -1823,7 +1855,7 @@ export default function Provider() {
                       window.setTimeout(() => setCopied(null), 1000);
                     }}
                     onTestModel={(modelId, connectionId) =>
-                      void runTestModel(modelId, connectionId)
+                      void runTestModel(modelId, connectionId, selected.id)
                     }
                     onRemoveModel={async (modelId) => {
                       let removed = false;

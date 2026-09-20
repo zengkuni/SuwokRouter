@@ -28,11 +28,12 @@ type ProviderModelsPanelProps = {
   testConnId: string | undefined;
   batchKind: "conn" | "model" | null;
   modelTestLock: boolean;
-  testingModels: Set<string>;
+  batchModelRunning: boolean;
+  testingModels: ReadonlySet<string>;
   modelQuery: string;
   newModel: string;
   addingModel: boolean;
-  modelResults: Record<string, ModelTestResult>;
+  modelResults: Readonly<Record<string, ModelTestResult>>;
   pinnedFor: string[];
   copied: string | null;
   onImportModels: () => void | Promise<void>;
@@ -61,6 +62,7 @@ export function ProviderModelsPanel({
   testConnId,
   batchKind,
   modelTestLock,
+  batchModelRunning,
   testingModels,
   modelQuery,
   newModel,
@@ -113,13 +115,13 @@ export function ProviderModelsPanel({
                           {models.length > 0 ? (
                             <TestBtn
 
-                              busy={batchKind === "model"}
+                              busy={batchModelRunning}
                               label="Test all"
                               disabled={
                                 !canTestModels ||
                                 modelTestLock ||
-                                (batchKind !== null && batchKind !== "model") ||
-                                (testingModels.size > 0 && batchKind !== "model")
+                                (batchKind !== null && !batchModelRunning) ||
+                                (testingModels.size > 0 && !batchModelRunning)
                               }
                               onTest={() => void onTestAllModels()}
                               onStop={onStopTests}
@@ -127,14 +129,20 @@ export function ProviderModelsPanel({
                           ) : null}
                         </div>
                       </div>
-                      <div className="grid min-w-0 grid-cols-1 gap-2 sm:flex">
+                      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
                         <Input
                           placeholder="Search models…"
                           value={modelQuery}
                           onChange={(e) => onModelQueryChange(e.target.value)}
                           className="min-w-0 sm:flex-1"
                         />
-                        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2 sm:contents">
+                        <span
+                          aria-hidden="true"
+                          className="hidden shrink-0 select-none text-muted-foreground sm:block"
+                        >
+                          |
+                        </span>
+                        <div className="flex min-w-0 gap-2 sm:flex-1">
                           <Input
                             placeholder="model-id"
                             value={newModel}
@@ -144,14 +152,14 @@ export function ProviderModelsPanel({
                               if (e.key !== "Enter") return;
                               void onAddModel();
                             }}
-                            className="min-w-0"
+                            className="min-w-0 flex-1"
                           />
                           <RippleButton
                             size="sm"
                             variant="outline"
                             disabled={addingModel || !newModel.trim()}
                             onClick={() => void onAddModel()}
-                            className="w-full sm:w-auto"
+                            className="shrink-0"
                           >
                             <Plus className="h-3.5 w-3.5" />
                             Add
@@ -176,7 +184,7 @@ export function ProviderModelsPanel({
                             const checking = testingModels.has(m);
                             const capabilities = trueModelCapabilities(row.caps);
 
-                            const busy = batchKind === "model" || checking;
+                            const busy = batchModelRunning || checking;
                             const isPinned = pinnedFor.includes(m);
                             const isDisabled = disabledModelIds.has(m);
                             return (
@@ -328,7 +336,7 @@ export function ProviderModelsPanel({
                                           void onTestModel(m, directCatalog ? undefined : testConnId)
                                         }
                                         onStop={() =>
-                                          batchKind === "model"
+                                            batchModelRunning
                                             ? onStopTests()
                                             : onStopModel(m)
                                         }
@@ -347,7 +355,7 @@ export function ProviderModelsPanel({
                                           void onTestModel(m, directCatalog ? undefined : testConnId)
                                         }
                                         onStop={() =>
-                                          batchKind === "model"
+                                            batchModelRunning
                                             ? onStopTests()
                                             : onStopModel(m)
                                         }

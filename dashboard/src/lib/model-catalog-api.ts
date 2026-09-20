@@ -6,6 +6,7 @@ type ModelsPayload = {
     id?: string;
     name?: string;
     owned_by?: string;
+    capabilities?: Record<string, unknown>;
   }>;
 };
 
@@ -40,6 +41,13 @@ export async function listGatewayModels(): Promise<ModelInfo[]> {
         : id.includes("/")
           ? id.split("/", 1)[0]
           : "other";
-    return [{ id, name: model.name?.trim() || id, provider }];
+    return [
+      {
+        id,
+        name: model.name?.trim() || id,
+        provider,
+        ...(model.capabilities ? { capabilities: model.capabilities } : {}),
+      },
+    ];
   });
 }

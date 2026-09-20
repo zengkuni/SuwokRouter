@@ -1,4 +1,100 @@
-export function stampClientIp(raw: Request, peerIp: string | null): void {
+import { readFileSync } from "node:fs";
+
+/**
+ * Set by the boundary when the peer address belongs to the machine hosting this
+ * container, which is how a host-local request reaches a published port. Never
+ * trusted from the wire: stampClientIp deletes any inbound copy first.
+ */
+export const HOST_PEER_HEADER = "x-swayrouter-host-peer";
+
+/** Aliases a container runtime publishes for the machine that runs the container. */
+const HOST_ALIASES = ["host.docker.internal", "host.containers.internal", "gateway.docker.internal"];
+
+export type HostPeerTrust = {
+  /** Default gateway: how a host-local request reaches a plain bridge container. */
+  gateway: string | null;
+  /** Hosting machine as seen from inside the container, when the runtime publishes it. */
+  hostAddress: string | null;
+};
+
+let cachedDefaultGateway: string | null | undefined;
+
+/**
+ * Default gateway of this machine, read once from the kernel route table. A request
+ * made from the host to a published port of a plain bridge container arrives from
+ * that gateway instead of loopback, so the peer alone cannot prove host locality.
+ */
+function containerDefaultGateway(): string | null {
+  if (cachedDefaultGateway !== undefined) return cachedDefaultGateway;
+  cachedDefaultGateway = null;
+  try {
+    for (const line of readFileSync("/proc/net/route", "utf8").split("\n").slice(1)) {
+      const cols = line.trim().split(/\s+/);
+      if (cols.length < 3 || cols[1] !== "00000000" || !/^[0-9A-Fa-f]{8}$/.test(cols[2] as string)) continue;
+      const value = parseInt(cols[2] as string, 16);
+      cachedDefaultGateway = [value & 0xff, (value >>> 8) & 0xff, (value >>> 16) & 0xff, (value >>> 24) & 0xff].join(".");
+      break;
+    }
+  } catch {
+    cachedDefaultGateway = null;
+  }
+  return cachedDefaultGateway;
+}
+
+/**
+ * Desktop container runtimes forward host-local traffic from their VM network, so
+ * the peer is a host-side address beside the published host alias rather than the
+ * container gateway. Only the /24 that the runtime already dedicates to that link
+ * is trusted, never a LAN-wide range.
+ */
+function isHostLinkAddress(peer: string, hostAddress: string): boolean {
+  const peerParts = peer.split(".");
+  const hostParts = hostAddress.split(".");
+  return peerParts.length === 4
+    && hostParts.length === 4
+    && peerParts[0] === hostParts[0]
+    && peerParts[1] === hostParts[1]
+    && peerParts[2] === hostParts[2];
+}
+
+
+/** Startup must not stall on a resolver that never answers for an absent alias. */
+const HOST_ALIAS_TIMEOUT_MS = 1_000;
+
+function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
+  const { promise, reject } = Promise.withResolvers<never>();
+  const timer = setTimeout(() => reject(new Error("host alias lookup timed out")), ms);
+  return Promise.race([work, promise]).finally(() => clearTimeout(timer));
+}
+
+async function resolveHostAddress(): Promise<string | null> {
+  for (const alias of HOST_ALIASES) {
+    try {
+      const records = await withTimeout(Bun.dns.lookup(alias, { family: 4 }), HOST_ALIAS_TIMEOUT_MS);
+      const address = records.find((record) => record.address)?.address;
+      if (address) return address;
+    } catch {
+      // This runtime does not publish that alias; try the next one.
+    }
+  }
+  return null;
+}
+
+/**
+ * Resolve once at startup: the two addresses that identify host-local traffic.
+ * Resolution is async, so the boundary takes the result instead of guessing later.
+ */
+export async function resolveHostPeerTrust(): Promise<HostPeerTrust> {
+  return { gateway: containerDefaultGateway(), hostAddress: await resolveHostAddress() };
+}
+
+function isHostPeer(peer: string, trust: HostPeerTrust): boolean {
+  if (!peer) return false;
+  if (trust.gateway === peer) return true;
+  return trust.hostAddress !== null && isHostLinkAddress(peer, trust.hostAddress);
+}
+
+export function stampClientIp(raw: Request, peerIp: string | null, trust: HostPeerTrust): void {
   const peer = (peerIp || "").replace(/^::ffff:/, "");
   const isLoopback = peer === "127.0.0.1" || peer === "::1";
   const xff = raw.headers.get("x-forwarded-for");
@@ -14,8 +110,10 @@ export function stampClientIp(raw: Request, peerIp: string | null): void {
   raw.headers.delete("x-swayrouter-real-ip");
   raw.headers.delete("x-forwarded-for");
   raw.headers.delete("x-swayrouter-via-proxy");
+  raw.headers.delete(HOST_PEER_HEADER);
   raw.headers.set("x-swayrouter-real-ip", ip);
   if (viaProxy) raw.headers.set("x-swayrouter-via-proxy", "1");
+  if (!isLoopback && isHostPeer(peer, trust)) raw.headers.set(HOST_PEER_HEADER, "1");
 }
 
 const KIB = 1024;

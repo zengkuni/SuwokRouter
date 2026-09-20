@@ -94,17 +94,31 @@ export function classifyError(status, errorText, retryCount = 0, opts = {}) {
     return { tier: ERROR_TIERS.T1, action: "cooldown", cooldownMs: base + jitter };
   }
 
+  const invalidRequestTexts = ["unknown parameter", "unsupported parameter", "invalid parameter", "unsupported field", "unknown field", "unrecognized parameter"];
+  if (Number(status) === 400 && invalidRequestTexts.some((text) => lowerError.includes(text))) {
+    return {
+      tier: ERROR_TIERS.T3,
+      action: "deprioritize",
+      cooldownMs: COOLDOWN.long,
+      deprioitizeUntil: Date.now() + COOLDOWN.long + T3_DEPRIORITIZE_MS,
+    };
+  }
+
+  const contentBlockedTexts = ["content-blocked", "content blocked", "safety", "content policy", "violates"];
+  const contentBlocked = contentBlockedTexts.some((t) => lowerError.includes(t));
+  if (Number(status) === 400 && contentBlocked) {
+    // Content filters are request-specific, not account-specific: lock the account
+    // and every subsequent (benign) request fails with "all accounts unavailable".
+    // Pass the error straight back to the client without locking or fallback.
+    return { tier: ERROR_TIERS.T3, action: "passthrough", cooldownMs: 0 };
+  }
+
   const t3Texts = ["no credentials", "request not allowed", "improperly formed request"];
   const t3ByText = t3Texts.some((t) => lowerError.includes(t));
   const t3ByStatus = [401, 402, 403, 404, 406].includes(Number(status));
   if (t3ByStatus || t3ByText) {
     const jitter = rng ? Math.floor(rng() * COOLDOWN.long * JITTER_FRACTION) : 0;
-    return {
-      tier: ERROR_TIERS.T3,
-      action: "deprioritize",
-      cooldownMs: COOLDOWN.long + jitter,
-      deprioitizeUntil: Date.now() + COOLDOWN.long + jitter + T3_DEPRIORITIZE_MS,
-    };
+    return { tier: ERROR_TIERS.T3, action: "deprioritize", cooldownMs: COOLDOWN.long + jitter, deprioitizeUntil: Date.now() + COOLDOWN.long + jitter + T3_DEPRIORITIZE_MS };
   }
 
   const jitter = rng ? Math.floor(rng() * COOLDOWN.short * JITTER_FRACTION) : 0;

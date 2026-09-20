@@ -9,24 +9,30 @@ export function CopyButton({
   className,
   label = "Copy",
   onCopy,
+  onCopyError,
   iconOnly = false,
 }: {
   value: string;
   className?: string;
   label?: string;
   onCopy?: () => void;
+  onCopyError?: () => void;
   iconOnly?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
+    if (!navigator.clipboard) {
+      onCopyError?.();
+      return;
+    }
     try {
       await navigator.clipboard.writeText(value);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
       onCopy?.();
     } catch {
-
+      onCopyError?.();
     }
   }
 
