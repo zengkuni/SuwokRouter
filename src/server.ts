@@ -1,49 +1,60 @@
 process.env.PORT = process.env.PORT || String(envPortFallback());
 
-import { Hono } from "hono";
-import pkg from "../package.json" with { type: "json" };
-import { env } from "@/lib/env";
-import {
-  stampClientIp,
-  resolveHostPeerTrust,
-  downgradeH2c,
-  isQueryReadOnlyPath,
-  normalizeQueryRequest,
-  rewritePublicAlias,
-  getRequestBodyLimitBytes,
-  estimateRequestBodyBytes,
-  estimateRequestWorkUnits,
-  readRequestBodyWithLimit,
-} from "@/transport/requestBoundary";
-import { routerAdmission, wrapResponseWithAdmission } from "@/transport/routerAdmission";
-import { cookieStoreAls, NextResponse, PASSTHROUGH } from "@/next/server";
-import { createRequestContext } from "@/lib/guardRequest";
 import * as dashboardGuard from "@/dashboardGuard";
+import { initConsoleLogCapture } from "@/lib/consoleLogBuffer.js";
+import { closeAdapter } from "@/lib/db/driver.js";
+import { flushRequestDetails } from "@/lib/db/repos/requestDetailsRepo.js";
+import { flushAllWriteBehindBuffers } from "@/lib/db/writeBehind.js";
+import { env } from "@/lib/env";
+import { createRequestContext } from "@/lib/guardRequest";
+import { cookieStoreAls, NextResponse, PASSTHROUGH } from "@/next/server";
+import {
+  inFlightRequests,
+  persistMetrics,
+  recordHttpRequest,
+  restoreMetrics,
+  sampleProcessStats,
+  toPrometheus,
+} from "@/observability/metrics";
 import { ROUTE_LOADERS, ROUTE_TABLE } from "@/routes/table";
 import { initializeApp, shutdownApp } from "@/shared/services/initializeApp";
-import { initConsoleLogCapture } from "@/lib/consoleLogBuffer.js";
-import { initTranslators } from "@/translator/index";
+import { getConsistentMachineId } from "@/shared/utils/machineId";
 import { tryServeDashboard } from "@/staticServe";
-import { closeAdapter } from "@/lib/db/driver.js";
-import { flushAllWriteBehindBuffers } from "@/lib/db/writeBehind.js";
-import { flushRequestDetails } from "@/lib/db/repos/requestDetailsRepo.js";
+import { initTranslators } from "@/translator/index";
 import {
-  getConsistentMachineId,
-} from "@/shared/utils/machineId";
+  downgradeH2c,
+  estimateRequestBodyBytes,
+  estimateRequestWorkUnits,
+  getRequestBodyLimitBytes,
+  isQueryReadOnlyPath,
+  normalizeQueryRequest,
+  readRequestBodyWithLimit,
+  resolveHostPeerTrust,
+  rewritePublicAlias,
+  stampClientIp,
+} from "@/transport/requestBoundary";
 import {
-  toPrometheus,
-  recordHttpRequest,
-  sampleProcessStats,
-  restoreMetrics,
-  persistMetrics,
-  inFlightRequests,
-} from "@/observability/metrics";
+  routerAdmission,
+  wrapResponseWithAdmission,
+} from "@/transport/routerAdmission";
+import { Hono } from "hono";
+import pkg from "../package.json" with { type: "json" };
 
-import { ensureTraceContext, stampResponseWithTrace } from "@/observability/tracing.js";
-import { markLifecycleStarted, markLifecycleReady, markLifecycleDegraded, markLifecycleStopping, markLifecycleStopped, registerShutdownHandler } from "@/lifecycle/appLifecycle";
+import {
+  markLifecycleDegraded,
+  markLifecycleReady,
+  markLifecycleStarted,
+  markLifecycleStopped,
+  markLifecycleStopping,
+  registerShutdownHandler,
+} from "@/lifecycle/appLifecycle";
+import {
+  ensureTraceContext,
+  stampResponseWithTrace,
+} from "@/observability/tracing.js";
 
 function envPortFallback() {
-  return Number.parseInt(process.env.PORT || "", 10) || 14045;
+  return Number.parseInt(process.env.PORT || "", 10) || 1212;
 }
 
 markLifecycleStarted();
@@ -53,7 +64,9 @@ const routeModuleCache = new Map<string, Promise<Record<string, unknown>>>();
 function loadRouteModule(file: string) {
   let modulePromise = routeModuleCache.get(file);
   if (!modulePromise) {
-    const loader = (ROUTE_LOADERS as Record<string, () => Promise<Record<string, unknown>>>)[file];
+    const loader = (
+      ROUTE_LOADERS as Record<string, () => Promise<Record<string, unknown>>>
+    )[file];
     if (!loader) throw new Error(`Route loader is missing for ${file}`);
     modulePromise = loader();
     routeModuleCache.set(file, modulePromise);
@@ -61,10 +74,13 @@ function loadRouteModule(file: string) {
   return modulePromise;
 }
 
-function extractParams(c: any, pathPattern: string, params: string[]): Record<string, unknown> {
+function extractParams(
+  c: any,
+  pathPattern: string,
+  params: string[],
+): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const name of params) {
-
     const isCatchAll = pathPattern.includes(`:${name}*`);
     const value = c.req.param(isCatchAll ? `${name}*` : name);
     if (value === undefined) continue;
@@ -74,7 +90,10 @@ function extractParams(c: any, pathPattern: string, params: string[]): Record<st
   return out;
 }
 
-function routeCmp(a: { method: string; pathPattern: string }, b: { method: string; pathPattern: string }) {
+function routeCmp(
+  a: { method: string; pathPattern: string },
+  b: { method: string; pathPattern: string },
+) {
   if (a.method !== b.method) return a.method.localeCompare(b.method);
   const sa = a.pathPattern.split("/");
   const sb = b.pathPattern.split("/");
@@ -106,7 +125,6 @@ for (const row of ROUTE_ORDER) {
     | "options";
   const handler = async (c: any) => {
     try {
-
       const store = cookieStoreAls.getStore();
       const mod = await loadRouteModule(row.file);
       const routeHandler = mod[row.method];
@@ -121,13 +139,17 @@ for (const row of ROUTE_ORDER) {
       const cookieStore = store?.cookies;
       if (cookieStore && cookieStore.__set.length > 0) {
         const headers = new Headers(res.headers);
-        for (const line of cookieStore.__set) headers.append("set-cookie", line);
+        for (const line of cookieStore.__set)
+          headers.append("set-cookie", line);
         return new NextResponse(res.body, { status: res.status, headers });
       }
       return res;
     } catch (error) {
       console.error(`[route:${row.pathPattern}]`, error);
-      return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Internal Server Error" },
+        { status: 500 },
+      );
     }
   };
 
@@ -151,7 +173,9 @@ app.get("/version", (c) =>
   }),
 );
 
-app.get("/", (c) => c.json({ ok: true, service: "sway-router", docs: "/health" }));
+app.get("/", (c) =>
+  c.json({ ok: true, service: "sway-router", docs: "/health" }),
+);
 
 const METRICS_TOKEN = env.metricsToken;
 const CLI_TOKEN_CACHE: { v?: string } = {};
@@ -211,84 +235,155 @@ const server = Bun.serve({
           estimateRequestWorkUnits(request, bodyLimit),
         );
       } catch (error) {
-        console.error("[admission] acquire failed:", error instanceof Error ? error.message : String(error));
-        const response = new Response(JSON.stringify({
-          error: { message: "Internal server error", code: "internal_server_error" },
-        }), {
-          status: 500,
-          headers: {
-            "Cache-Control": "no-store",
-            "Content-Type": "application/json; charset=utf-8",
+        console.error(
+          "[admission] acquire failed:",
+          error instanceof Error ? error.message : String(error),
+        );
+        const response = new Response(
+          JSON.stringify({
+            error: {
+              message: "Internal server error",
+              code: "internal_server_error",
+            },
+          }),
+          {
+            status: 500,
+            headers: {
+              "Cache-Control": "no-store",
+              "Content-Type": "application/json; charset=utf-8",
+            },
           },
-        });
+        );
         try {
-          recordHttpRequest(request.method, routeShapeFor(request.url), response.status, Date.now() - t0);
+          recordHttpRequest(
+            request.method,
+            routeShapeFor(request.url),
+            response.status,
+            Date.now() - t0,
+          );
         } catch (recordError) {
-          console.error("[admission] failed to record acquire error:", recordError instanceof Error ? recordError.message : String(recordError));
+          console.error(
+            "[admission] failed to record acquire error:",
+            recordError instanceof Error
+              ? recordError.message
+              : String(recordError),
+          );
         }
         return response;
       }
       if (!admitted.ok || !admitted.lease) {
         const aborted = admitted.reason === "aborted";
-        const response = new Response(JSON.stringify({
-          error: {
-            message: aborted ? "Request aborted" : "Router is temporarily busy",
-            code: aborted ? "request_aborted" : "router_capacity_exhausted",
+        const response = new Response(
+          JSON.stringify({
+            error: {
+              message: aborted
+                ? "Request aborted"
+                : "Router is temporarily busy",
+              code: aborted ? "request_aborted" : "router_capacity_exhausted",
+            },
+          }),
+          {
+            status: aborted ? 499 : 503,
+            headers: {
+              "Cache-Control": "no-store",
+              "Content-Type": "application/json; charset=utf-8",
+              "Retry-After": aborted ? "0" : "2",
+            },
           },
-        }), {
-          status: aborted ? 499 : 503,
-          headers: {
-            "Cache-Control": "no-store",
-            "Content-Type": "application/json; charset=utf-8",
-            "Retry-After": aborted ? "0" : "2",
-          },
-        });
+        );
         try {
-          recordHttpRequest(request.method, routeShapeFor(request.url), response.status, Date.now() - t0);
+          recordHttpRequest(
+            request.method,
+            routeShapeFor(request.url),
+            response.status,
+            Date.now() - t0,
+          );
         } catch (recordError) {
-          console.error("[admission] failed to record rejection:", recordError instanceof Error ? recordError.message : String(recordError));
+          console.error(
+            "[admission] failed to record rejection:",
+            recordError instanceof Error
+              ? recordError.message
+              : String(recordError),
+          );
         }
         return response;
       }
       admissionLease = admitted.lease;
-      if (isProxyPath) inFlightRequests.set({}, ((inFlightRequests.value({}) ?? 0) as number) + 1);
+      if (isProxyPath)
+        inFlightRequests.set(
+          {},
+          ((inFlightRequests.value({}) ?? 0) as number) + 1,
+        );
     }
 
     try {
       let bounded;
       try {
-        bounded = bodyLimit > 0
-          ? await readRequestBodyWithLimit(request, bodyLimit, env.routerBodyReadTimeoutMs)
-          : { request, tooLarge: false };
+        bounded =
+          bodyLimit > 0
+            ? await readRequestBodyWithLimit(
+                request,
+                bodyLimit,
+                env.routerBodyReadTimeoutMs,
+              )
+            : { request, tooLarge: false };
       } catch (error) {
         const code = (error as Error & { code?: string })?.code;
-        const status = request.signal.aborted ? 499 : code === "REQUEST_BODY_TIMEOUT" ? 408 : 400;
-        const response = new Response(JSON.stringify({
-          error: request.signal.aborted ? "Request aborted" : code === "REQUEST_BODY_TIMEOUT" ? "Request body read timed out" : "Unable to read request body",
-        }), {
-          status,
-          headers: {
-            "Cache-Control": "no-store",
-            "Content-Type": "application/json; charset=utf-8",
+        const status = request.signal.aborted
+          ? 499
+          : code === "REQUEST_BODY_TIMEOUT"
+            ? 408
+            : 400;
+        const response = new Response(
+          JSON.stringify({
+            error: request.signal.aborted
+              ? "Request aborted"
+              : code === "REQUEST_BODY_TIMEOUT"
+                ? "Request body read timed out"
+                : "Unable to read request body",
+          }),
+          {
+            status,
+            headers: {
+              "Cache-Control": "no-store",
+              "Content-Type": "application/json; charset=utf-8",
+            },
           },
-        });
-        recordHttpRequest(request.method, routeShapeFor(request.url), response.status, Date.now() - t0);
+        );
+        recordHttpRequest(
+          request.method,
+          routeShapeFor(request.url),
+          response.status,
+          Date.now() - t0,
+        );
         return response;
       }
       if (bounded.tooLarge) {
-        const response = new Response(JSON.stringify({ error: "Request body too large" }), {
-          status: 413,
-          headers: {
-            "Cache-Control": "no-store",
-            "Content-Type": "application/json; charset=utf-8",
+        const response = new Response(
+          JSON.stringify({ error: "Request body too large" }),
+          {
+            status: 413,
+            headers: {
+              "Cache-Control": "no-store",
+              "Content-Type": "application/json; charset=utf-8",
+            },
           },
-        });
-        recordHttpRequest(request.method, routeShapeFor(request.url), response.status, Date.now() - t0);
+        );
+        recordHttpRequest(
+          request.method,
+          routeShapeFor(request.url),
+          response.status,
+          Date.now() - t0,
+        );
         return response;
       }
       const dispatchRequest = bounded.request;
 
-      stampClientIp(dispatchRequest, server.requestIP(request)?.address ?? null, hostPeerTrust);
+      stampClientIp(
+        dispatchRequest,
+        server.requestIP(request)?.address ?? null,
+        hostPeerTrust,
+      );
       downgradeH2c(dispatchRequest);
 
       const isQuery = dispatchRequest.method.toUpperCase() === "QUERY";
@@ -297,7 +392,12 @@ const server = Bun.serve({
           { error: "QUERY is supported only for read-only API routes" },
           { status: 405, headers: { Allow: "GET" } },
         );
-        recordHttpRequest(dispatchRequest.method, routeShapeFor(dispatchRequest.url), queryResp.status, Date.now() - t0);
+        recordHttpRequest(
+          dispatchRequest.method,
+          routeShapeFor(dispatchRequest.url),
+          queryResp.status,
+          Date.now() - t0,
+        );
         return queryResp;
       }
       const { store, guardRequest } = createRequestContext(dispatchRequest) as {
@@ -317,12 +417,15 @@ const server = Bun.serve({
           | (NextResponse & { [PASSTHROUGH]?: boolean })
           | undefined;
         if (guarded && !guarded[PASSTHROUGH]) {
-
           const cookieStore = store.cookies;
           if (cookieStore.__set.length > 0) {
             const headers = new Headers(guarded.headers);
-            for (const line of cookieStore.__set) headers.append("set-cookie", line);
-            return new NextResponse(guarded.body, { status: guarded.status, headers });
+            for (const line of cookieStore.__set)
+              headers.append("set-cookie", line);
+            return new NextResponse(guarded.body, {
+              status: guarded.status,
+              headers,
+            });
           }
           return guarded;
         }
@@ -330,7 +433,9 @@ const server = Bun.serve({
         const staticRes = tryServeDashboard(dispatchRequest);
         if (staticRes) return staticRes;
 
-        const dispatched = rewritePublicAlias(normalizeQueryRequest(dispatchRequest));
+        const dispatched = rewritePublicAlias(
+          normalizeQueryRequest(dispatchRequest),
+        );
 
         return await app.fetch(dispatched, server);
       });
@@ -339,10 +444,17 @@ const server = Bun.serve({
       admissionLease?.releaseBody();
       if (!isMetricsScrape) {
         const routeShape = routeShapeFor(dispatchRequest.url);
-        recordHttpRequest(dispatchRequest.method, routeShape, resp.status, Date.now() - t0);
+        recordHttpRequest(
+          dispatchRequest.method,
+          routeShape,
+          resp.status,
+          Date.now() - t0,
+        );
       }
 
-      const stamped = isMetricsScrape ? resp : stampResponseWithTrace(resp, trace);
+      const stamped = isMetricsScrape
+        ? resp
+        : stampResponseWithTrace(resp, trace);
       if (isProxyPath && admissionLease) {
         const releaseAdmission = () => {
           admissionLease?.releaseBody();
@@ -361,24 +473,37 @@ const server = Bun.serve({
       const message = error instanceof Error ? error.message : String(error);
       console.error(`[request] ${request.method} ${pathname} failed:`, message);
 
-      const failure = new Response(JSON.stringify({
-        error: {
-          message: "Internal server error",
-          code: "internal_server_error",
+      const failure = new Response(
+        JSON.stringify({
+          error: {
+            message: "Internal server error",
+            code: "internal_server_error",
+          },
+        }),
+        {
+          status: 500,
+          headers: {
+            "content-type": "application/json; charset=utf-8",
+            "cache-control": "no-store",
+          },
         },
-      }), {
-        status: 500,
-        headers: {
-          "content-type": "application/json; charset=utf-8",
-          "cache-control": "no-store",
-        },
-      });
+      );
 
       if (pathname !== "/metrics") {
         try {
-          recordHttpRequest(request.method, routeShapeFor(request.url), 500, Date.now() - t0);
+          recordHttpRequest(
+            request.method,
+            routeShapeFor(request.url),
+            500,
+            Date.now() - t0,
+          );
         } catch (recordError) {
-          console.error("[request] failed to record request error:", recordError instanceof Error ? recordError.message : String(recordError));
+          console.error(
+            "[request] failed to record request error:",
+            recordError instanceof Error
+              ? recordError.message
+              : String(recordError),
+          );
         }
       }
 
@@ -426,7 +551,14 @@ async function gracefulShutdown(exitCode = 0) {
   routerAdmission.stopAccepting();
   clearInterval(statsTimer);
 
-  try { await server.stop(false); } catch (e) { console.error("[shutdown] stop listener failed:", e instanceof Error ? e.message : String(e)); }
+  try {
+    await server.stop(false);
+  } catch (e) {
+    console.error(
+      "[shutdown] stop listener failed:",
+      e instanceof Error ? e.message : String(e),
+    );
+  }
 
   let timedOut = false;
   const drain = (async () => {
@@ -438,16 +570,29 @@ async function gracefulShutdown(exitCode = 0) {
   })();
   let shutdownTimer: ReturnType<typeof setTimeout> | null = null;
   const timeout = new Promise<void>((resolve) => {
-    shutdownTimer = setTimeout(() => { timedOut = true; resolve(); }, SHUTDOWN_TIMEOUT_MS);
+    shutdownTimer = setTimeout(() => {
+      timedOut = true;
+      resolve();
+    }, SHUTDOWN_TIMEOUT_MS);
   });
   await Promise.race([
-    drain.catch((e) => console.error("[shutdown] drain failed:", e instanceof Error ? e.message : String(e))),
+    drain.catch((e) =>
+      console.error(
+        "[shutdown] drain failed:",
+        e instanceof Error ? e.message : String(e),
+      ),
+    ),
     timeout,
   ]);
   if (shutdownTimer) clearTimeout(shutdownTimer);
-  if (timedOut) console.error(`[shutdown] drain exceeded ${SHUTDOWN_TIMEOUT_MS}ms; forcing connection close`);
+  if (timedOut)
+    console.error(
+      `[shutdown] drain exceeded ${SHUTDOWN_TIMEOUT_MS}ms; forcing connection close`,
+    );
 
-  try { await server.stop(true); } catch {}
+  try {
+    await server.stop(true);
+  } catch {}
   markLifecycleStopped();
 
   // Do not leave a half-alive process behind after the listener is closed.
@@ -456,8 +601,12 @@ async function gracefulShutdown(exitCode = 0) {
   process.exit(exitCode);
 }
 registerShutdownHandler(gracefulShutdown);
-process.on("SIGINT", () => { void gracefulShutdown(0); });
-process.on("SIGTERM", () => { void gracefulShutdown(0); });
+process.on("SIGINT", () => {
+  void gracefulShutdown(0);
+});
+process.on("SIGTERM", () => {
+  void gracefulShutdown(0);
+});
 process.on("uncaughtException", (error) => {
   console.error("[fatal] uncaught exception:", error);
   void gracefulShutdown(1);

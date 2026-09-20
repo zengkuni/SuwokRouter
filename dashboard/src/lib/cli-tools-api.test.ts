@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { api } from "./api";
-import { connectCliTool, fetchCliModelMappings, resetCliTool, saveCliModelMappings } from "./cli-tools-api";
+import {
+  connectCliTool,
+  fetchCliModelMappings,
+  resetCliTool,
+  saveCliModelMappings,
+} from "./cli-tools-api";
 
 const originalGet = api.get.bind(api);
 const originalPut = api.put.bind(api);
@@ -15,7 +20,11 @@ describe("CLI model mapping API", () => {
           claude: {
             enabled: true,
             entries: [
-              { sourceModel: "  sonnet ", targetModel: " openai/gpt-5 ", enabled: false },
+              {
+                sourceModel: "  sonnet ",
+                targetModel: " openai/gpt-5 ",
+                enabled: false,
+              },
               { sourceModel: "", targetModel: "ignored" },
             ],
           },
@@ -26,7 +35,13 @@ describe("CLI model mapping API", () => {
     await expect(fetchCliModelMappings()).resolves.toEqual({
       claude: {
         enabled: true,
-        entries: [{ sourceModel: "sonnet", targetModel: "openai/gpt-5", enabled: false }],
+        entries: [
+          {
+            sourceModel: "sonnet",
+            targetModel: "openai/gpt-5",
+            enabled: false,
+          },
+        ],
       },
     });
   });
@@ -39,11 +54,27 @@ describe("CLI model mapping API", () => {
     }) as typeof api.put;
 
     const result = await saveCliModelMappings({
-      codex: { enabled: true, entries: [{ sourceModel: "gpt-5", targetModel: "openai/gpt-5", enabled: true }] },
+      codex: {
+        enabled: true,
+        entries: [
+          { sourceModel: "gpt-5", targetModel: "openai/gpt-5", enabled: true },
+        ],
+      },
     });
-    expect(requestBody).toEqual({ mappings: {
-      codex: { enabled: true, entries: [{ sourceModel: "gpt-5", targetModel: "openai/gpt-5", enabled: true }] },
-    } });
+    expect(requestBody).toEqual({
+      mappings: {
+        codex: {
+          enabled: true,
+          entries: [
+            {
+              sourceModel: "gpt-5",
+              targetModel: "openai/gpt-5",
+              enabled: true,
+            },
+          ],
+        },
+      },
+    });
     expect(result).toEqual({ codex: { enabled: false, entries: [] } });
   });
 
@@ -55,7 +86,7 @@ describe("CLI model mapping API", () => {
     }) as typeof api.post;
 
     await connectCliTool("claude", {
-      baseUrl: "http://localhost:14045",
+      baseUrl: "http://localhost:1212",
       apiKey: "sk-test",
       sonnetModel: "openai/gpt-5",
       exaMcpEnabled: false,
@@ -64,7 +95,7 @@ describe("CLI model mapping API", () => {
     expect(requestBody).toMatchObject({ exaMcpEnabled: false });
 
     await connectCliTool("claude", {
-      baseUrl: "http://localhost:14045",
+      baseUrl: "http://localhost:1212",
       apiKey: "sk-test",
       sonnetModel: "openai/gpt-5",
     });
@@ -76,7 +107,9 @@ describe("CLI model mapping API", () => {
     let requestUrl = "";
     api.delete = (async (url) => {
       requestUrl = url;
-      return { data: { success: true, message: "Settings reset successfully" } };
+      return {
+        data: { success: true, message: "Settings reset successfully" },
+      };
     }) as typeof api.delete;
 
     await expect(resetCliTool("codex")).resolves.toMatchObject({

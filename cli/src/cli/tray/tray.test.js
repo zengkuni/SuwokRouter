@@ -20,7 +20,7 @@ describe("system tray auto-start menu", () => {
   });
 
   it("includes the current auto-start state in the tray menu", () => {
-    expect(buildMenuItems(14045, true)[2].checked).toBe(true);
-    expect(buildMenuItems(14045, false)[2].checked).toBe(false);
+    expect(buildMenuItems(1212, true)[2].checked).toBe(true);
+    expect(buildMenuItems(1212, false)[2].checked).toBe(false);
   });
 });

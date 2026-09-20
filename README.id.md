@@ -85,7 +85,7 @@ sudah terpasang, lewati langkah pertama.
    swayrouter start -b
    ```
 
-4. Buka `http://127.0.0.1:14045/dashboard` di browser, lalu selesaikan setup
+4. Buka `http://127.0.0.1:1212/dashboard` di browser, lalu selesaikan setup
    pertama.
 
 5. Cek atau stop instance lokal kapan saja:
@@ -128,7 +128,7 @@ Pop-Location
 bun run dev
 ```
 
-Buka `http://127.0.0.1:14045/dashboard`. Biarkan terminal tetap terbuka saat
+Buka `http://127.0.0.1:1212/dashboard`. Biarkan terminal tetap terbuka saat
 development server berjalan.
 
 ### Jalanin dari source (macOS/Linux)
@@ -142,7 +142,7 @@ cd ..
 bun run dev
 ```
 
-Buka `http://127.0.0.1:14045/dashboard`, lalu tambahkan provider pertama kamu.
+Buka `http://127.0.0.1:1212/dashboard`, lalu tambahkan provider pertama kamu.
 
 Kalau mau ngembangin dashboard, jalanin `bun run dev` di dalam folder
 `dashboard/` lewat terminal kedua.
@@ -163,7 +163,7 @@ sebelum menjalankan Compose.
 Docker juga membuat secret persistent di data volume. Copy `.env.example`
 menjadi `.env` hanya kalau kamu ingin memberi override deployment sendiri.
 
-Buka `http://127.0.0.1:14045/dashboard`. Untuk lihat log:
+Buka `http://127.0.0.1:1212/dashboard`. Untuk lihat log:
 
 ```bash
 docker compose logs -f swayrouter
@@ -176,11 +176,11 @@ menyimpan koneksi provider, key, setting, dan data usage.
 
 ## Requirement
 
-| Deployment | Yang dibutuhkan | Process manager |
-| --- | --- | --- |
-| Global CLI | Bun `1.3+`, data directory yang bisa ditulis, dan akses network ke provider | CLI untuk lokal; tambahkan supervisor untuk production |
-| Docker | Docker Engine dengan plugin Compose dan volume persistent | Docker Compose sudah menangani restart dan health check; nggak perlu PM2 |
-| Native VPS | Bun `1.3+`, data directory yang bisa ditulis, dan akses network ke provider | `systemd` direkomendasikan; PM2 opsional |
+| Deployment | Yang dibutuhkan                                                             | Process manager                                                          |
+| ---------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Global CLI | Bun `1.3+`, data directory yang bisa ditulis, dan akses network ke provider | CLI untuk lokal; tambahkan supervisor untuk production                   |
+| Docker     | Docker Engine dengan plugin Compose dan volume persistent                   | Docker Compose sudah menangani restart dan health check; nggak perlu PM2 |
+| Native VPS | Bun `1.3+`, data directory yang bisa ditulis, dan akses network ke provider | `systemd` direkomendasikan; PM2 opsional                                 |
 
 Untuk native VPS kecil, mulai dari **2 vCPU, RAM 2 GB, dan SSD 10 GB**. Komputer
 lokal bisa jalan dengan resource lebih kecil. Sebelum dibuka ke internet, taruh
@@ -207,17 +207,17 @@ container yang sama.
 Pakai format client yang sudah biasa kamu pakai. Sway Router akan menerjemahkan
 request dan response ke provider di belakang layar.
 
-| Client / fitur | Endpoint |
-| --- | --- |
-| OpenAI Chat Completions | `POST /v1/chat/completions` |
-| OpenAI Responses | `POST /v1/responses` |
-| Compact Responses | `POST /v1/responses/compact` |
-| Anthropic Messages | `POST /v1/messages` |
-| Anthropic token count | `POST /v1/messages/count_tokens` |
-| Ollama-style chat | `POST /v1/api/chat` |
-| Image generation | `POST /v1/images/generations` |
-| Image editing | `POST /v1/images/edits` |
-| Daftar model | `GET /v1/models` |
+| Client / fitur          | Endpoint                         |
+| ----------------------- | -------------------------------- |
+| OpenAI Chat Completions | `POST /v1/chat/completions`      |
+| OpenAI Responses        | `POST /v1/responses`             |
+| Compact Responses       | `POST /v1/responses/compact`     |
+| Anthropic Messages      | `POST /v1/messages`              |
+| Anthropic token count   | `POST /v1/messages/count_tokens` |
+| Ollama-style chat       | `POST /v1/api/chat`              |
+| Image generation        | `POST /v1/images/generations`    |
+| Image editing           | `POST /v1/images/edits`          |
+| Daftar model            | `GET /v1/models`                 |
 
 Streaming dan non-streaming tersedia selama provider dan model yang dipilih
 mendukungnya. Alias `/codex` dan `/responses` juga tersedia untuk setup client
@@ -227,7 +227,7 @@ yang umum.
 
 ```bash
 export SWAY_API_KEY="swy-your_gateway_key"
-curl http://127.0.0.1:14045/v1/chat/completions \
+curl http://127.0.0.1:1212/v1/chat/completions \
   --oauth2-bearer "${SWAY_API_KEY}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -247,33 +247,33 @@ card, status badge yang jelas, search dan filter, layout responsive, serta
 loading/refresh state yang smooth supaya semuanya tetap gampang dipantau di
 desktop, tablet, dan mobile.
 
-| Dashboard | Providers |
-| --- | --- |
-| ![Dashboard Sway Router](./docs/media/screenshots/dashboard.png) | ![Pengelolaan provider](./docs/media/screenshots/providers.png) |
-| Model provider | Custom provider |
-| ![Model provider](./docs/media/screenshots/provider-models.png) | ![Custom provider](./docs/media/screenshots/custom-provider.png) |
-| Usage & cost | Monitor kuota |
-| ![Usage dan cost](./docs/media/screenshots/usage.png) | ![Monitor kuota](./docs/media/screenshots/quota.png) |
-| Settings | CLI Tools |
-| ![Settings](./docs/media/screenshots/settings.png) | ![CLI Tools](./docs/media/screenshots/cli-tools.png) |
+| Dashboard                                                        | Providers                                                        |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------- |
+| ![Dashboard Sway Router](./docs/media/screenshots/dashboard.png) | ![Pengelolaan provider](./docs/media/screenshots/providers.png)  |
+| Model provider                                                   | Custom provider                                                  |
+| ![Model provider](./docs/media/screenshots/provider-models.png)  | ![Custom provider](./docs/media/screenshots/custom-provider.png) |
+| Usage & cost                                                     | Monitor kuota                                                    |
+| ![Usage dan cost](./docs/media/screenshots/usage.png)            | ![Monitor kuota](./docs/media/screenshots/quota.png)             |
+| Settings                                                         | CLI Tools                                                        |
+| ![Settings](./docs/media/screenshots/settings.png)               | ![CLI Tools](./docs/media/screenshots/cli-tools.png)             |
 
 [Lihat showcase UI lengkap](./docs/SHOWCASE.md)
 
 ### Menu utama
 
-| Menu | Isinya |
-| --- | --- |
-| **Dashboard** | Jumlah request, total token, cost, latency, aktivitas provider, dan status sistem |
-| **API Keys** | Buat, lihat, copy, rotate, enable, revoke, dan hapus gateway key |
-| **Providers** | Tambah koneksi, pilih auth, test akun, kelola model, dan atur routing |
-| **Combos** | Buat fallback berurutan untuk model/provider dan pilih strateginya |
-| **Proxy** | Buat/test proxy pool, pasang koneksi, dan deploy relay opsional |
-| **Usage** | Chart, breakdown token, estimasi cost, history, filter, sorting, dan detail request |
-| **Quota Monitor** | Ketersediaan provider/akun, status kuota, diagnostik, dan refresh manual |
-| **CLI Tools** | Atur coding tools yang didukung, pilih model, dan copy config otomatis |
-| **Sway Chat** | Chat lewat router dengan pemilihan model dan built-in tools opsional |
-| **Settings** | Kontrol Preferences, General, Security, Data, dan migrasi 9Router |
-| **Console Logs** | Cari, filter, wrap, copy, dan cek diagnostik runtime/provider |
+| Menu              | Isinya                                                                              |
+| ----------------- | ----------------------------------------------------------------------------------- |
+| **Dashboard**     | Jumlah request, total token, cost, latency, aktivitas provider, dan status sistem   |
+| **API Keys**      | Buat, lihat, copy, rotate, enable, revoke, dan hapus gateway key                    |
+| **Providers**     | Tambah koneksi, pilih auth, test akun, kelola model, dan atur routing               |
+| **Combos**        | Buat fallback berurutan untuk model/provider dan pilih strateginya                  |
+| **Proxy**         | Buat/test proxy pool, pasang koneksi, dan deploy relay opsional                     |
+| **Usage**         | Chart, breakdown token, estimasi cost, history, filter, sorting, dan detail request |
+| **Quota Monitor** | Ketersediaan provider/akun, status kuota, diagnostik, dan refresh manual            |
+| **CLI Tools**     | Atur coding tools yang didukung, pilih model, dan copy config otomatis              |
+| **Sway Chat**     | Chat lewat router dengan pemilihan model dan built-in tools opsional                |
+| **Settings**      | Kontrol Preferences, General, Security, Data, dan migrasi 9Router                   |
+| **Console Logs**  | Cari, filter, wrap, copy, dan cek diagnostik runtime/provider                       |
 
 ### Isi Settings
 
@@ -325,89 +325,89 @@ Ketersediaan provider dan pilihan auth bisa berubah mengikuti layanan upstream.
 
 ### API key — 44
 
-| Provider | ID |
-| --- | --- |
-| Alibaba Coding | `alicode-intl` |
-| Alibaba | `alicode` |
-| Alibaba Studio | `alims-intl` |
-| Anthropic | `anthropic` |
-| Azure OpenAI | `azure` |
-| Baidu Qianfan | `baidu` |
-| Blackbox AI | `blackbox` |
-| BytePlus ModelArk | `byteplus` |
-| Cerebras | `cerebras` |
-| Chutes AI | `chutes` |
-| Cloudflare | `cloudflare-ai` |
-| Command Code | `commandcode` |
-| DeepSeek | `deepseek` |
-| Featherless | `featherless` |
-| Fireworks AI | `fireworks` |
-| Gemini | `gemini` |
-| GLM (China) | `glm-cn` |
-| GLM Coding | `glm` |
-| Groq | `groq` |
-| Kilo Gateway | `kilo-gateway` |
-| Minimax (China) | `minimax-cn` |
-| Minimax Coding | `minimax` |
-| Mistral | `mistral` |
-| Morph | `morph` |
-| Nebius AI | `nebius` |
-| NVIDIA NIM | `nvidia` |
-| Ollama Local | `ollama-local` |
-| Ollama Cloud | `ollama` |
-| OpenAI | `openai` |
-| OpenCode Go | `opencode-go` |
-| OpenRouter | `openrouter` |
-| Perplexity AI | `perplexity` |
-| Poolside | `poolside` |
-| Tencent Hunyuan | `tencent` |
-| Together AI | `together` |
-| Venice AI | `venice` |
-| Vercel AI Gateway | `vercel-ai-gateway` |
-| Vertex Partner | `vertex-partner` |
-| Vertex AI | `vertex` |
-| Xiaomi MiMo | `xiaomi-mimo` |
-| Xiaomi MiMo (Token Plan) | `xiaomi-tokenplan` |
-| Meta AI | `meta` |
-| Agent Router | `agentrouter` |
-| SumoPod | `sumopod` |
+| Provider                 | ID                  |
+| ------------------------ | ------------------- |
+| Alibaba Coding           | `alicode-intl`      |
+| Alibaba                  | `alicode`           |
+| Alibaba Studio           | `alims-intl`        |
+| Anthropic                | `anthropic`         |
+| Azure OpenAI             | `azure`             |
+| Baidu Qianfan            | `baidu`             |
+| Blackbox AI              | `blackbox`          |
+| BytePlus ModelArk        | `byteplus`          |
+| Cerebras                 | `cerebras`          |
+| Chutes AI                | `chutes`            |
+| Cloudflare               | `cloudflare-ai`     |
+| Command Code             | `commandcode`       |
+| DeepSeek                 | `deepseek`          |
+| Featherless              | `featherless`       |
+| Fireworks AI             | `fireworks`         |
+| Gemini                   | `gemini`            |
+| GLM (China)              | `glm-cn`            |
+| GLM Coding               | `glm`               |
+| Groq                     | `groq`              |
+| Kilo Gateway             | `kilo-gateway`      |
+| Minimax (China)          | `minimax-cn`        |
+| Minimax Coding           | `minimax`           |
+| Mistral                  | `mistral`           |
+| Morph                    | `morph`             |
+| Nebius AI                | `nebius`            |
+| NVIDIA NIM               | `nvidia`            |
+| Ollama Local             | `ollama-local`      |
+| Ollama Cloud             | `ollama`            |
+| OpenAI                   | `openai`            |
+| OpenCode Go              | `opencode-go`       |
+| OpenRouter               | `openrouter`        |
+| Perplexity AI            | `perplexity`        |
+| Poolside                 | `poolside`          |
+| Tencent Hunyuan          | `tencent`           |
+| Together AI              | `together`          |
+| Venice AI                | `venice`            |
+| Vercel AI Gateway        | `vercel-ai-gateway` |
+| Vertex Partner           | `vertex-partner`    |
+| Vertex AI                | `vertex`            |
+| Xiaomi MiMo              | `xiaomi-mimo`       |
+| Xiaomi MiMo (Token Plan) | `xiaomi-tokenplan`  |
+| Meta AI                  | `meta`              |
+| Agent Router             | `agentrouter`       |
+| SumoPod                  | `sumopod`           |
 
 Perplexity AI memakai [Perplexity Router API resmi](https://docs.perplexity.ai/docs/router/quickstart): satu API key, satu koneksi, dan satu katalog model live untuk format OpenAI Chat Completions, OpenAI Responses, dan Anthropic Messages.
 
 ### OAuth, device code, atau token import — 19
 
-| Provider | ID |
-| --- | --- |
-| Antigravity | `antigravity` |
-| Claude Code | `claude` |
-| Cline | `cline` |
-| ClinePass | `clinepass` |
-| CodeBuddy CN | `codebuddy-cn` |
-| CodeBuddy | `codebuddy-intl` |
-| OpenAI Codex | `codex` |
-| Cursor IDE | `cursor` |
-| Gemini CLI | `gemini-cli` |
-| GitHub Copilot | `github` |
-| Grok CLI (Grok Build) | `grok-cli` |
-| Kilo Code | `kilocode` |
-| Kimchi | `kimchi` |
-| Kimi | `kimi` |
-| Kiro AI | `kiro` |
-| Qoder | `qoder` |
-| Trae | `trae` |
-| Windsurf | `windsurf` |
-| xAI (Grok) | `xai` |
+| Provider              | ID               |
+| --------------------- | ---------------- |
+| Antigravity           | `antigravity`    |
+| Claude Code           | `claude`         |
+| Cline                 | `cline`          |
+| ClinePass             | `clinepass`      |
+| CodeBuddy CN          | `codebuddy-cn`   |
+| CodeBuddy             | `codebuddy-intl` |
+| OpenAI Codex          | `codex`          |
+| Cursor IDE            | `cursor`         |
+| Gemini CLI            | `gemini-cli`     |
+| GitHub Copilot        | `github`         |
+| Grok CLI (Grok Build) | `grok-cli`       |
+| Kilo Code             | `kilocode`       |
+| Kimchi                | `kimchi`         |
+| Kimi                  | `kimi`           |
+| Kiro AI               | `kiro`           |
+| Qoder                 | `qoder`          |
+| Trae                  | `trae`           |
+| Windsurf              | `windsurf`       |
+| xAI (Grok)            | `xai`            |
 
 ### Web cookie — 1
 
-| Provider | ID |
-| --- | --- |
+| Provider                | ID         |
+| ----------------------- | ---------- |
 | Grok Web (Subscription) | `grok-web` |
 
 ### No auth — 1
 
-| Provider | ID |
-| --- | --- |
+| Provider      | ID         |
+| ------------- | ---------- |
 | OpenCode Free | `opencode` |
 
 ## CLI Tools yang didukung
@@ -576,7 +576,7 @@ yang kuat di data directory persistent. Pakai `.env` kalau perlu mengganti
 default, bind ke host lain, atau mengelola secret dari luar:
 
 ```dotenv
-PORT=14045
+PORT=1212
 HOSTNAME=127.0.0.1
 DATA_DIR=/var/lib/swayrouter
 NODE_ENV=production
@@ -605,7 +605,7 @@ cookie, atau log.
 
 SQLite bikin satu instance Sway Router private tetap kecil, portable, dan gampang
 dibackup. PostgreSQL dan Redis lebih cocok untuk aplikasi komersial terpisah
- dengan user terdistribusi, billing, background job, atau banyak instance Sway Router.
+dengan user terdistribusi, billing, background job, atau banyak instance Sway Router.
 
 ## Development checks
 

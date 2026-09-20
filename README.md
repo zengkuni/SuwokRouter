@@ -85,7 +85,7 @@ installed, skip the first step.
    swayrouter start -b
    ```
 
-4. Open `http://127.0.0.1:14045/dashboard` in your browser and finish the
+4. Open `http://127.0.0.1:1212/dashboard` in your browser and finish the
    first-run setup.
 
 5. Check or stop the local instance whenever you need:
@@ -128,7 +128,7 @@ Pop-Location
 bun run dev
 ```
 
-Then open `http://127.0.0.1:14045/dashboard`. Keep the terminal open while
+Then open `http://127.0.0.1:1212/dashboard`. Keep the terminal open while
 the development server is running.
 
 ### Run from source (macOS/Linux)
@@ -142,7 +142,7 @@ cd ..
 bun run dev
 ```
 
-Then open `http://127.0.0.1:14045/dashboard` and connect your first provider.
+Then open `http://127.0.0.1:1212/dashboard` and connect your first provider.
 
 Want to work on the dashboard? Run `bun run dev` inside `dashboard/` in a
 second terminal.
@@ -163,7 +163,7 @@ before starting Compose.
 Docker also generates persistent secrets in its data volume. Copy
 `.env.example` to `.env` only when you want explicit deployment overrides.
 
-Open `http://127.0.0.1:14045/dashboard`. Follow the logs with:
+Open `http://127.0.0.1:1212/dashboard`. Follow the logs with:
 
 ```bash
 docker compose logs -f swayrouter
@@ -176,11 +176,11 @@ you want to keep your provider connections, keys, settings, and usage data.
 
 ## Requirements
 
-| Deployment | You need | Process manager |
-| --- | --- | --- |
-| Global CLI | Bun `1.3+`, a writable data directory, and provider network access | The CLI for local use; add a supervisor for production |
-| Docker | Docker Engine with the Compose plugin and a persistent volume | Docker Compose handles restart and health checks; PM2 is not needed |
-| Native VPS | Bun `1.3+`, a writable data directory, and provider network access | `systemd` is recommended; PM2 is optional |
+| Deployment | You need                                                           | Process manager                                                     |
+| ---------- | ------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| Global CLI | Bun `1.3+`, a writable data directory, and provider network access | The CLI for local use; add a supervisor for production              |
+| Docker     | Docker Engine with the Compose plugin and a persistent volume      | Docker Compose handles restart and health checks; PM2 is not needed |
+| Native VPS | Bun `1.3+`, a writable data directory, and provider network access | `systemd` is recommended; PM2 is optional                           |
 
 For a small native VPS, start with **2 vCPU, 2 GB RAM, and 10 GB SSD**. A local
 dev machine can run with less. Put Sway Router behind an HTTPS reverse proxy before
@@ -206,17 +206,17 @@ after a reboot. Do not run PM2 on top of Docker Compose for the same container.
 Use the client format you already know. Sway Router translates requests and
 responses for the provider behind the scenes.
 
-| Client / feature | Endpoint |
-| --- | --- |
-| OpenAI Chat Completions | `POST /v1/chat/completions` |
-| OpenAI Responses | `POST /v1/responses` |
-| Compact Responses | `POST /v1/responses/compact` |
-| Anthropic Messages | `POST /v1/messages` |
-| Anthropic token count | `POST /v1/messages/count_tokens` |
-| Ollama-style chat | `POST /v1/api/chat` |
-| Image generation | `POST /v1/images/generations` |
-| Image editing | `POST /v1/images/edits` |
-| Model list | `GET /v1/models` |
+| Client / feature        | Endpoint                         |
+| ----------------------- | -------------------------------- |
+| OpenAI Chat Completions | `POST /v1/chat/completions`      |
+| OpenAI Responses        | `POST /v1/responses`             |
+| Compact Responses       | `POST /v1/responses/compact`     |
+| Anthropic Messages      | `POST /v1/messages`              |
+| Anthropic token count   | `POST /v1/messages/count_tokens` |
+| Ollama-style chat       | `POST /v1/api/chat`              |
+| Image generation        | `POST /v1/images/generations`    |
+| Image editing           | `POST /v1/images/edits`          |
+| Model list              | `GET /v1/models`                 |
 
 Streaming and non-streaming requests are supported where the selected provider
 and model support them. `/codex` and `/responses` aliases are included for
@@ -226,7 +226,7 @@ common client setups.
 
 ```bash
 export SWAY_API_KEY="swy-your_gateway_key"
-curl http://127.0.0.1:14045/v1/chat/completions \
+curl http://127.0.0.1:1212/v1/chat/completions \
   --oauth2-bearer "${SWAY_API_KEY}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -246,33 +246,33 @@ clear status badges, search and filters, responsive layouts, and smooth
 loading/refresh states keep everything easy to scan and manage on desktop,
 tablet, and mobile.
 
-| Dashboard | Providers |
-| --- | --- |
-| ![Sway Router dashboard](./docs/media/screenshots/dashboard.png) | ![Provider management](./docs/media/screenshots/providers.png) |
-| Provider models | Custom provider |
+| Dashboard                                                        | Providers                                                        |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------- |
+| ![Sway Router dashboard](./docs/media/screenshots/dashboard.png) | ![Provider management](./docs/media/screenshots/providers.png)   |
+| Provider models                                                  | Custom provider                                                  |
 | ![Provider models](./docs/media/screenshots/provider-models.png) | ![Custom provider](./docs/media/screenshots/custom-provider.png) |
-| Usage & cost | Quota monitor |
-| ![Usage and cost](./docs/media/screenshots/usage.png) | ![Quota monitor](./docs/media/screenshots/quota.png) |
-| Settings | CLI Tools |
-| ![Settings](./docs/media/screenshots/settings.png) | ![CLI Tools](./docs/media/screenshots/cli-tools.png) |
+| Usage & cost                                                     | Quota monitor                                                    |
+| ![Usage and cost](./docs/media/screenshots/usage.png)            | ![Quota monitor](./docs/media/screenshots/quota.png)             |
+| Settings                                                         | CLI Tools                                                        |
+| ![Settings](./docs/media/screenshots/settings.png)               | ![CLI Tools](./docs/media/screenshots/cli-tools.png)             |
 
 [Browse the full UI showcase](./docs/SHOWCASE.md)
 
 ### Main menu
 
-| Menu | What is inside |
-| --- | --- |
-| **Dashboard** | Request count, token totals, cost, latency, provider activity, and system status |
-| **API Keys** | Create, reveal, copy, rotate, enable, revoke, and delete gateway keys |
-| **Providers** | Add connections, choose auth, test accounts, manage models, and configure routing |
-| **Combos** | Build ordered model/provider fallback combos and choose combo strategies |
-| **Proxy** | Create and test proxy pools, attach connections, and deploy optional relays |
-| **Usage** | Charts, token breakdowns, estimated cost, history, filters, sorting, and request details |
-| **Quota Monitor** | Provider/account availability, quota state, diagnostics, and manual refresh |
-| **CLI Tools** | Configure supported coding tools, select models, and copy generated configs |
-| **Sway Chat** | Chat through the router with model selection and optional built-in tools |
-| **Settings** | Preferences, General, Security, Data controls, and 9Router migration |
-| **Console Logs** | Search, filter, wrap, copy, and inspect runtime/provider diagnostics |
+| Menu              | What is inside                                                                           |
+| ----------------- | ---------------------------------------------------------------------------------------- |
+| **Dashboard**     | Request count, token totals, cost, latency, provider activity, and system status         |
+| **API Keys**      | Create, reveal, copy, rotate, enable, revoke, and delete gateway keys                    |
+| **Providers**     | Add connections, choose auth, test accounts, manage models, and configure routing        |
+| **Combos**        | Build ordered model/provider fallback combos and choose combo strategies                 |
+| **Proxy**         | Create and test proxy pools, attach connections, and deploy optional relays              |
+| **Usage**         | Charts, token breakdowns, estimated cost, history, filters, sorting, and request details |
+| **Quota Monitor** | Provider/account availability, quota state, diagnostics, and manual refresh              |
+| **CLI Tools**     | Configure supported coding tools, select models, and copy generated configs              |
+| **Sway Chat**     | Chat through the router with model selection and optional built-in tools                 |
+| **Settings**      | Preferences, General, Security, Data controls, and 9Router migration                     |
+| **Console Logs**  | Search, filter, wrap, copy, and inspect runtime/provider diagnostics                     |
 
 ### Settings, properly mapped
 
@@ -324,89 +324,89 @@ change.
 
 ### API key — 44
 
-| Provider | ID |
-| --- | --- |
-| Alibaba Coding | `alicode-intl` |
-| Alibaba | `alicode` |
-| Alibaba Studio | `alims-intl` |
-| Anthropic | `anthropic` |
-| Azure OpenAI | `azure` |
-| Baidu Qianfan | `baidu` |
-| Blackbox AI | `blackbox` |
-| BytePlus ModelArk | `byteplus` |
-| Cerebras | `cerebras` |
-| Chutes AI | `chutes` |
-| Cloudflare | `cloudflare-ai` |
-| Command Code | `commandcode` |
-| DeepSeek | `deepseek` |
-| Featherless | `featherless` |
-| Fireworks AI | `fireworks` |
-| Gemini | `gemini` |
-| GLM (China) | `glm-cn` |
-| GLM Coding | `glm` |
-| Groq | `groq` |
-| Kilo Gateway | `kilo-gateway` |
-| Minimax (China) | `minimax-cn` |
-| Minimax Coding | `minimax` |
-| Mistral | `mistral` |
-| Morph | `morph` |
-| Nebius AI | `nebius` |
-| NVIDIA NIM | `nvidia` |
-| Ollama Local | `ollama-local` |
-| Ollama Cloud | `ollama` |
-| OpenAI | `openai` |
-| OpenCode Go | `opencode-go` |
-| OpenRouter | `openrouter` |
-| Perplexity AI | `perplexity` |
-| Poolside | `poolside` |
-| Tencent Hunyuan | `tencent` |
-| Together AI | `together` |
-| Venice AI | `venice` |
-| Vercel AI Gateway | `vercel-ai-gateway` |
-| Vertex Partner | `vertex-partner` |
-| Vertex AI | `vertex` |
-| Xiaomi MiMo | `xiaomi-mimo` |
-| Xiaomi MiMo (Token Plan) | `xiaomi-tokenplan` |
-| Meta AI | `meta` |
-| Agent Router | `agentrouter` |
-| SumoPod | `sumopod` |
+| Provider                 | ID                  |
+| ------------------------ | ------------------- |
+| Alibaba Coding           | `alicode-intl`      |
+| Alibaba                  | `alicode`           |
+| Alibaba Studio           | `alims-intl`        |
+| Anthropic                | `anthropic`         |
+| Azure OpenAI             | `azure`             |
+| Baidu Qianfan            | `baidu`             |
+| Blackbox AI              | `blackbox`          |
+| BytePlus ModelArk        | `byteplus`          |
+| Cerebras                 | `cerebras`          |
+| Chutes AI                | `chutes`            |
+| Cloudflare               | `cloudflare-ai`     |
+| Command Code             | `commandcode`       |
+| DeepSeek                 | `deepseek`          |
+| Featherless              | `featherless`       |
+| Fireworks AI             | `fireworks`         |
+| Gemini                   | `gemini`            |
+| GLM (China)              | `glm-cn`            |
+| GLM Coding               | `glm`               |
+| Groq                     | `groq`              |
+| Kilo Gateway             | `kilo-gateway`      |
+| Minimax (China)          | `minimax-cn`        |
+| Minimax Coding           | `minimax`           |
+| Mistral                  | `mistral`           |
+| Morph                    | `morph`             |
+| Nebius AI                | `nebius`            |
+| NVIDIA NIM               | `nvidia`            |
+| Ollama Local             | `ollama-local`      |
+| Ollama Cloud             | `ollama`            |
+| OpenAI                   | `openai`            |
+| OpenCode Go              | `opencode-go`       |
+| OpenRouter               | `openrouter`        |
+| Perplexity AI            | `perplexity`        |
+| Poolside                 | `poolside`          |
+| Tencent Hunyuan          | `tencent`           |
+| Together AI              | `together`          |
+| Venice AI                | `venice`            |
+| Vercel AI Gateway        | `vercel-ai-gateway` |
+| Vertex Partner           | `vertex-partner`    |
+| Vertex AI                | `vertex`            |
+| Xiaomi MiMo              | `xiaomi-mimo`       |
+| Xiaomi MiMo (Token Plan) | `xiaomi-tokenplan`  |
+| Meta AI                  | `meta`              |
+| Agent Router             | `agentrouter`       |
+| SumoPod                  | `sumopod`           |
 
 Perplexity AI uses the official [Perplexity Router API](https://docs.perplexity.ai/docs/router/quickstart): one API key, one connection, and one live model catalog across OpenAI Chat Completions, OpenAI Responses, and Anthropic Messages.
 
 ### OAuth, device code, or token import — 19
 
-| Provider | ID |
-| --- | --- |
-| Antigravity | `antigravity` |
-| Claude Code | `claude` |
-| Cline | `cline` |
-| ClinePass | `clinepass` |
-| CodeBuddy CN | `codebuddy-cn` |
-| CodeBuddy | `codebuddy-intl` |
-| OpenAI Codex | `codex` |
-| Cursor IDE | `cursor` |
-| Gemini CLI | `gemini-cli` |
-| GitHub Copilot | `github` |
-| Grok CLI (Grok Build) | `grok-cli` |
-| Kilo Code | `kilocode` |
-| Kimchi | `kimchi` |
-| Kimi | `kimi` |
-| Kiro AI | `kiro` |
-| Qoder | `qoder` |
-| Trae | `trae` |
-| Windsurf | `windsurf` |
-| xAI (Grok) | `xai` |
+| Provider              | ID               |
+| --------------------- | ---------------- |
+| Antigravity           | `antigravity`    |
+| Claude Code           | `claude`         |
+| Cline                 | `cline`          |
+| ClinePass             | `clinepass`      |
+| CodeBuddy CN          | `codebuddy-cn`   |
+| CodeBuddy             | `codebuddy-intl` |
+| OpenAI Codex          | `codex`          |
+| Cursor IDE            | `cursor`         |
+| Gemini CLI            | `gemini-cli`     |
+| GitHub Copilot        | `github`         |
+| Grok CLI (Grok Build) | `grok-cli`       |
+| Kilo Code             | `kilocode`       |
+| Kimchi                | `kimchi`         |
+| Kimi                  | `kimi`           |
+| Kiro AI               | `kiro`           |
+| Qoder                 | `qoder`          |
+| Trae                  | `trae`           |
+| Windsurf              | `windsurf`       |
+| xAI (Grok)            | `xai`            |
 
 ### Web cookie — 1
 
-| Provider | ID |
-| --- | --- |
+| Provider                | ID         |
+| ----------------------- | ---------- |
 | Grok Web (Subscription) | `grok-web` |
 
 ### No auth — 1
 
-| Provider | ID |
-| --- | --- |
+| Provider      | ID         |
+| ------------- | ---------- |
 | OpenCode Free | `opencode` |
 
 ## Supported CLI Tools
@@ -570,7 +570,7 @@ the persistent data directory. Use `.env` when you need to override the
 defaults, bind another host, or manage secrets externally:
 
 ```dotenv
-PORT=14045
+PORT=1212
 HOSTNAME=127.0.0.1
 DATA_DIR=/var/lib/swayrouter
 NODE_ENV=production

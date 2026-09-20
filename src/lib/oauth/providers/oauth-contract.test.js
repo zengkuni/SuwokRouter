@@ -18,12 +18,21 @@ describe("OAuth flow contracts", () => {
     expect(getProviderFlowType("antigravity")).toBe("authorization_code");
     expect(providerUsesPkce("antigravity")).toBe(false);
 
-    const auth = await generateAuthData("antigravity", "http://localhost:14045/callback");
+    const auth = await generateAuthData(
+      "antigravity",
+      "http://localhost:1212/callback",
+    );
     const url = new URL(auth.authUrl);
 
-    expect(url.origin + url.pathname).toBe("https://accounts.google.com/o/oauth2/v2/auth");
-    expect(url.searchParams.get("client_id")).toMatch(/\.apps\.googleusercontent\.com$/);
-    expect(url.searchParams.get("redirect_uri")).toBe("http://localhost:14045/callback");
+    expect(url.origin + url.pathname).toBe(
+      "https://accounts.google.com/o/oauth2/v2/auth",
+    );
+    expect(url.searchParams.get("client_id")).toMatch(
+      /\.apps\.googleusercontent\.com$/,
+    );
+    expect(url.searchParams.get("redirect_uri")).toBe(
+      "http://localhost:1212/callback",
+    );
     expect(url.searchParams.get("access_type")).toBe("offline");
     expect(url.searchParams.get("prompt")).toBe("consent");
     expect(url.searchParams.has("code_challenge")).toBe(false);
@@ -48,17 +57,21 @@ describe("OAuth flow contracts", () => {
       await PROVIDERS.antigravity.exchangeToken(
         PROVIDERS.antigravity.config,
         "test-code",
-        "http://localhost:14045/callback",
+        "http://localhost:1212/callback",
       );
     } finally {
       globalThis.fetch = originalFetch;
     }
 
     expect(requestBody.get("grant_type")).toBe("authorization_code");
-    expect(requestBody.get("client_id")).toMatch(/\.apps\.googleusercontent\.com$/);
+    expect(requestBody.get("client_id")).toMatch(
+      /\.apps\.googleusercontent\.com$/,
+    );
     expect(requestBody.get("client_secret")).toBeTruthy();
     expect(requestBody.get("code")).toBe("test-code");
-    expect(requestBody.get("redirect_uri")).toBe("http://localhost:14045/callback");
+    expect(requestBody.get("redirect_uri")).toBe(
+      "http://localhost:1212/callback",
+    );
     expect(requestBody.has("code_verifier")).toBe(false);
   });
 

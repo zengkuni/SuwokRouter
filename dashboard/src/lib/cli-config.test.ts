@@ -5,7 +5,7 @@ describe("cli config formatter", () => {
   it("masks secrets by default and normalizes OpenCode models", () => {
     const result = formatCliConfig({
       toolId: "opencode",
-      baseUrl: "http://127.0.0.1:14045",
+      baseUrl: "http://127.0.0.1:1212",
       apiKey: "sk-secret-value",
       models: ["clinepass/glm-5.2", "openai/gpt-5"],
       primaryModel: "openai/gpt-5",
@@ -15,7 +15,9 @@ describe("cli config formatter", () => {
     const parsed = JSON.parse(result.content) as Record<string, any>;
     expect(result.fileName).toBe("opencode.json");
     expect(result.modelCount).toBe(2);
-    expect(parsed.provider.swayrouter.options.baseURL).toBe("http://127.0.0.1:14045/v1");
+    expect(parsed.provider.swayrouter.options.baseURL).toBe(
+      "http://127.0.0.1:1212/v1",
+    );
     expect(parsed.provider.swayrouter.models["clinepass/glm-5.2"]).toBeTruthy();
     expect(parsed.model).toBe("swayrouter/openai/gpt-5");
     expect(parsed.agent.explorer.model).toBe("swayrouter/clinepass/glm-5.2");
@@ -23,22 +25,27 @@ describe("cli config formatter", () => {
   });
 
   it("reveals the key only when requested", () => {
-    const result = formatCliConfig({
-      toolId: "claude",
-      baseUrl: "http://localhost:14045/v1",
-      apiKey: "sk-secret-value",
-      models: ["claude/sonnet"],
-      primaryModel: "claude/sonnet",
-    }, true);
+    const result = formatCliConfig(
+      {
+        toolId: "claude",
+        baseUrl: "http://localhost:1212/v1",
+        apiKey: "sk-secret-value",
+        models: ["claude/sonnet"],
+        primaryModel: "claude/sonnet",
+      },
+      true,
+    );
 
     expect(result.content).toContain('ANTHROPIC_AUTH_TOKEN="sk-secret-value"');
-    expect(result.content).toContain('ANTHROPIC_BASE_URL="http://localhost:14045"');
+    expect(result.content).toContain(
+      'ANTHROPIC_BASE_URL="http://localhost:1212"',
+    );
   });
 
   it("allows endpoint config without inventing a model", () => {
     const result = formatCliConfig({
       toolId: "codex",
-      baseUrl: "http://localhost:14045/v1",
+      baseUrl: "http://localhost:1212/v1",
       apiKey: "sk-key",
     });
 
@@ -50,7 +57,7 @@ describe("cli config formatter", () => {
   it("uses OMP discovery and preserves selected model entries", () => {
     const result = formatCliConfig({
       toolId: "omp",
-      baseUrl: "http://localhost:14045",
+      baseUrl: "http://localhost:1212",
       apiKey: "sk-key",
       models: ["clinepass/glm-5.2", "openai/gpt-5"],
     });
@@ -65,17 +72,17 @@ describe("cli config formatter", () => {
   it("writes a masked OMP apiKey when a gateway key is configured", () => {
     const result = formatCliConfig({
       toolId: "omp",
-      baseUrl: "http://localhost:14045/v1",
+      baseUrl: "http://localhost:1212/v1",
       apiKey: "sk-secret-value",
     });
-    expect(result.content).toContain("apiKey: \"sk-s•••••••••••\"");
+    expect(result.content).toContain('apiKey: "sk-s•••••••••••"');
     expect(result.content).not.toContain("sk-secret-value");
   });
 
   it("keeps OMP keyless when no gateway key is available", () => {
     const result = formatCliConfig({
       toolId: "omp",
-      baseUrl: "http://localhost:14045/v1",
+      baseUrl: "http://localhost:1212/v1",
       apiKey: "",
     });
     expect(result.content).toContain("auth: none");

@@ -8,15 +8,15 @@ describe("tray host singleton", () => {
   test("allows only one tray host for a data directory", () => {
     const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "swayrouter-tray-"));
     const installation = { dataDir, installDir: dataDir };
-    const first = acquireTrayLock(installation, 14045);
+    const first = acquireTrayLock(installation, 1212);
 
     expect(first).not.toBeNull();
-    expect(acquireTrayLock(installation, 14045)).toBeNull();
+    expect(acquireTrayLock(installation, 1212)).toBeNull();
 
     first.release();
     expect(fs.existsSync(trayLockPath(installation))).toBe(false);
 
-    const next = acquireTrayLock(installation, 14045);
+    const next = acquireTrayLock(installation, 1212);
     expect(next).not.toBeNull();
     next.release();
     fs.rmSync(dataDir, { recursive: true, force: true });

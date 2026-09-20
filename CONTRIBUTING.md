@@ -12,7 +12,7 @@ bun run build:dashboard
 bun run dev
 ```
 
-Open `http://127.0.0.1:14045/dashboard`.
+Open `http://127.0.0.1:1212/dashboard`.
 
 ## Before a pull request
 

@@ -12,9 +12,9 @@ describe("CLI token validation", () => {
 
 describe("local request detection", () => {
   test("accepts a host peer that reached the container through a published port", () => {
-    const request = new Request("http://localhost:14045/api/auth/login", {
+    const request = new Request("http://localhost:1212/api/auth/login", {
       headers: {
-        host: "localhost:14045",
+        host: "localhost:1212",
         "x-swayrouter-real-ip": "192.168.127.1",
         "x-swayrouter-host-peer": "1",
       },
@@ -23,23 +23,26 @@ describe("local request detection", () => {
   });
 
   test("accepts a loopback peer", () => {
-    const request = new Request("http://127.0.0.1:14045/api/auth/login", {
-      headers: { host: "127.0.0.1:14045", "x-swayrouter-real-ip": "127.0.0.1" },
+    const request = new Request("http://127.0.0.1:1212/api/auth/login", {
+      headers: { host: "127.0.0.1:1212", "x-swayrouter-real-ip": "127.0.0.1" },
     });
     expect(isLocalRequest(request)).toBe(true);
   });
 
   test("rejects a remote peer that claims to be the host", () => {
-    const request = new Request("http://localhost:14045/api/auth/login", {
-      headers: { host: "localhost:14045", "x-swayrouter-real-ip": "203.0.113.9" },
+    const request = new Request("http://localhost:1212/api/auth/login", {
+      headers: {
+        host: "localhost:1212",
+        "x-swayrouter-real-ip": "203.0.113.9",
+      },
     });
     expect(isLocalRequest(request)).toBe(false);
   });
 
   test("rejects a host peer whose Host header was rewritten by a host-side proxy", () => {
-    const request = new Request("http://192.168.1.10:14045/api/auth/login", {
+    const request = new Request("http://192.168.1.10:1212/api/auth/login", {
       headers: {
-        host: "192.168.1.10:14045",
+        host: "192.168.1.10:1212",
         "x-swayrouter-real-ip": "192.168.127.1",
         "x-swayrouter-host-peer": "1",
       },
@@ -48,9 +51,9 @@ describe("local request detection", () => {
   });
 
   test("rejects any request that arrived through a proxy", () => {
-    const request = new Request("http://localhost:14045/api/auth/login", {
+    const request = new Request("http://localhost:1212/api/auth/login", {
       headers: {
-        host: "localhost:14045",
+        host: "localhost:1212",
         "x-swayrouter-real-ip": "192.168.127.1",
         "x-swayrouter-host-peer": "1",
         "x-swayrouter-via-proxy": "1",

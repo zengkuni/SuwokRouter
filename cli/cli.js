@@ -5,7 +5,12 @@ const path = require("node:path");
 const pkg = require("../package.json");
 const { discoverInstall } = require("./src/runtime/discover");
 const lifecycle = require("./src/runtime/lifecycle");
-const { runMenu, dashboardUrl, runTrayHost, startTrayHost } = require("./src/runtime/runMenu");
+const {
+  runMenu,
+  dashboardUrl,
+  runTrayHost,
+  startTrayHost,
+} = require("./src/runtime/runMenu");
 const { checkForUpdate } = require("./src/runtime/update");
 const { withProgress } = require("./src/cli/utils/display");
 
@@ -28,14 +33,19 @@ if (require.main === module) {
 }
 
 function reportFatalError(error) {
-  const message = String(error?.message || error || "Unknown error").replace(/[\r\n]+/g, " ").slice(0, 1000);
+  const message = String(error?.message || error || "Unknown error")
+    .replace(/[\r\n]+/g, " ")
+    .slice(0, 1000);
   process.stderr.write(`Error: ${message}\n`);
 
   const logPath = process.env.SWAYROUTER_AUTOSTART_LOG;
   if (!logPath) return;
   try {
     fs.mkdirSync(path.dirname(logPath), { recursive: true });
-    fs.appendFileSync(logPath, `${new Date().toISOString()} Startup failed: ${message}\n`);
+    fs.appendFileSync(
+      logPath,
+      `${new Date().toISOString()} Startup failed: ${message}\n`,
+    );
   } catch {}
 }
 
@@ -100,7 +110,8 @@ function parseArgs(argv) {
     const rawArg = argv[index];
     const equalsIndex = rawArg.startsWith("--") ? rawArg.indexOf("=") : -1;
     const arg = equalsIndex > -1 ? rawArg.slice(0, equalsIndex) : rawArg;
-    const inlineValue = equalsIndex > -1 ? rawArg.slice(equalsIndex + 1) : undefined;
+    const inlineValue =
+      equalsIndex > -1 ? rawArg.slice(equalsIndex + 1) : undefined;
 
     if (!options.command && !arg.startsWith("-")) {
       if (commands.has(arg)) {
@@ -108,7 +119,9 @@ function parseArgs(argv) {
         continue;
       }
       if (arg === "xai") {
-        throw new Error("xai video must be invoked as `swayrouter xai video ...`");
+        throw new Error(
+          "xai video must be invoked as `swayrouter xai video ...`",
+        );
       }
       throw new Error(`unknown command: ${arg}`);
     }
@@ -196,12 +209,14 @@ function commandFor(options) {
 }
 
 function isDefaultMenuInvocation(options) {
-  return options.command === null
-    && !options.foreground
-    && !options.background
-    && !options.tray
-    && !options.status
-    && !options.stop;
+  return (
+    options.command === null &&
+    !options.foreground &&
+    !options.background &&
+    !options.tray &&
+    !options.status &&
+    !options.stop
+  );
 }
 
 function assertStartMode(options) {
@@ -216,11 +231,15 @@ function resolveInstallation(options) {
     cliDirectory: path.resolve(__dirname, ".."),
   });
   if (!installation) return null;
-  if (options.port && installation.mode === "docker" && options.port !== 14045) {
-    throw new Error("Docker Compose uses the fixed port 14045; --port overrides are supported only for native mode");
+  if (options.port && installation.mode === "docker" && options.port !== 1212) {
+    throw new Error(
+      "Docker Compose uses the fixed port 1212; --port overrides are supported only for native mode",
+    );
   }
   if (options.host && installation.mode === "docker") {
-    throw new Error("--host is supported only for native mode; Docker Compose listens on 127.0.0.1:14045");
+    throw new Error(
+      "--host is supported only for native mode; Docker Compose listens on 127.0.0.1:1212",
+    );
   }
   if (options.port) installation.port = options.port;
   if (options.host) installation.host = options.host;
@@ -228,21 +247,27 @@ function resolveInstallation(options) {
 }
 
 async function startForeground(installation, options) {
-  const result = await withProgress("Starting Sway Router", (progress) => {
-    progress.update(35, "Starting Sway Router");
-    return lifecycle.start(installation, {
-      background: false,
-      showLog: options.showLog,
-      port: options.port,
-      host: options.host,
-    });
-  }, { doneMessage: "Sway Router started" });
+  const result = await withProgress(
+    "Starting Sway Router",
+    (progress) => {
+      progress.update(35, "Starting Sway Router");
+      return lifecycle.start(installation, {
+        background: false,
+        showLog: options.showLog,
+        port: options.port,
+        host: options.host,
+      });
+    },
+    { doneMessage: "Sway Router started" },
+  );
   const url = dashboardUrl(installation, result.port);
   console.log(`Sway Router is running at ${url}`);
   console.log("Press Ctrl+C to stop the router gracefully.");
   await new Promise((resolve) => {
     const stop = () => {
-      try { lifecycle.stop(installation); } catch {}
+      try {
+        lifecycle.stop(installation);
+      } catch {}
       resolve();
     };
     process.once("SIGINT", stop);
@@ -251,18 +276,24 @@ async function startForeground(installation, options) {
 }
 
 async function startBackground(installation, options) {
-  const result = await withProgress("Starting Sway Router", (progress) => {
-    progress.update(35, "Starting Sway Router");
-    return lifecycle.start(installation, {
-      background: true,
-      showLog: options.showLog,
-      port: options.port,
-      host: options.host,
-    });
-  }, { doneMessage: "Sway Router started" });
+  const result = await withProgress(
+    "Starting Sway Router",
+    (progress) => {
+      progress.update(35, "Starting Sway Router");
+      return lifecycle.start(installation, {
+        background: true,
+        showLog: options.showLog,
+        port: options.port,
+        host: options.host,
+      });
+    },
+    { doneMessage: "Sway Router started" },
+  );
   const url = dashboardUrl(installation, result.port);
   const tray = startTrayHost(installation, result.port);
-  console.log(`Sway Router is running in the background at ${url}${tray ? " with the tray enabled" : ""}`);
+  console.log(
+    `Sway Router is running in the background at ${url}${tray ? " with the tray enabled" : ""}`,
+  );
 }
 
 async function startRuntime(installation, options) {
@@ -280,22 +311,30 @@ async function startRuntime(installation, options) {
 
 async function startDefaultMenu(installation, options, updateInfo) {
   const current = lifecycle.status(installation);
-  let port = Number(options.port || installation.port || 14045);
+  let port = Number(options.port || installation.port || 1212);
 
   if (current.running) {
-    console.log(`Sway Router is already running at ${dashboardUrl(installation, port)}`);
+    console.log(
+      `Sway Router is already running at ${dashboardUrl(installation, port)}`,
+    );
   } else {
-    const result = await withProgress("Starting Sway Router", (progress) => {
-      progress.update(35, "Starting Sway Router");
-      return lifecycle.start(installation, {
-        background: true,
-        showLog: options.showLog,
-        port: options.port,
-        host: options.host,
-      });
-    }, { doneMessage: "Sway Router started" });
+    const result = await withProgress(
+      "Starting Sway Router",
+      (progress) => {
+        progress.update(35, "Starting Sway Router");
+        return lifecycle.start(installation, {
+          background: true,
+          showLog: options.showLog,
+          port: options.port,
+          host: options.host,
+        });
+      },
+      { doneMessage: "Sway Router started" },
+    );
     port = result.port;
-    console.log(`Sway Router is running in the background at ${dashboardUrl(installation, port)}`);
+    console.log(
+      `Sway Router is running in the background at ${dashboardUrl(installation, port)}`,
+    );
   }
 
   await runMenu(installation, { ...options, port, updateInfo });
@@ -326,14 +365,18 @@ async function main(argv) {
   if (!installation) {
     if (command === "status") {
       console.log("Sway Router is not prepared.");
-      console.log("Prepare the Sway Router runtime and installation metadata first.");
+      console.log(
+        "Prepare the Sway Router runtime and installation metadata first.",
+      );
       return;
     }
     if (command === "stop") {
       console.log("Sway Router was not prepared; nothing to stop.");
       return;
     }
-    throw new Error("Sway Router is not prepared. Prepare the runtime and installation metadata first.");
+    throw new Error(
+      "Sway Router is not prepared. Prepare the runtime and installation metadata first.",
+    );
   }
 
   const status = lifecycle.status(installation);
@@ -342,27 +385,48 @@ async function main(argv) {
     return;
   }
   if (command === "stop") {
-    const result = await withProgress("Stopping Sway Router", () => lifecycle.stop(installation), {
-      doneMessage: "Sway Router stopped",
-    });
-    console.log(result.stopped ? "Sway Router stopped." : "Sway Router was not running.");
+    const result = await withProgress(
+      "Stopping Sway Router",
+      () => lifecycle.stop(installation),
+      {
+        doneMessage: "Sway Router stopped",
+      },
+    );
+    console.log(
+      result.stopped ? "Sway Router stopped." : "Sway Router was not running.",
+    );
     return;
   }
 
-  const updateInfo = !options.skipUpdate && (command === "start" || command === "restart" || command === "menu")
-    ? await checkForUpdate()
-    : null;
+  const updateInfo =
+    !options.skipUpdate &&
+    (command === "start" || command === "restart" || command === "menu")
+      ? await checkForUpdate()
+      : null;
   if (updateInfo?.updateAvailable && !updateInfo.updateSupported) {
-    console.log(`Sway Router v${updateInfo.latestVersion} is available, but this installation cannot self-update.`);
+    console.log(
+      `Sway Router v${updateInfo.latestVersion} is available, but this installation cannot self-update.`,
+    );
   }
-  if (updateInfo?.updateAvailable && updateInfo.updateSupported && command !== "menu" && !isDefaultMenuInvocation(options)) {
-    console.log(`Sway Router v${updateInfo.latestVersion} is available. Run \'swayrouter\' to update from the menu.`);
+  if (
+    updateInfo?.updateAvailable &&
+    updateInfo.updateSupported &&
+    command !== "menu" &&
+    !isDefaultMenuInvocation(options)
+  ) {
+    console.log(
+      `Sway Router v${updateInfo.latestVersion} is available. Run \'swayrouter\' to update from the menu.`,
+    );
   }
   if (command === "restart") {
     if (status.running) {
-      await withProgress("Stopping Sway Router", () => lifecycle.stop(installation), {
-        doneMessage: "Sway Router stopped",
-      });
+      await withProgress(
+        "Stopping Sway Router",
+        () => lifecycle.stop(installation),
+        {
+          doneMessage: "Sway Router stopped",
+        },
+      );
     }
     await startRuntime(installation, options);
     return;

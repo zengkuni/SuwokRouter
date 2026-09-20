@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { getOAuthRedirectUri, usesConnectionModelCatalog } from "./connections-api";
+import {
+  getOAuthRedirectUri,
+  usesConnectionModelCatalog,
+} from "./connections-api";
 
 describe("OAuth redirect routing", () => {
   test("uses the same loopback host as the dashboard", () => {
@@ -7,17 +10,17 @@ describe("OAuth redirect routing", () => {
       getOAuthRedirectUri("antigravity", {
         protocol: "http:",
         hostname: "localhost",
-        port: "14045",
+        port: "1212",
       }),
-    ).toBe("http://localhost:14045/callback");
+    ).toBe("http://localhost:1212/callback");
 
     expect(
       getOAuthRedirectUri("antigravity", {
         protocol: "http:",
         hostname: "127.0.0.1",
-        port: "14045",
+        port: "1212",
       }),
-    ).toBe("http://127.0.0.1:14045/callback");
+    ).toBe("http://127.0.0.1:1212/callback");
   });
 
   test("keeps public hosts on the canonical local callback", () => {
@@ -38,7 +41,9 @@ describe("provider model catalog routing", () => {
 
   test("custom nodes and ordinary providers keep their existing behavior", () => {
     expect(usesConnectionModelCatalog({ isCustom: true })).toBe(true);
-    expect(usesConnectionModelCatalog({ nodeType: "openai-compatible" })).toBe(true);
+    expect(usesConnectionModelCatalog({ nodeType: "openai-compatible" })).toBe(
+      true,
+    );
     expect(usesConnectionModelCatalog({})).toBe(false);
     expect(usesConnectionModelCatalog(null)).toBe(false);
   });

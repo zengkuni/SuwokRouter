@@ -4,7 +4,7 @@ import { loadEnv } from "./env";
 describe("runtime environment", () => {
   test("loads development compatibility defaults", () => {
     const config = loadEnv({ NODE_ENV: "development" });
-    expect(config.port).toBe(14045);
+    expect(config.port).toBe(1212);
     expect(config.hostname).toBe("127.0.0.1");
     expect(config.dataDir).toBe("");
     expect(config.baseUrl).toBe("");
@@ -39,10 +39,12 @@ describe("runtime environment", () => {
 
   test("rejects insecure production credentials", () => {
     expect(() => loadEnv({ NODE_ENV: "production" })).toThrow("JWT_SECRET");
-    expect(() => loadEnv({
-      NODE_ENV: "production",
-      JWT_SECRET: "a".repeat(32),
-    })).toThrow("API_KEY_SECRET");
+    expect(() =>
+      loadEnv({
+        NODE_ENV: "production",
+        JWT_SECRET: "a".repeat(32),
+      }),
+    ).toThrow("API_KEY_SECRET");
   });
 
   test("accepts complete production configuration", () => {
@@ -76,8 +78,12 @@ describe("runtime environment", () => {
   });
 
   test("rejects invalid ports and environments", () => {
-    expect(() => loadEnv({ NODE_ENV: "development", PORT: "0" })).toThrow("PORT");
+    expect(() => loadEnv({ NODE_ENV: "development", PORT: "0" })).toThrow(
+      "PORT",
+    );
     expect(() => loadEnv({ NODE_ENV: "staging" })).toThrow("NODE_ENV");
-    expect(() => loadEnv({ NODE_ENV: "development", HOSTNAME: "not a host" })).toThrow("HOSTNAME");
+    expect(() =>
+      loadEnv({ NODE_ENV: "development", HOSTNAME: "not a host" }),
+    ).toThrow("HOSTNAME");
   });
 });

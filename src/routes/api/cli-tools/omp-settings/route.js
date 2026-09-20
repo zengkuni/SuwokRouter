@@ -1,12 +1,12 @@
 "use server";
 
-import { NextResponse } from "next/server";
 import { exec } from "child_process";
-import { promisify } from "util";
-import fs from "fs/promises";
-import path from "path";
-import os from "os";
 import { parseYAML, stringifyYAML } from "confbox";
+import fs from "fs/promises";
+import { NextResponse } from "next/server";
+import os from "os";
+import path from "path";
+import { promisify } from "util";
 
 const execAsync = promisify(exec);
 
@@ -15,12 +15,12 @@ const getModelsPath = () => path.join(getOmpDir(), "models.yml");
 const getOmpBinPath = () => path.join(os.homedir(), ".bun", "bin", "omp.exe");
 
 const SWAY_ROUTER_MATCH_HOSTS = [
-  "127.0.0.1:14045",
-  "localhost:14045",
+  "127.0.0.1:1212",
+  "localhost:1212",
   "localhost",
   "127.0.0.1",
 ];
-const SWAY_ROUTER_URL_HOST_RE = /^(?:127\.0\.0\.1|localhost)(?::14045)?$/;
+const SWAY_ROUTER_URL_HOST_RE = /^(?:127\.0\.0\.1|localhost)(?::1212)?$/;
 
 function isSwayRouterBaseUrl(baseUrl) {
   if (typeof baseUrl !== "string" || !baseUrl) return false;
@@ -28,7 +28,8 @@ function isSwayRouterBaseUrl(baseUrl) {
     const u = new URL(baseUrl);
     return (
       u.pathname.endsWith("/v1") &&
-      (SWAY_ROUTER_URL_HOST_RE.test(u.host) || SWAY_ROUTER_MATCH_HOSTS.includes(u.host))
+      (SWAY_ROUTER_URL_HOST_RE.test(u.host) ||
+        SWAY_ROUTER_MATCH_HOSTS.includes(u.host))
     );
   } catch {
     return false;
@@ -163,7 +164,10 @@ export async function GET(request) {
     });
   } catch (error) {
     console.log("Error checking omp settings:", error);
-    return NextResponse.json({ error: "Failed to check omp settings" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to check omp settings" },
+      { status: 500 },
+    );
   }
 }
 
@@ -172,7 +176,13 @@ export async function POST(request, { params }) {
     const collection = await request.json();
     const { baseUrl, apiKey, models } = collection || {};
     const selectedModels = Array.isArray(models)
-      ? [...new Set(models.filter((value) => typeof value === "string" && value.trim()).map((value) => value.trim()))]
+      ? [
+          ...new Set(
+            models
+              .filter((value) => typeof value === "string" && value.trim())
+              .map((value) => value.trim()),
+          ),
+        ]
       : [];
     const configuredApiKey = typeof apiKey === "string" ? apiKey.trim() : "";
 
@@ -181,7 +191,10 @@ export async function POST(request, { params }) {
     }
 
     if (!baseUrl) {
-      return NextResponse.json({ error: "baseUrl is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "baseUrl is required" },
+        { status: 400 },
+      );
     }
 
     const ompDir = getOmpDir();
@@ -192,7 +205,7 @@ export async function POST(request, { params }) {
     try {
       const existing = await readModels();
       parsed = existing ?? {};
-    } catch {              }
+    } catch {}
 
     const normalizedBaseUrl = baseUrl.includes("/v1")
       ? baseUrl
@@ -224,7 +237,10 @@ export async function POST(request, { params }) {
     });
   } catch (error) {
     console.log("Error updating omp settings:", error);
-    return NextResponse.json({ error: "Failed to update omp settings" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update omp settings" },
+      { status: 500 },
+    );
   }
 }
 
@@ -237,13 +253,19 @@ export async function DELETE(request) {
       parsed = await readModels();
     } catch (error) {
       if (error.code === "ENOENT") {
-        return NextResponse.json({ success: true, message: "No config file to reset" });
+        return NextResponse.json({
+          success: true,
+          message: "No config file to reset",
+        });
       }
       throw error;
     }
 
     if (!parsed || typeof parsed !== "object") {
-      return NextResponse.json({ success: true, message: "No config file to reset" });
+      return NextResponse.json({
+        success: true,
+        message: "No config file to reset",
+      });
     }
 
     deleteNestedSection(parsed, "providers.swayrouter");
@@ -261,6 +283,9 @@ export async function DELETE(request) {
     });
   } catch (error) {
     console.log("Error resetting omp settings:", error);
-    return NextResponse.json({ error: "Failed to reset omp settings" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to reset omp settings" },
+      { status: 500 },
+    );
   }
 }
