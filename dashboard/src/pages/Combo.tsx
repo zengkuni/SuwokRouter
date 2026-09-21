@@ -88,7 +88,6 @@ export default function Combo() {
   const strategySavingRef = useRef(false);
 
   const [name, setName] = useState("");
-  const [nameSubmitted, setNameSubmitted] = useState(false);
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   // Judge is edited from the combo card (list), not from this dialog.
   const [judgeTarget, setJudgeTarget] = useState<Combo | null>(null);
@@ -152,8 +151,6 @@ export default function Combo() {
     [combos, editCombo]
   );
   const nameError = comboNameError(name, takenComboNames);
-  const visibleNameError =
-    name.trim() || nameSubmitted ? nameError : "";
 
   const strategies: Record<string, ComboStrategyConfig> =
     ((settingsQ.data?.comboStrategies as Record<
@@ -254,7 +251,6 @@ export default function Combo() {
     stopModelTests();
     setModelTestResults({});
     setName("");
-    setNameSubmitted(false);
     setSelectedModels([]);
   }
 
@@ -268,7 +264,6 @@ export default function Combo() {
     stopModelTests();
     setModelTestResults({});
     setEditCombo(c);
-    setNameSubmitted(false);
     setName(c.name);
     setSelectedModels(c.models);
     setCreateOpen(true);
@@ -461,7 +456,6 @@ export default function Combo() {
     const n = name.trim();
     const models = selectedModels;
     if (nameError) {
-      setNameSubmitted(true);
       return flash(nameError, "error");
     }
     if (!models.length) return flash("Add at least one model", "error");
@@ -695,7 +689,10 @@ export default function Combo() {
               Name the route and order its models. Requests walk the list top to bottom.
             </DialogDescription>
           </DialogHeader>
-          <DialogPanel className="space-y-4">
+          <DialogPanel
+            scroll={false}
+            className="flex min-h-0 flex-1 flex-col space-y-4"
+          >
             <div className="space-y-2">
               <label
                 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70"
@@ -710,22 +707,16 @@ export default function Combo() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="smart"
-                  aria-invalid={visibleNameError ? true : undefined}
-                  className="h-10 rounded-xl border-0 bg-white/[0.03] font-mono text-sm ring-1 ring-inset ring-white/[0.06] [&_input]:pl-9 dark:bg-white/[0.03] has-focus-visible:border-transparent has-focus-visible:ring-1 has-focus-visible:ring-primary/40"
+                  className="h-10 items-center rounded-xl border-0 bg-white/[0.03] font-mono text-sm ring-1 ring-inset ring-white/[0.06] [&_input]:pl-9 dark:bg-white/[0.03] has-focus-visible:border-transparent has-focus-visible:ring-1 has-focus-visible:ring-primary/40"
                 />
               </div>
-              {visibleNameError ? (
-                <p className="text-xs text-destructive" role="alert">
-                  {visibleNameError}
-                </p>
-              ) : null}
               <p className="text-[11px] text-muted-foreground/70">
                 Only letters, numbers, <code className="font-mono">-</code>,{" "}
                 <code className="font-mono">_</code> and{" "}
                 <code className="font-mono">.</code> allowed
               </p>
             </div>
-            <div className="space-y-2.5">
+            <div className="flex min-h-0 flex-1 flex-col space-y-2.5">
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
                   Route order
