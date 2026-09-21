@@ -2,9 +2,9 @@
  * Dialog rules for the create/edit combo form.
  *
  * `comboNameError` mirrors the gateway's own validation in
- * `src/routes/api/combos/route.js` (POST) and `[id]/route.js` (PUT), so the
- * dialog reports what the API would reject instead of failing on save.
- * Keep both sides in step when either changes.
+ * `src/routes/api/combos/route.js` (POST) and `[id]/route.js` (PUT). The dialog
+ * no longer reports these inline; they surface as a save-time toast, and the API
+ * stays the final authority. Keep both sides in step when either changes.
  *
  * `toggleComboModel` / `moveComboModel` back the ordered "In combo" column:
  * the stored order is the priority the gateway walks, so it is edited in place

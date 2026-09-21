@@ -405,7 +405,7 @@ export function ComboModelBoard({
   }
 
   return (
-    <div className="space-y-1.5">
+    <div className="flex min-h-0 flex-1 flex-col space-y-1.5">
       {selected.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-white/[0.08] p-4 text-center">
           <p className="text-xs text-muted-foreground">
@@ -413,11 +413,14 @@ export function ComboModelBoard({
           </p>
         </div>
       ) : (
-        /* Max 3 rows visible (row = 32px + 4px gap = 36px * 3 = 108px max-h).
-           4th model triggers smooth scroll. */
+        /* Kanban (vertical): each picked model = a row card. Rows measure 46px
+           (2.875rem) + 6px (0.375rem) gap => max-h = 4 rows + 3 gaps = 202px;
+           the 5th row triggers vertical scroll. `shrink` lets the box give up
+           height below that cap on short viewports instead of clipping the
+           dialog — it stays the only scroll area of the dialog. */
         <ul
           aria-label="Selected models in combo order"
-          className="min-h-0 max-h-[108px] space-y-1 overflow-y-auto overscroll-contain pr-1"
+          className="flex min-h-0 shrink max-h-[calc(4*2.875rem+3*0.375rem)] snap-y snap-mandatory flex-col gap-1.5 overflow-y-auto overscroll-y-contain pr-1"
         >
           {selected.map((id, index) => {
             const info = modelById.get(id);
@@ -456,47 +459,48 @@ export function ComboModelBoard({
                   setDragOverId(null);
                 }}
                 className={cn(
-                  "group flex h-8 min-w-0 items-center gap-2 rounded-md bg-white/[0.02] px-2 transition-colors hover:bg-white/[0.05]",
+                  "group flex w-full shrink-0 snap-start items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] p-2 transition-colors hover:bg-white/[0.05]",
                   draggedId === id && "opacity-30",
                   dragOverId === id &&
                     draggedId !== id &&
-                    "bg-primary/10 ring-1 ring-primary/40",
+                    "border-primary/40 bg-primary/10 ring-1 ring-primary/40",
                 )}
               >
-                {/* Drag grip (subtle) */}
-                <span
-                  aria-hidden="true"
-                  className="cursor-grab text-muted-foreground/30 hover:text-muted-foreground group-hover:text-muted-foreground/60"
-                >
-                  <GripVertical className="size-3" />
-                </span>
-
-                {/* Index number */}
-                <span className="w-3 shrink-0 text-center font-mono text-[10px] text-muted-foreground/60">
+                {/* Order index badge */}
+                <span className="flex size-5 shrink-0 items-center justify-center rounded bg-primary/15 font-mono text-[10px] font-semibold text-primary">
                   {index + 1}
                 </span>
 
-                {/* Provider icon + Model name */}
+                {/* Drag grip */}
+                <span
+                  aria-hidden="true"
+                  className="cursor-grab text-muted-foreground/30 transition-colors hover:text-muted-foreground group-hover:text-muted-foreground/60"
+                >
+                  <GripVertical className="size-3.5" />
+                </span>
+
+                {/* Provider icon + model name + provider */}
                 <Tooltip label={id}>
-                  <div className="flex min-w-0 flex-1 items-center gap-1.5 truncate">
-                    <ProviderModelIcon provider={provider} className="size-3.5 shrink-0" />
+                  <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                    <ProviderModelIcon provider={provider} className="size-4 shrink-0" />
                     <span className="truncate font-mono text-xs text-foreground/90">
                       {modelShortName(id)}
                     </span>
-                    <span className="hidden text-[10px] text-muted-foreground/40 sm:inline">
+                    <span className="hidden truncate text-[10px] text-muted-foreground/40 sm:inline">
                       {provider}
                     </span>
                   </div>
                 </Tooltip>
 
+                {/* Capability badges */}
                 <ModelCapabilityChips
                   capabilities={info?.capabilities}
-                  className="hidden md:flex"
+                  className="hidden sm:flex"
                 />
 
                 {renderSelectedExtra?.(id)}
 
-                {/* Ghost arrow buttons (9router style) */}
+                {/* Reorder + remove */}
                 <div className="flex shrink-0 items-center gap-0.5">
                   <button
                     type="button"
