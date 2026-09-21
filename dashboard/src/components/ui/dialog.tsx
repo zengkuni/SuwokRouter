@@ -189,10 +189,16 @@ export function DialogDescription({
 export function DialogPanel({
   className,
   scrollFade = true,
+  scroll = true,
   render,
   ...props
 }: useRender.ComponentProps<"div"> & {
   scrollFade?: boolean;
+  /** `false`: the panel is not a scroll container — the caller owns its own
+      scroll region (e.g. a capped list) and header/footer must stay fixed.
+      Avoids the ScrollArea viewport, whose `h-full` cannot resolve against a
+      flex-shrunk root, so a capped popup would clip the content instead. */
+  scroll?: boolean;
 }): React.ReactElement {
   const defaultProps = {
     className: cn(
@@ -201,6 +207,14 @@ export function DialogPanel({
     ),
     "data-slot": "dialog-panel",
   };
+
+  if (!scroll) {
+    return useRender({
+      defaultTagName: "div",
+      props: mergeProps<"div">(defaultProps, props),
+      render,
+    });
+  }
 
   return (
     <ScrollArea overscrollContain scrollFade={scrollFade}>
