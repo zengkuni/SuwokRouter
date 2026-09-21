@@ -529,6 +529,7 @@ export default function Combo() {
     <div className="flex h-full min-h-0 flex-col gap-4">
       <Header
         title="Combos"
+        description={loading ? undefined : `${combos.length} combo${combos.length === 1 ? "" : "s"} · drag cards to reorder routes`}
         actions={
           <RippleButton size="sm" onClick={openCreate}>
             <Plus className="h-4 w-4" />
@@ -547,8 +548,8 @@ export default function Combo() {
         />
       </div>
 
-      <Frame className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <FramePanel className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-0">
+      <Frame className="flex min-h-0 flex-1 flex-col overflow-hidden bg-transparent">
+        <FramePanel className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain border-0 bg-transparent p-0">
         {loading ? (
           <div className="space-y-2 p-4">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -557,7 +558,7 @@ export default function Combo() {
           </div>
         ) : combos.length === 0 ? (
           <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
-            <span className="flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/20">
+            <span className="flex size-11 items-center justify-center rounded-2xl bg-muted/60 text-muted-foreground ring-1 ring-inset ring-border">
               <Route className="size-5" />
             </span>
             <div>
@@ -582,19 +583,19 @@ export default function Combo() {
               const strat = cfg.fallbackStrategy || "fallback";
               const meta = STRATEGY_META[strat];
               return (
-                <article key={c.id || c.name} {...dragProps(c)} className={`group/card min-w-0 rounded-2xl border border-border/70 bg-card p-3.5 shadow-sm transition-all hover:border-primary/40 hover:shadow-md sm:p-4 ${dragClassName(c)}`}>
+                <article key={c.id || c.name} {...dragProps(c)} className={`group/card min-w-0 rounded-lg border border-border bg-card p-3 transition-colors hover:bg-surface-hover/60 ${dragClassName(c)}`}>
                   <div className="flex items-start gap-3">
                     <span title="Drag to reorder" className="mt-2 shrink-0 cursor-grab text-muted-foreground/50 transition-colors group-hover/card:text-muted-foreground"><GripVertical className="h-4 w-4" /></span>
                     <div className="min-w-0 flex-1 space-y-3">
                       <div className="flex flex-wrap items-center gap-2.5">
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/20"><Route className="size-4" /></span>
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground"><Route className="size-4" /></span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold leading-tight">{c.name}</p>
+                          <p className="truncate font-mono text-sm font-medium leading-tight">{c.name}</p>
                           <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{c.models.length} model{c.models.length === 1 ? "" : "s"} · {meta.hint}</p>
                         </div>
                         <div className="relative shrink-0">
                           <Route className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                          <select aria-label={`Strategy for ${c.name}`} value={strat} disabled={saving || orderSaving} onChange={async (event) => { try { await persistStrategy(c.name, { ...cfg, fallbackStrategy: event.target.value as ComboStrategy }); flash("Strategy updated", "success"); } catch (err) { flash(getErrorMessage(err, "Strategy update failed"), "error"); } }} className="h-8 appearance-none rounded-lg border border-border bg-surface/60 pl-7 pr-7 text-[11px] font-medium text-foreground outline-none transition-colors hover:bg-surface focus-visible:border-primary/50">
+                          <select aria-label={`Strategy for ${c.name}`} value={strat} disabled={saving || orderSaving} onChange={async (event) => { try { await persistStrategy(c.name, { ...cfg, fallbackStrategy: event.target.value as ComboStrategy }); flash("Strategy updated", "success"); } catch (err) { flash(getErrorMessage(err, "Strategy update failed"), "error"); } }} className="h-8 appearance-none rounded-lg border border-transparent bg-transparent pl-7 pr-7 text-[11px] font-medium text-foreground outline-none transition-colors hover:border-border/60 hover:bg-surface focus-visible:border-primary/50">
                             <option value="fallback">Fallback</option>
                             <option value="round-robin">Round-robin</option>
                             <option value="fusion">Fusion</option>
@@ -609,7 +610,7 @@ export default function Combo() {
                             <Fragment key={model}>
                               {index > 0 ? <ArrowRight aria-hidden className="size-3 shrink-0 text-muted-foreground/40" /> : null}
                               <Tooltip label={model}>
-                                <span className="inline-flex min-w-0 max-w-[15rem] items-center gap-1.5 rounded-lg border border-border/60 bg-surface/70 py-1 pl-1 pr-2 text-[11px]">
+                                <span className="inline-flex min-w-0 max-w-[15rem] items-center gap-1.5 rounded-md border border-border/50 bg-surface/60 py-1 pl-1 pr-2 text-[11px]">
                                   <ProviderModelIcon provider={modelProviderId(model)} className="size-4" />
                                   <span className="truncate font-mono">{modelShortName(model)}</span>
                                   <ModelCapabilityChips capabilities={caps} />
@@ -652,7 +653,7 @@ export default function Combo() {
                         </div>
                       ) : null}
                     </div>
-                    <div className="flex shrink-0 items-center gap-1 rounded-xl border border-border/60 bg-surface/40 p-1">
+                    <div className="flex shrink-0 items-center gap-0.5">
                       <CopyButton value={c.name} label="" iconOnly className="h-8 w-8 border-transparent bg-transparent px-0 text-muted-foreground hover:bg-surface-hover hover:text-foreground dark:bg-transparent dark:hover:bg-surface-hover" onCopy={() => flash("Copied", "success")} onCopyError={() => flash("Copy unavailable", "error")} />
                       <Tooltip label="Edit">
                         <button type="button" className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground" onClick={() => openEdit(c)} aria-label="Edit combo"><Pencil className="h-3.5 w-3.5" /></button>
@@ -685,7 +686,7 @@ export default function Combo() {
             <DialogTitle className="text-base font-semibold tracking-tight">
               {editCombo ? "Edit combo" : "Create combo"}
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground/70">
+            <DialogDescription className="text-xs text-muted-foreground">
               Name the route and order its models. Requests walk the list top to bottom.
             </DialogDescription>
           </DialogHeader>
@@ -710,7 +711,7 @@ export default function Combo() {
                   className="h-10 items-center rounded-xl border-0 bg-white/[0.03] font-mono text-sm ring-1 ring-inset ring-white/[0.06] [&_input]:pl-9 dark:bg-white/[0.03] has-focus-visible:border-transparent has-focus-visible:ring-1 has-focus-visible:ring-primary/40"
                 />
               </div>
-              <p className="text-[11px] text-muted-foreground/70">
+              <p className="text-[11px] text-muted-foreground">
                 Only letters, numbers, <code className="font-mono">-</code>,{" "}
                 <code className="font-mono">_</code> and{" "}
                 <code className="font-mono">.</code> allowed
