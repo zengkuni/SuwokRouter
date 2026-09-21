@@ -526,7 +526,7 @@ export default function Combo() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex h-full min-h-0 flex-col gap-4">
       <Header
         title="Combos"
         actions={
@@ -537,7 +537,7 @@ export default function Combo() {
         }
       />
 
-      <div className="relative max-w-md">
+      <div className="relative max-w-md shrink-0">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={query}
@@ -547,8 +547,8 @@ export default function Combo() {
         />
       </div>
 
-      <Frame className="overflow-hidden">
-        <FramePanel className="p-0">
+      <Frame className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <FramePanel className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-0">
         {loading ? (
           <div className="space-y-2 p-4">
             {Array.from({ length: 3 }).map((_, i) => (
