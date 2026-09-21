@@ -467,7 +467,7 @@ export function ComboModelBoard({
                 )}
               >
                 {/* Order index badge */}
-                <span className="flex size-5 shrink-0 items-center justify-center rounded bg-primary/15 font-mono text-[10px] font-semibold text-primary">
+                <span className="w-3.5 shrink-0 text-center font-mono text-[10px] font-medium text-muted-foreground/70">
                   {index + 1}
                 </span>
 
@@ -553,8 +553,9 @@ export function ComboModelBoard({
       {/* 9router-style Dashed Add Model button */}
       <button
         type="button"
+        disabled={loading}
         onClick={() => setPickerOpen(true)}
-        className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-white/[0.12] py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/[0.04] hover:text-primary"
+        className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-white/[0.12] py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/[0.04] hover:text-primary disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-white/[0.12] disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
       >
         <Plus className="size-3.5" />
         <span>Add Model</span>
