@@ -2,6 +2,7 @@ import { useMemo, useState, type Dispatch, type ReactNode, type SetStateAction }
 import {
   ArrowDown,
   ArrowUp,
+  Boxes,
   Brain,
   Check,
   CircleAlert,
@@ -114,6 +115,8 @@ type ModelPickDialogProps = {
   description?: string;
   ordered?: string[];
   onReorder?: (fromId: string, toId: string) => void;
+  /** Existing combos offered as one-tap bundles; ids are bare combo names. */
+  combos?: ModelInfo[];
 };
 
 export function ModelPickDialog({
@@ -128,6 +131,7 @@ export function ModelPickDialog({
   description = "Click a chip to add or remove it from the combo. Changes apply immediately.",
   ordered = [],
   onReorder,
+  combos = [],
 }: ModelPickDialogProps) {
   const [query, setQuery] = useState("");
   const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -143,6 +147,17 @@ export function ModelPickDialog({
     () => new Map(catalog.map((m) => [m.id, modelShortName(m.id)])),
     [catalog],
   );
+
+  const comboEntries = useMemo(
+    () =>
+      cleanQuery
+        ? combos.filter((combo) => combo.id.toLowerCase().includes(cleanQuery))
+        : combos,
+    [combos, cleanQuery],
+  );
+  const pickedComboCount = comboEntries.filter((combo) =>
+    picked.has(combo.id),
+  ).length;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -267,8 +282,53 @@ export function ModelPickDialog({
                 </div>
               ) : null}
 
+              {/* Combos: one dashed chip inserts an existing combo as a single route step */}
+              {comboEntries.length > 0 ? (
+                <div className="space-y-1.5">
+                  <div className="sticky top-0 z-10 flex items-center gap-1.5 bg-card py-0.5 text-xs">
+                    <Boxes className="size-3.5 text-muted-foreground" />
+                    <span className="font-medium text-foreground">Combos</span>
+                    <span className="text-[10px] text-muted-foreground/60">
+                      ({pickedComboCount > 0 ? `${pickedComboCount}/` : ""}
+                      {comboEntries.length})
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {comboEntries.map((combo) => {
+                      const isPicked = picked.has(combo.id);
+                      return (
+                        <button
+                          key={combo.id}
+                          type="button"
+                          aria-pressed={isPicked}
+                          aria-label={`${isPicked ? "Remove" : "Add"} combo ${combo.id}`}
+                          title="Insert this combo as a single route step"
+                          onClick={() => onToggle(combo.id)}
+                          className={cn(
+                            "flex items-center gap-1 rounded-md px-2 py-1 font-mono text-xs transition-colors",
+                            isPicked
+                              ? "bg-primary text-primary-foreground font-medium"
+                              : "border border-dashed border-white/[0.08] bg-white/[0.02] text-foreground/80 hover:border-primary/40 hover:bg-primary/[0.05]",
+                          )}
+                        >
+                          <Layers
+                            className={cn(
+                              "size-3 shrink-0",
+                              isPicked
+                                ? "text-primary-foreground/80"
+                                : "text-muted-foreground/60",
+                            )}
+                          />
+                          <span>{combo.id}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
               {/* Provider groups with wrap chips (9router ModelSelectModal style) */}
-              {groups.length === 0 ? (
+              {groups.length === 0 && comboEntries.length === 0 ? (
                 <p className="py-6 text-center text-xs text-muted-foreground">
                   No models match query
                 </p>
@@ -345,6 +405,8 @@ type ComboModelBoardProps = {
   loading?: boolean;
   error?: unknown;
   renderSelectedExtra?: (modelId: string) => ReactNode;
+  /** Existing combos offered as bundles in the picker; ids are bare combo names. */
+  combos?: ModelInfo[];
 };
 
 /**
@@ -364,6 +426,7 @@ export function ComboModelBoard({
   loading = false,
   error,
   renderSelectedExtra,
+  combos = [],
 }: ComboModelBoardProps) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -580,6 +643,7 @@ export function ComboModelBoard({
         }
         loading={loading}
         error={error}
+        combos={combos}
       />
     </div>
   );
