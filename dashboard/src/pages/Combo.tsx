@@ -139,6 +139,10 @@ export default function Combo() {
     () => (modelsQ.data ?? []).filter((model) => model.provider !== "combo"),
     [modelsQ.data],
   );
+  const comboModels = useMemo(
+    () => (modelsQ.data ?? []).filter((model) => model.provider === "combo"),
+    [modelsQ.data],
+  );
 
   const takenComboNames = useMemo(
     () =>
@@ -749,6 +753,7 @@ export default function Combo() {
                 loading={modelsQ.isLoading}
                 error={modelsQ.error}
                 renderSelectedExtra={renderModelTest}
+                combos={comboModels.filter((combo) => combo.id !== name)}
               />
             </div>
 
