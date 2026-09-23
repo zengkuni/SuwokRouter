@@ -718,7 +718,7 @@ export default function Combo() {
                           <ChevronDown className="pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                         </div>
                       </div>
-                      <Accordion defaultValue={["models"]} className="w-full">
+                      <Accordion defaultValue={[]} className="w-full">
                         <AccordionItem value="models" className="border-0">
                           <AccordionTrigger className="w-fit flex-none justify-start gap-1.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground">
                             <span className="flex min-w-0 items-center gap-1.5">
