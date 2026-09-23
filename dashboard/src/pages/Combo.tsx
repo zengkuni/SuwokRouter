@@ -552,8 +552,8 @@ export default function Combo() {
         />
       </div>
 
-      <Frame className="flex min-h-0 flex-1 flex-col overflow-hidden bg-transparent p-0">
-        <FramePanel className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain border-0 bg-transparent p-0">
+      <Frame className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none bg-transparent p-0">
+        <FramePanel className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain rounded-none border-0 bg-transparent p-0">
         {loading ? (
           <div className="space-y-2 p-4">
             {Array.from({ length: 3 }).map((_, i) => (
