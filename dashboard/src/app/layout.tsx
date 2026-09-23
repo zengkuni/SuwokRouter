@@ -12,12 +12,12 @@ const SwayChat = lazy(() => import("@/pages/SwayChat"));
 export function ProtectedLayout() {
   const location = useLocation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const isSwayChatRoute = location.pathname === "/dashboard/sway-chat";
-  const [chatMounted, setChatMounted] = useState(isSwayChatRoute);
+  const isChatRoute = location.pathname === "/dashboard/chat";
+  const [chatMounted, setChatMounted] = useState(isChatRoute);
 
   useEffect(() => {
-    if (isSwayChatRoute) setChatMounted(true);
-  }, [isSwayChatRoute]);
+    if (isChatRoute) setChatMounted(true);
+  }, [isChatRoute]);
 
   useEffect(() => {
     setMobileNavOpen(false);
@@ -109,7 +109,7 @@ export function ProtectedLayout() {
             <div
               className={cn(
                 "min-h-0 flex-1 overscroll-y-contain",
-                isSwayChatRoute
+                isChatRoute
                   ? "hidden"
                   : location.pathname === "/dashboard/provider"
                     ? "overflow-x-hidden overflow-y-auto lg:overflow-hidden"
@@ -119,7 +119,7 @@ export function ProtectedLayout() {
               <Outlet />
             </div>
             {chatMounted ? (
-              <div className={cn("min-h-0 flex-1", isSwayChatRoute ? "flex" : "hidden")}>
+              <div className={cn("min-h-0 flex-1", isChatRoute ? "flex" : "hidden")}>
                 <Suspense fallback={<div className="h-full min-h-[40vh] w-full animate-pulse rounded-xl bg-card/40" />}>
                   <SwayChat />
                 </Suspense>

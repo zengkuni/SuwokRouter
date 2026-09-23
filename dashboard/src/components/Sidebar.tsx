@@ -66,7 +66,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: `${DASH}/usage`, label: "Usage", icon: ChartColumnBig },
   { to: `${DASH}/quota-monitor`, label: "Quota Monitor", icon: ChartPie },
   { to: `${DASH}/cli-tools`, label: "CLI Tools", icon: SquareTerminal },
-  { to: `${DASH}/sway-chat`, label: "Sway Chat", icon: MessagesSquare },
+  { to: `${DASH}/chat`, label: "Chat", icon: MessagesSquare },
   { to: `${DASH}/settings`, label: "Settings", icon: Settings },
   { to: `${DASH}/console-log`, label: "Console Logs", icon: RotateCwFadingClock },
 ];

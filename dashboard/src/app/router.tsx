@@ -151,7 +151,7 @@ export const router = createBrowserRouter([
             ),
           },
           {
-            path: `${DASH}/sway-chat`,
+            path: `${DASH}/chat`,
             element: null,
           },
         ],

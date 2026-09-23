@@ -9,7 +9,7 @@ import {
   type PaletteCommand,
 } from "@/lib/commandPalette";
 
-const PAGES = ["Dashboard", "API Keys", "Providers", "Combos", "Proxy", "Usage", "Quota Monitor", "CLI Tools", "Sway Chat", "Settings", "Console Logs"];
+const PAGES = ["Dashboard", "API Keys", "Providers", "Combos", "Proxy", "Usage", "Quota Monitor", "CLI Tools", "Chat", "Settings", "Console Logs"];
 
 describe("A7.4 command palette — sources", () => {
   test("buildCommands emits every page + every catalog provider + local MCP tools", () => {
