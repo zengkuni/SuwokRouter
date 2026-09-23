@@ -100,7 +100,10 @@ export function loadEnv(
     source.API_KEY_SECRET ??
     (nodeEnv === "production" ? "" : "endpoint-proxy-api-key-secret");
 
-  const initialPassword = DEFAULT_PASSWORD;
+  const initialPassword =
+    typeof source.INITIAL_PASSWORD === "string" && source.INITIAL_PASSWORD.trim()
+      ? source.INITIAL_PASSWORD.trim()
+      : DEFAULT_PASSWORD;
 
   if (nodeEnv === "production") {
     if (INSECURE_JWT_SECRETS.has(jwtSecret) || jwtSecret.length < 32) {
