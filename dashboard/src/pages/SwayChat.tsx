@@ -1279,7 +1279,7 @@ export default function SwayChat() {
     <div className="flex h-full min-h-0 min-w-0 w-full max-w-full flex-col overflow-hidden pb-[max(0.25rem,env(safe-area-inset-bottom))] sm:pb-2">
       <div className="flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col gap-0">
         <Header
-          title="Sway Chat"
+          title="Chat"
           className="mb-0 min-w-0 shrink-0 flex-row items-center justify-between gap-2 pb-2 sm:mb-0 sm:pb-3"
           actions={
             <div className="flex shrink-0 items-center gap-1">
@@ -1347,7 +1347,7 @@ export default function SwayChat() {
                     <span className="grid size-12 place-items-center rounded-xl border border-border bg-surface text-muted-foreground">
                       <img src="/logo/swaychat.svg" alt="" width="24" height="24" className="size-6 object-contain" />
                     </span>
-                    <div className="space-y-1"><h2 className="text-sm font-semibold">Sway Chat</h2><p className="mx-auto max-w-md text-xs leading-5 text-muted-foreground">Pick a model, drop a prompt.</p></div>
+                    <div className="space-y-1"><h2 className="text-sm font-semibold">Chat</h2><p className="mx-auto max-w-md text-xs leading-5 text-muted-foreground">Pick a model, drop a prompt.</p></div>
                   </div>
                 ) : (
                   <AnimatePresence initial={false}>
@@ -1519,7 +1519,7 @@ export default function SwayChat() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><KeyRound className="h-4 w-4 text-primary" />API key required</DialogTitle>
-          <DialogDescription>The gateway is set to require an API key for chat requests. Create one in the API Keys menu — it takes a few seconds and Sway Chat will use it automatically.</DialogDescription>
+          <DialogDescription>The gateway is set to require an API key for chat requests. Create one in the API Keys menu — it takes a few seconds and Chat will use it automatically.</DialogDescription>
           </DialogHeader>
           <DialogFooter><Button variant="outline" onClick={() => navigate(API_KEYS_ROUTE)}>Create API key</Button></DialogFooter>
         </DialogContent>

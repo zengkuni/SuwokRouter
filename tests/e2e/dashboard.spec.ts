@@ -11,7 +11,7 @@ const DASHBOARD_ROUTES = [
   ["Usage", "/dashboard/usage"],
   ["Quota Monitor", "/dashboard/quota-monitor"],
   ["CLI Tools", "/dashboard/cli-tools"],
-  ["Sway Chat", "/dashboard/sway-chat"],
+  ["Chat", "/dashboard/chat"],
   ["Settings", "/dashboard/settings"],
   ["Console Logs", "/dashboard/console-log"],
 ] as const;
