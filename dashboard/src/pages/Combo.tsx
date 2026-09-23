@@ -40,6 +40,12 @@ import { Frame, FramePanel } from "@/components/ui/frame";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip } from "@/components/ui/tooltip";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { getErrorMessage } from "@/lib/api";
 import {
   createCombo,
@@ -701,7 +707,6 @@ export default function Combo() {
                       <div className="flex flex-wrap items-center gap-2.5">
                         <div className="min-w-0 flex-1">
                           <p className="truncate font-mono text-sm font-medium leading-tight">{c.name}</p>
-                          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{c.models.length} model{c.models.length === 1 ? "" : "s"} · {meta.hint}</p>
                         </div>
                         <div className="relative shrink-0">
                           <Route className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -713,23 +718,36 @@ export default function Combo() {
                           <ChevronDown className="pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                         </div>
                       </div>
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {c.models.map((model, index) => {
-                          const caps = providerModels.find((item) => item.id === model)?.capabilities || {};
-                          return (
-                            <Fragment key={model}>
-                              {index > 0 ? <ArrowRight aria-hidden className="size-3 shrink-0 text-muted-foreground/40" /> : null}
-                              <Tooltip label={model}>
-                                <span className="inline-flex min-w-0 max-w-[15rem] items-center gap-1.5 rounded-md border border-border/50 bg-surface/60 py-1 pl-1 pr-2 text-[11px]">
-                                  <ProviderModelIcon provider={modelProviderId(model)} className="size-4" />
-                                  <span className="truncate font-mono">{modelShortName(model)}</span>
-                                  <ModelCapabilityChips capabilities={caps} />
-                                </span>
-                              </Tooltip>
-                            </Fragment>
-                          );
-                        })}
-                      </div>
+                      <Accordion defaultValue={["models"]} className="w-full">
+                        <AccordionItem value="models" className="border-0">
+                          <AccordionTrigger className="w-fit flex-none justify-start gap-1.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground">
+                            <span className="flex min-w-0 items-center gap-1.5">
+                              <span>{c.models.length} model{c.models.length === 1 ? "" : "s"}</span>
+                              <span aria-hidden="true" className="text-muted-foreground/40">·</span>
+                              <span className="truncate">{meta.hint}</span>
+                            </span>
+                          </AccordionTrigger>
+                          <AccordionContent className="min-w-0 pb-1">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {c.models.map((model, index) => {
+                                const caps = providerModels.find((item) => item.id === model)?.capabilities || {};
+                                return (
+                                  <Fragment key={model}>
+                                    {index > 0 ? <ArrowRight aria-hidden className="size-3 shrink-0 text-muted-foreground/40" /> : null}
+                                    <Tooltip label={model}>
+                                      <span className="inline-flex min-w-0 max-w-[15rem] items-center gap-1.5 rounded-md border border-border/50 bg-surface/60 py-1 pl-1 pr-2 text-[11px]">
+                                        <ProviderModelIcon provider={modelProviderId(model)} className="size-4" />
+                                        <span className="truncate font-mono">{modelShortName(model)}</span>
+                                        <ModelCapabilityChips capabilities={caps} />
+                                      </span>
+                                    </Tooltip>
+                                  </Fragment>
+                                );
+                              })}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
                       {strat === "fusion" ? (
                         <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                           <span className="text-[11px] font-medium text-muted-foreground">Judge</span>
