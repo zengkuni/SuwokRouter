@@ -701,10 +701,21 @@ export async function getUsageHistoryPage(filter = {}) {
     `SELECT id, timestamp, provider, model, connectionId, endpoint, cost, status, promptTokens, completionTokens, tokens, meta FROM usageHistory ${where} ORDER BY timestamp ${order}, id ${order} LIMIT ? OFFSET ?`,
     [...params, pageSize, (page - 1) * pageSize]
   );
+  const connIds = rows.map((r) => r.connectionId).filter(Boolean);
+  const connMap = new Map();
+  if (connIds.length > 0) {
+    const connRows = db.all(
+      `SELECT id, name, email FROM providerConnections WHERE id IN (${connIds.map(() => "?").join(",")})`,
+      connIds,
+    );
+    for (const c of connRows) connMap.set(c.id, c.name || c.email || c.id.slice(0, 8));
+  }
+
   return {
     details: rows.map((r) => ({
       id: String(r.id), timestamp: r.timestamp, provider: r.provider, model: r.model,
-      connectionId: r.connectionId, endpoint: r.endpoint, cost: r.cost, status: r.status,
+      connectionId: r.connectionId, account: r.connectionId ? (connMap.get(r.connectionId) ?? r.connectionId.slice(0, 8)) : null,
+      endpoint: r.endpoint, cost: r.cost, status: r.status,
       promptTokens: Number(r.promptTokens ?? 0),
       completionTokens: Number(r.completionTokens ?? 0),
       tokens: parseJson(r.tokens, {}),

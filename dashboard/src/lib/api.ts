@@ -305,6 +305,7 @@ export type UsageRow = {
   provider?: string;
   model?: string;
   connectionId?: string;
+  account?: string | null;
   apiKeyId?: string;
   endpoint?: string;
   cost?: number;
@@ -367,7 +368,7 @@ export type RequestDetailData = {
   timestamp?: string;
   provider?: string;
   model?: string;
-  connectionId?: string;
+  account?: string | null;
   endpoint?: string;
   cost?: number;
   promptTokens?: number;
