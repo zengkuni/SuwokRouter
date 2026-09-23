@@ -17,24 +17,22 @@ export function ProviderBrandIcon({
   const custom = iconUrl?.trim();
   const [customFailed, setCustomFailed] = useState(false);
 
-  useEffect(() => setCustomFailed(false), [custom]);
+  useEffect(() => {
+    if (!custom) {
+      setCustomFailed(false);
+      return;
+    }
+    const img = new Image();
+    img.onload = () => setCustomFailed(false);
+    img.onerror = () => setCustomFailed(true);
+    img.src = custom;
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [custom]);
 
-  if (custom && !customFailed) {
-    return (
-      <img
-        src={custom}
-        alt=""
-        aria-hidden="true"
-        width={size}
-        height={size}
-        className="shrink-0 object-contain"
-        style={{ borderRadius: Math.max(4, Math.round(size / 5)) }}
-        onError={() => setCustomFailed(true)}
-      />
-    );
-  }
-
-  const src = getProviderIconSrc(id);
+  const src = !customFailed && custom ? custom : getProviderIconSrc(id);
   if (src) {
     const radius = Math.max(4, Math.round(size / 5));
     return (
