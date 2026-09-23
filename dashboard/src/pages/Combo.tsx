@@ -79,6 +79,7 @@ const STRATEGY_META: Record<ComboStrategy, { label: string; hint: string }> = {
   fusion: { label: "Fusion", hint: "a judge routes each request" },
 };
 
+
 export default function Combo() {
   const qc = useQueryClient();
   const [query, setQuery] = useState("");
@@ -124,7 +125,7 @@ export default function Combo() {
   const modelsQ = useQuery({
     queryKey: ["combos", "models"],
     queryFn: listGatewayModels,
-    enabled: probeEnabled() && (createOpen || judgeTarget !== null),
+    enabled: probeEnabled(),
     retry: 1,
   });
 
@@ -725,6 +726,7 @@ export default function Combo() {
                               <span>{c.models.length} model{c.models.length === 1 ? "" : "s"}</span>
                               <span aria-hidden="true" className="text-muted-foreground/40">·</span>
                               <span className="truncate">{meta.hint}</span>
+
                             </span>
                           </AccordionTrigger>
                           <AccordionContent className="min-w-0 pb-1">

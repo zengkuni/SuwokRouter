@@ -320,6 +320,10 @@ export function ModelPickDialog({
                             )}
                           />
                           <span>{combo.id}</span>
+                          <ModelCapabilityChips
+                            capabilities={combo.capabilities}
+                            toneClassName={isPicked ? "text-primary-foreground/80" : undefined}
+                          />
                         </button>
                       );
                     })}

@@ -230,6 +230,22 @@ function comboMatchesKinds(combo, kindFilter) {
   return kindFilter.includes(kind);
 }
 
+/** Boolean capability union across a combo's member models (true wins). */
+function unionComboCapabilities(memberIds) {
+  if (!Array.isArray(memberIds) || memberIds.length === 0) return null;
+  const caps = {};
+  for (const memberId of memberIds) {
+    if (typeof memberId !== "string" || !memberId.trim()) continue;
+    const slashIndex = memberId.indexOf("/");
+    const provider = slashIndex > -1 ? memberId.slice(0, slashIndex) : null;
+    const resolved = getCapabilitiesForModel(provider, memberId);
+    for (const [key, value] of Object.entries(resolved || {})) {
+      if (value === true && !caps[key]) caps[key] = true;
+    }
+  }
+  return Object.keys(caps).length ? caps : null;
+}
+
 export async function buildModelsList(kindFilter, options = {}) {
 
   const skipDynamicFetch = options.skipDynamicFetch === true;
@@ -284,6 +300,8 @@ export async function buildModelsList(kindFilter, options = {}) {
       object: "model",
       owned_by: "combo",
     };
+    const comboCaps = unionComboCapabilities(combo.models);
+    if (comboCaps) entry.capabilities = comboCaps;
     if (combo.kind === "webSearch" || combo.kind === "webFetch") {
       entry.kind = combo.kind;
     }
