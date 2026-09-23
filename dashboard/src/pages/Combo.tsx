@@ -552,7 +552,7 @@ export default function Combo() {
         />
       </div>
 
-      <Frame className="flex min-h-0 flex-1 flex-col overflow-hidden bg-transparent">
+      <Frame className="flex min-h-0 flex-1 flex-col overflow-hidden bg-transparent p-0">
         <FramePanel className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain border-0 bg-transparent p-0">
         {loading ? (
           <div className="space-y-2 p-4">
@@ -581,7 +581,7 @@ export default function Combo() {
             No combos match your search.
           </div>
         ) : (
-          <div className="grid gap-3 p-3 sm:p-4">
+          <div className="grid gap-3">
             {filtered.map((c) => {
               const cfg = strategies[c.name] || {};
               const strat = cfg.fallbackStrategy || "fallback";
