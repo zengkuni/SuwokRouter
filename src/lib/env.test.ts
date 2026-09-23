@@ -54,7 +54,7 @@ describe("runtime environment", () => {
       HOSTNAME: "10.0.0.5",
       JWT_SECRET: "j".repeat(40),
       API_KEY_SECRET: "k".repeat(40),
-      INITIAL_PASSWORD: "ignored-password",
+      INITIAL_PASSWORD: "production-first-boot-secret",
       TRUST_PROXY: "true",
       ENABLE_REQUEST_LOGS: "true",
       AUTH_COOKIE_SECURE: "true",
@@ -67,7 +67,7 @@ describe("runtime environment", () => {
     expect(config.hostname).toBe("10.0.0.5");
     expect(config.dataDir).toBe("./data");
     expect(config.baseUrl).toBe("https://router.example.com/");
-    expect(config.initialPassword).toBe("123456");
+    expect(config.initialPassword).toBe("production-first-boot-secret");
     expect(config.trustProxy).toBe(true);
     expect(config.requestLogsEnabled).toBe(true);
     expect(config.requestLogsConfigured).toBe(true);
@@ -75,6 +75,17 @@ describe("runtime environment", () => {
     expect(config.metricsToken).toBe("metrics-secret");
     expect(config.metricsLocal).toBe(false);
     expect(Object.isFrozen(config)).toBe(true);
+  });
+
+  test("falls back to the default initial password when unset or blank", () => {
+    expect(loadEnv({ NODE_ENV: "development" }).initialPassword).toBe("123456");
+    expect(loadEnv({ NODE_ENV: "development", INITIAL_PASSWORD: "   " }).initialPassword).toBe("123456");
+  });
+
+  test("trims whitespace around INITIAL_PASSWORD", () => {
+    expect(
+      loadEnv({ NODE_ENV: "development", INITIAL_PASSWORD: "  spaced-secret  " }).initialPassword,
+    ).toBe("spaced-secret");
   });
 
   test("rejects invalid ports and environments", () => {
