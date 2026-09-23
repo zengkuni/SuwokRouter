@@ -35,6 +35,7 @@ import {
   DialogPanel,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Frame, FramePanel } from "@/components/ui/frame";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -78,7 +79,8 @@ export default function Combo() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editCombo, setEditCombo] = useState<Combo | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Combo | null>(null);
+  const [deleteTargets, setDeleteTargets] = useState<Combo[] | null>(null);
+  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set<string>());
   const [saving, setSaving] = useState(false);
   const [pendingOrder, setPendingOrder] = useState<string[] | null>(null);
   const [draggedCombo, setDraggedCombo] = useState<string | null>(null);
@@ -216,7 +218,7 @@ export default function Combo() {
   function dragProps(combo: Combo) {
     const id = combo.id || combo.name;
     return {
-      draggable: !orderSaving && !saving && !createOpen && !deleteTarget && settingsQ.isSuccess,
+      draggable: !orderSaving && !saving && !createOpen && !deleteTargets && settingsQ.isSuccess,
       onDragStart: (event: DragEvent<HTMLElement>) => {
         if ((event.target as HTMLElement).closest("button, input, select, textarea, a")) {
           event.preventDefault();
@@ -501,33 +503,78 @@ export default function Combo() {
 
   async function onDelete() {
     if (orderSavingRef.current) return;
-    const target = deleteTarget;
-    if (!target) return;
+    const targets = deleteTargets;
+    if (!targets?.length) return;
     setSaving(true);
     try {
-      await deleteCombo(target.id || target.name);
+      const removed = new Set(targets.map((combo) => combo.id || combo.name));
+      for (const combo of targets) {
+        await deleteCombo(combo.id || combo.name);
+      }
       const current = settingsQ.data || {};
       const prev =
         (current.comboStrategies as Record<string, ComboStrategyConfig>) ||
         {};
-      const next = { ...prev };
-      delete next[target.name];
+      const nextStrategies = { ...prev };
+      for (const combo of targets) delete nextStrategies[combo.name];
       await updateSettings({
-        comboStrategies: next,
+        comboStrategies: nextStrategies,
         comboOrder: combos
-          .filter((combo) => (combo.id || combo.name) !== (target.id || target.name))
+          .filter((combo) => !removed.has(combo.id || combo.name))
           .map((combo) => combo.id || combo.name),
       });
+      setSelected(new Set<string>());
       await qc.invalidateQueries({ queryKey: ["settings"] });
       await qc.invalidateQueries({ queryKey: ["combos"] });
-      flash("Combo deleted", "success");
-      setDeleteTarget(null);
+      const n = targets.length;
+      flash(`${n} combo${n === 1 ? "" : "s"} deleted`, "success");
+      setDeleteTargets(null);
     } catch (err) {
       flash(getErrorMessage(err, "Delete failed"), "error");
     } finally {
       setSaving(false);
     }
   }
+
+  async function applyBulkStrategy(value: ComboStrategy) {
+    if (!selected.size || strategySavingRef.current) return;
+    strategySavingRef.current = true;
+    try {
+      const current = settingsQ.data || {};
+      const prev =
+        (current.comboStrategies as Record<string, ComboStrategyConfig>) || {};
+      const next = { ...prev };
+      for (const combo of combos) {
+        const id = combo.id || combo.name;
+        if (selected.has(id)) {
+          next[combo.name] = { ...prev[combo.name], fallbackStrategy: value };
+        }
+      }
+      await updateSettings({ comboStrategies: next });
+      await qc.invalidateQueries({ queryKey: ["settings"] });
+      flash(`Strategy applied to ${selected.size} combo${selected.size === 1 ? "" : "s"}`, "success");
+    } catch (err) {
+      flash(getErrorMessage(err, "Strategy update failed"), "error");
+    } finally {
+      strategySavingRef.current = false;
+    }
+  }
+
+  function toggleSelected(id: string) {
+    setSelected((previous) => {
+      const next = new Set(previous);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const visibleSelected = useMemo(
+    () => filtered.filter((combo) => selected.has(combo.id || combo.name)),
+    [filtered, selected],
+  );
+  const allVisibleSelected =
+    filtered.length > 0 && visibleSelected.length === filtered.length;
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
@@ -551,6 +598,60 @@ export default function Combo() {
           className="pl-9"
         />
       </div>
+      {!loading && filtered.length > 0 ? (
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-card/60 px-3 py-2">
+          <label className="flex cursor-pointer select-none items-center gap-2 text-xs text-muted-foreground transition-colors hover:text-foreground">
+            <Checkbox
+              checked={allVisibleSelected}
+              indeterminate={visibleSelected.length > 0 && !allVisibleSelected}
+              onCheckedChange={() => {
+                if (allVisibleSelected) setSelected(new Set<string>());
+                else setSelected(new Set(filtered.map((combo) => combo.id || combo.name)));
+              }}
+              aria-label="Select all combos"
+            />
+            <span>{visibleSelected.length > 0 ? `${visibleSelected.length} selected` : `Select all (${filtered.length})`}</span>
+          </label>
+          {visibleSelected.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative shrink-0">
+                <ChevronDown className="pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <select
+                  aria-label="Set strategy for selected combos"
+                  value=""
+                  disabled={saving || orderSaving}
+                  onChange={(event) => {
+                    const value = event.target.value as ComboStrategy;
+                    if (value) void applyBulkStrategy(value);
+                  }}
+                  className="h-8 appearance-none rounded-lg border border-transparent bg-transparent pr-7 text-[11px] font-medium text-muted-foreground outline-none transition-colors hover:border-border/60 hover:bg-surface focus-visible:border-primary/50"
+                >
+                  <option value="">Set strategy…</option>
+                  <option value="fallback">Fallback</option>
+                  <option value="round-robin">Round-robin</option>
+                  <option value="fusion">Fusion</option>
+                </select>
+              </div>
+              <RippleButton
+                variant="destructive"
+                size="sm"
+                disabled={saving || orderSaving}
+                onClick={() => setDeleteTargets(visibleSelected)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete ({visibleSelected.length})
+              </RippleButton>
+              <button
+                type="button"
+                onClick={() => setSelected(new Set<string>())}
+                className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Clear
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <Frame className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none bg-transparent p-0">
         <FramePanel className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain rounded-none border-0 bg-transparent p-0">
@@ -589,6 +690,12 @@ export default function Combo() {
               return (
                 <article key={c.id || c.name} {...dragProps(c)} className={`group/card min-w-0 rounded-lg border border-border bg-card p-3 transition-colors hover:bg-surface-hover/60 ${dragClassName(c)}`}>
                   <div className="flex items-start gap-3">
+                    <Checkbox
+                      checked={selected.has(c.id || c.name)}
+                      onCheckedChange={() => toggleSelected(c.id || c.name)}
+                      aria-label={`Select ${c.name}`}
+                      className="mt-2 shrink-0"
+                    />
                     <span title="Drag to reorder" className="mt-2 shrink-0 cursor-grab text-muted-foreground/50 transition-colors group-hover/card:text-muted-foreground"><GripVertical className="h-4 w-4" /></span>
                     <div className="min-w-0 flex-1 space-y-3">
                       <div className="flex flex-wrap items-center gap-2.5">
@@ -663,7 +770,7 @@ export default function Combo() {
                         <button type="button" className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground" onClick={() => openEdit(c)} aria-label="Edit combo"><Pencil className="h-3.5 w-3.5" /></button>
                       </Tooltip>
                       <Tooltip label="Delete">
-                        <button type="button" className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive" onClick={() => setDeleteTarget(c)} aria-label="Delete combo"><Trash2 className="h-3.5 w-3.5" /></button>
+                        <button type="button" className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive" onClick={() => setDeleteTargets([c])} aria-label="Delete combo"><Trash2 className="h-3.5 w-3.5" /></button>
                       </Tooltip>
                     </div>
                   </div>
@@ -780,25 +887,40 @@ export default function Combo() {
       </Dialog>
 
       <Dialog
-        open={!!deleteTarget}
+        open={!!deleteTargets?.length}
         onOpenChange={(o) => {
-          if (!o) setDeleteTarget(null);
+          if (!o) setDeleteTargets(null);
         }}
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete combo?</DialogTitle>
+            <DialogTitle>
+              {deleteTargets && deleteTargets.length > 1
+                ? `Delete ${deleteTargets.length} combos?`
+                : "Delete combo?"}
+            </DialogTitle>
             <DialogDescription>
-              <span className="font-medium text-foreground">
-                {deleteTarget?.name}
-              </span>{" "}
-              and its strategy override will be removed.
+              {deleteTargets && deleteTargets.length > 1 ? (
+                <>
+                  <span className="font-medium text-foreground">
+                    {deleteTargets.map((combo) => combo.name).join(", ")}
+                  </span>{" "}
+                  and their strategy overrides will be removed.
+                </>
+              ) : (
+                <>
+                  <span className="font-medium text-foreground">
+                    {deleteTargets?.[0]?.name}
+                  </span>{" "}
+                  and its strategy override will be removed.
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <RippleButton
               variant="outline"
-              onClick={() => setDeleteTarget(null)}
+              onClick={() => setDeleteTargets(null)}
               disabled={saving}
             >
               Cancel
@@ -808,7 +930,7 @@ export default function Combo() {
               onClick={onDelete}
               disabled={saving || orderSaving}
             >
-              {saving ? "Deleting…" : "Delete"}
+              {saving ? "Deleting…" : `Delete${deleteTargets && deleteTargets.length > 1 ? ` (${deleteTargets.length})` : ""}`}
             </RippleButton>
           </DialogFooter>
         </DialogContent>
