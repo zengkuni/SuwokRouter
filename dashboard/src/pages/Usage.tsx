@@ -365,7 +365,7 @@ export default function Usage() {
         timestamp: detail.timestamp,
         provider: detail.provider,
         model: detail.model,
-        connectionId: detail.connectionId,
+      account: detail.account,
         endpoint: detail.endpoint,
         cost: detail.cost,
         promptTokens:
@@ -719,6 +719,9 @@ export default function Usage() {
                             <p className="min-w-0 flex-1 truncate text-xs font-medium">
                               {providerColumnHidden ? "Hidden" : providerLabel(row.provider)}
                             </p>
+                            <span className="shrink-0 text-[10px] text-muted-foreground">
+                              {row.account ? `· ${row.account}` : ""}
+                            </span>
                             <div className="flex shrink-0 items-center gap-1.5">
                               <Badge variant="outline" className="text-[10px] font-normal">
                                 <span aria-hidden="true" className={cn("size-1.5 rounded-full", statusDot(row))} />
@@ -797,6 +800,7 @@ export default function Usage() {
                     </Tooltip>
                   </div>
                 </TableHead>
+                <TableHead className="px-3 py-2">Account</TableHead>
                 <TableHead className="px-3 py-2 text-success">In</TableHead>
                 <TableHead className="px-3 py-2 text-destructive">
                   Out
@@ -811,15 +815,14 @@ export default function Usage() {
               {loading ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={9} className="px-4 py-2">
-                      <Skeleton className="h-4 w-full" />
+                    <TableCell colSpan={10} className="px-4 py-2">
                     </TableCell>
                   </TableRow>
                 ))
               ) : pageRows.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={9}
+                    colSpan={10}
                     className="px-4 py-10 text-center text-muted-foreground"
                   >
                     No usage rows for {RANGE_LABEL[range].toLowerCase()}
@@ -842,6 +845,11 @@ export default function Usage() {
                           {modelColumnHidden ? modelSlug(row.model) : row.model || "—"}
                         </span>
                       </Tooltip>
+                    </TableCell>
+                    <TableCell className="px-3 py-2">
+                      <span className="block max-w-[12rem] truncate text-[11px] text-muted-foreground" title={row.account ?? undefined}>
+                        {row.account || "—"}
+                      </span>
                     </TableCell>
                     <TableCell className="px-3 py-2">
                       <span className="inline-flex items-center gap-1 tabular-nums text-success">
