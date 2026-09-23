@@ -3,8 +3,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRight,
   ChevronDown,
-  GripVertical,
   Hash,
+  Layers2,
   Pencil,
   Plus,
   Route,
@@ -664,7 +664,7 @@ export default function Combo() {
         ) : combos.length === 0 ? (
           <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
             <span className="flex size-11 items-center justify-center rounded-2xl bg-muted/60 text-muted-foreground ring-1 ring-inset ring-border">
-              <Route className="size-5" />
+              <Layers2 className="size-5" />
             </span>
             <div>
               <p className="text-sm font-medium">No combos yet</p>
@@ -696,10 +696,9 @@ export default function Combo() {
                       aria-label={`Select ${c.name}`}
                       className="mt-2 shrink-0"
                     />
-                    <span title="Drag to reorder" className="mt-2 shrink-0 cursor-grab text-muted-foreground/50 transition-colors group-hover/card:text-muted-foreground"><GripVertical className="h-4 w-4" /></span>
+                    <span title="Drag to reorder" className="mt-2 shrink-0 cursor-grab text-muted-foreground/50 transition-colors group-hover/card:text-muted-foreground"><Layers2 className="h-4 w-4" /></span>
                     <div className="min-w-0 flex-1 space-y-3">
                       <div className="flex flex-wrap items-center gap-2.5">
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground"><Route className="size-4" /></span>
                         <div className="min-w-0 flex-1">
                           <p className="truncate font-mono text-sm font-medium leading-tight">{c.name}</p>
                           <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{c.models.length} model{c.models.length === 1 ? "" : "s"} · {meta.hint}</p>

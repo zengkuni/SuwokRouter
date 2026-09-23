@@ -368,6 +368,7 @@ export type RequestDetailData = {
   timestamp?: string;
   provider?: string;
   model?: string;
+  connectionId?: string;
   account?: string | null;
   endpoint?: string;
   cost?: number;
