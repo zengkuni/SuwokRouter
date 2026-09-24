@@ -13,9 +13,8 @@ const DESERIALIZE = (text) => (text == null ? null : JSON.parse(text));
 // In-memory backend: Map + per-key expiry timers.
 function createMemoryTtl() {
   const map = new Map(); // key -> { value: string, timer }
-  const touch = (entry) => {
-    if (entry.timer) clearTimeout(entry.timer);
-  };
+  // clearTimeout no-ops on null/fired handles — no guard needed.
+  const touch = (entry) => clearTimeout(entry.timer);
   return {
     kind: "memory",
     async get(key) {
