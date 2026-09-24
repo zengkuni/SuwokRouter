@@ -24,9 +24,9 @@ import { getConsistentMachineId } from "@/shared/utils/machineId";
 import { isCallerCancellation } from "../services/requestCancellation.js";
 import { env } from "@/lib/env";
 
-const INTERNAL_CLI_TOKEN_HEADER = "x-swayrouter-cli-token";
-const INTERNAL_CONNECTION_HEADER = "x-swayrouter-connection-id";
-const INTERNAL_CLI_TOKEN_SALT = "swayrouter-cli-auth";
+const INTERNAL_CLI_TOKEN_HEADER = "x-suwokrouter-cli-token";
+const INTERNAL_CONNECTION_HEADER = "x-suwokrouter-connection-id";
+const INTERNAL_CLI_TOKEN_SALT = "suwokrouter-cli-auth";
 
 function attachAccountLease(response, release) {
   if (!response || typeof release !== "function") return response;

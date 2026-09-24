@@ -537,7 +537,7 @@ export default function Provider() {
         nodeType: n.type,
         apiType: n.apiType,
         iconUrl: n.iconUrl,
-        icon: "sway",
+        icon: "suwok",
         connected: 0,
       });
     }
@@ -1204,7 +1204,7 @@ export default function Provider() {
       await qc.invalidateQueries({ queryKey: ["custom-models"] });
       await qc.invalidateQueries({ queryKey: ["connection-models"] });
       await qc.invalidateQueries({ queryKey: ["available-models"] });
-      await qc.invalidateQueries({ queryKey: ["sway-chat", "models"] });
+      await qc.invalidateQueries({ queryKey: ["suwok-chat", "models"] });
       await qc.refetchQueries({ queryKey: ["custom-models"], type: "active" });
       await qc.refetchQueries({ queryKey: ["connection-models"], type: "active" });
       flash(
@@ -1233,7 +1233,7 @@ export default function Provider() {
       setForceTick((tick) => tick + 1);
       await qc.invalidateQueries({ queryKey: ["custom-models"] });
       await qc.invalidateQueries({ queryKey: ["available-models"] });
-      await qc.invalidateQueries({ queryKey: ["sway-chat", "models"] });
+      await qc.invalidateQueries({ queryKey: ["suwok-chat", "models"] });
       setNewModel("");
       toast.success(`Added ${modelId}`);
     } catch (err) {
@@ -1867,7 +1867,7 @@ export default function Provider() {
                         hideModel(selected.id, modelId);
                         setCustomTick((tick) => tick + 1);
                         setForceTick((tick) => tick + 1);
-                        void qc.invalidateQueries({ queryKey: ["sway-chat", "models"] });
+                        void qc.invalidateQueries({ queryKey: ["suwok-chat", "models"] });
                       }
                       toast(`${removed ? "Removed" : "Hidden"} ${modelId.split("/").pop()}`);
                     }}

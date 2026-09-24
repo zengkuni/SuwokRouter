@@ -159,7 +159,7 @@ for (const row of ROUTE_ORDER) {
 app.get("/health", (c) =>
   c.json({
     ok: true,
-    name: "sway-router",
+    name: "suwok-router",
     version: pkg.version,
     time: new Date().toISOString(),
   }),
@@ -168,13 +168,13 @@ app.get("/health", (c) =>
 app.get("/version", (c) =>
   c.json({
     ok: true,
-    name: "sway-router",
+    name: "suwok-router",
     version: pkg.version,
   }),
 );
 
 app.get("/", (c) =>
-  c.json({ ok: true, service: "sway-router", docs: "/health" }),
+  c.json({ ok: true, service: "suwok-router", docs: "/health" }),
 );
 
 const METRICS_TOKEN = env.metricsToken;
@@ -182,7 +182,7 @@ const CLI_TOKEN_CACHE: { v?: string } = {};
 async function cliToken() {
   if (CLI_TOKEN_CACHE.v !== undefined) return CLI_TOKEN_CACHE.v;
   try {
-    CLI_TOKEN_CACHE.v = await getConsistentMachineId("swayrouter-cli-auth");
+    CLI_TOKEN_CACHE.v = await getConsistentMachineId("suwokrouter-cli-auth");
   } catch {
     CLI_TOKEN_CACHE.v = "";
   }
@@ -190,10 +190,10 @@ async function cliToken() {
 }
 
 app.get("/metrics", async (c) => {
-  const presented = c.req.header("x-swayrouter-cli-token") || "";
+  const presented = c.req.header("x-suwokrouter-cli-token") || "";
   const isLocal =
-    (c.req.header("x-swayrouter-real-ip") || "").startsWith("127.0.0.1") ||
-    (c.req.header("x-swayrouter-real-ip") || "") === "::1";
+    (c.req.header("x-suwokrouter-real-ip") || "").startsWith("127.0.0.1") ||
+    (c.req.header("x-suwokrouter-real-ip") || "") === "::1";
   const token = await cliToken();
   const allowedLocal = isLocal && env.metricsLocal;
   const allowedCliToken = token && presented === token;
@@ -623,4 +623,4 @@ initializeApp()
     markLifecycleDegraded(e);
   });
 
-console.log(`[sway-router] listening on http://localhost:${server.port}`);
+console.log(`[suwok-router] listening on http://localhost:${server.port}`);

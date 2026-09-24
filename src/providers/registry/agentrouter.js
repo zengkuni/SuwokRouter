@@ -11,7 +11,7 @@ export default {
   alias: "agentrouter",
   display: {
     name: "Agent Router",
-    icon: "sway",
+    icon: "suwok",
     color: "#7C5CFC",
     textIcon: "SW",
     website: "https://agentrouter.org",

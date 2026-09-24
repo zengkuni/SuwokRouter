@@ -3,7 +3,7 @@ import { RUNTIME_CONFIG } from "@/shared/constants/config";
 import { MODEL_TEST_TIMEOUT_MS } from "@/config/runtimeConfig.js";
 import { getConsistentMachineId } from "@/shared/utils/machineId";
 
-const CLI_TOKEN_SALT = "swayrouter-cli-auth";
+const CLI_TOKEN_SALT = "suwokrouter-cli-auth";
 
 async function getInternalHeaders() {
   let apiKey = null;
@@ -13,7 +13,7 @@ async function getInternalHeaders() {
 
   const headers = { "Content-Type": "application/json" };
   if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
-  headers["x-swayrouter-cli-token"] = await getConsistentMachineId(CLI_TOKEN_SALT);
+  headers["x-suwokrouter-cli-token"] = await getConsistentMachineId(CLI_TOKEN_SALT);
   return headers;
 }
 
@@ -80,7 +80,7 @@ export async function pingModelByKind(
 ) {
   const headers = await getInternalHeaders();
   if (options.connectionId) {
-    headers["x-swayrouter-connection-id"] = options.connectionId;
+    headers["x-suwokrouter-connection-id"] = options.connectionId;
   }
   if (options.stream === true) headers.Accept = "text/event-stream";
   const start = Date.now();
@@ -89,7 +89,7 @@ export async function pingModelByKind(
       ok: false,
       latencyMs: 0,
       status: 404,
-      error: `Model kind "${kind}" is not supported — Sway Router is LLM-pure`,
+      error: `Model kind "${kind}" is not supported — Suwok Router is LLM-pure`,
     };
   }
 

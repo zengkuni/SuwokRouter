@@ -284,14 +284,14 @@ export function NineRouterMigrationDialog({
           </DialogTitle>
           <DialogDescription>
             {view === "configure"
-              ? "Choose a source and what you want to bring into Sway Router. Existing Sway Router data stays in place."
+              ? "Choose a source and what you want to bring into Suwok Router. Existing Suwok Router data stays in place."
               : view === "preview"
                 ? "Review what will be added before making any changes."
                 : view === "ready"
                   ? "A safety backup was created before your selected data was imported."
                   : view === "error"
                     ? "No partial migration was kept. Review the error and try again."
-                    : "Keep this window open while Sway Router checks and migrates the data."}
+                    : "Keep this window open while Suwok Router checks and migrates the data."}
           </DialogDescription>
         </DialogHeader>
 
@@ -483,7 +483,7 @@ export function NineRouterMigrationDialog({
                 />
               </label>
               <p className="text-xs text-muted-foreground">
-                Imported accounts stay inactive unless you selected immediate activation. Existing Sway Router data will not be replaced.
+                Imported accounts stay inactive unless you selected immediate activation. Existing Suwok Router data will not be replaced.
               </p>
             </DialogPanel>
             <DialogFooter>

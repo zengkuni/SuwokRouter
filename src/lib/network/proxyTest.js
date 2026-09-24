@@ -119,7 +119,7 @@ export async function testProxyUrl({ proxyUrl, proxyType, testUrl, timeoutMs } =
         method: "GET",
         signal: controller.signal,
         headers: {
-          "User-Agent": "SwayRouter",
+          "User-Agent": "SuwokRouter",
         },
       };
       const res = isSocksProxy(normalizedProxyUrl, proxyType)

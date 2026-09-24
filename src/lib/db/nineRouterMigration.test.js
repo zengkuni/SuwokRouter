@@ -28,7 +28,7 @@ function source(overrides = {}) {
 }
 
 const emptyCurrent = {
-  settings: { requireLogin: true, profileName: "Sway Router" },
+  settings: { requireLogin: true, profileName: "Suwok Router" },
   providerConnections: [],
   providerNodes: [],
   combos: [],
@@ -36,10 +36,10 @@ const emptyCurrent = {
 };
 
 describe("9Router migration planning", () => {
-  test("recognizes 9Router exports but not Sway Router backups", () => {
+  test("recognizes 9Router exports but not Suwok Router backups", () => {
     expect(isNineRouterBackupPayload(source())).toBe(true);
-    expect(isNineRouterBackupPayload({ product: "swayrouter", ...source() })).toBe(false);
-    expect(() => validateNineRouterPayload({ product: "swayrouter", ...source() }))
+    expect(isNineRouterBackupPayload({ product: "suwokrouter", ...source() })).toBe(false);
+    expect(() => validateNineRouterPayload({ product: "suwokrouter", ...source() }))
       .toThrow("not a supported 9Router backup");
   });
 

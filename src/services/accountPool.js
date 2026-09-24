@@ -8,7 +8,7 @@ export const ACCOUNT_POOL_DEFAULTS = Object.freeze({
   cacheTtlMs: 5_000,
 });
 
-const GLOBAL_STATE_KEY = "__swayAccountPoolState";
+const GLOBAL_STATE_KEY = "__suwokAccountPoolState";
 
 function createState() {
   return {
@@ -34,9 +34,9 @@ function firstDefined(...values) {
 
 function deriveAutomaticProviderLimit() {
   try {
-    const profile = deriveResourceProfile(undefined, process.env.SWAY_PERFORMANCE_PROFILE);
+    const profile = deriveResourceProfile(undefined, process.env.SUWOK_PERFORMANCE_PROFILE);
     const configuredRouterMax = positiveInt(
-      process.env.SWAY_ROUTER_MAX_CONCURRENT,
+      process.env.SUWOK_ROUTER_MAX_CONCURRENT,
       profile.maxConcurrent,
       { max: 100_000 },
     );
@@ -69,7 +69,7 @@ export function resolveAccountPoolConfig(settings = {}, providerOverride = {}) {
         providerOverride.maxConcurrentPerAccount,
         globalPool.maxConcurrentPerAccount,
         settings.maxConcurrentPerAccount,
-        env.SWAY_MAX_CONCURRENT_PER_ACCOUNT,
+        env.SUWOK_MAX_CONCURRENT_PER_ACCOUNT,
         ACCOUNT_POOL_DEFAULTS.maxConcurrentPerAccount,
       ),
       ACCOUNT_POOL_DEFAULTS.maxConcurrentPerAccount,
@@ -81,7 +81,7 @@ export function resolveAccountPoolConfig(settings = {}, providerOverride = {}) {
         providerOverride.maxConcurrentPerProvider,
         globalPool.maxConcurrentPerProvider,
         settings.maxConcurrentPerProvider,
-        env.SWAY_MAX_CONCURRENT_PER_PROVIDER,
+        env.SUWOK_MAX_CONCURRENT_PER_PROVIDER,
         AUTOMATIC_MAX_CONCURRENT_PER_PROVIDER,
       ),
       AUTOMATIC_MAX_CONCURRENT_PER_PROVIDER,
@@ -93,7 +93,7 @@ export function resolveAccountPoolConfig(settings = {}, providerOverride = {}) {
         providerOverride.maxQueuePerProvider,
         globalPool.maxQueuePerProvider,
         settings.maxQueuePerProvider,
-        env.SWAY_MAX_ACCOUNT_QUEUE,
+        env.SUWOK_MAX_ACCOUNT_QUEUE,
         ACCOUNT_POOL_DEFAULTS.maxQueuePerProvider,
       ),
       ACCOUNT_POOL_DEFAULTS.maxQueuePerProvider,
@@ -105,7 +105,7 @@ export function resolveAccountPoolConfig(settings = {}, providerOverride = {}) {
         providerOverride.queueWaitTimeoutMs,
         globalPool.queueWaitTimeoutMs,
         settings.queueWaitTimeoutMs,
-        env.SWAY_ACCOUNT_QUEUE_TIMEOUT_MS,
+        env.SUWOK_ACCOUNT_QUEUE_TIMEOUT_MS,
         ACCOUNT_POOL_DEFAULTS.queueWaitTimeoutMs,
       ),
       ACCOUNT_POOL_DEFAULTS.queueWaitTimeoutMs,
@@ -117,7 +117,7 @@ export function resolveAccountPoolConfig(settings = {}, providerOverride = {}) {
         providerOverride.cacheTtlMs,
         globalPool.cacheTtlMs,
         settings.accountPoolCacheTtlMs,
-        env.SWAY_ACCOUNT_POOL_CACHE_TTL_MS,
+        env.SUWOK_ACCOUNT_POOL_CACHE_TTL_MS,
         ACCOUNT_POOL_DEFAULTS.cacheTtlMs,
       ),
       ACCOUNT_POOL_DEFAULTS.cacheTtlMs,

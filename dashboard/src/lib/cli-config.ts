@@ -47,7 +47,7 @@ function openCodeConfig(input: CliConfigInput, key: string, models: string[]) {
   const subagent = input.subagentModel?.trim() || active;
   const config: Record<string, unknown> = {
     provider: {
-      swayrouter: {
+      suwokrouter: {
         npm: "@ai-sdk/openai-compatible",
         options: { baseURL: normalizeBaseUrl(input.baseUrl), apiKey: key },
         ...(models.length ? { models: Object.fromEntries(models.map((model) => [model, {
@@ -57,13 +57,13 @@ function openCodeConfig(input: CliConfigInput, key: string, models: string[]) {
       },
     },
   };
-  if (active) config.model = `swayrouter/${active}`;
+  if (active) config.model = `suwokrouter/${active}`;
   if (subagent) {
     config.agent = {
       explorer: {
         description: "Fast explorer subagent for codebase exploration",
         mode: "subagent",
-        model: `swayrouter/${subagent}`,
+        model: `suwokrouter/${subagent}`,
       },
     };
   }
@@ -110,7 +110,7 @@ export function formatCliConfig(input: CliConfigInput, revealSecret = false): Cl
       return {
         format: "yaml",
         fileName: "~/.omp/agent/models.yml",
-        content: `providers:\n  swayrouter:\n    baseUrl: ${normalizeBaseUrl(input.baseUrl)}\n    api: openai-completions\n${authConfig}    discovery:\n      type: openai-models-list\n${providerModels}`,
+        content: `providers:\n  suwokrouter:\n    baseUrl: ${normalizeBaseUrl(input.baseUrl)}\n    api: openai-completions\n${authConfig}    discovery:\n      type: openai-models-list\n${providerModels}`,
         modelCount: models.length,
         complete,
         message: commonMessage,
@@ -143,10 +143,10 @@ export function formatCliConfig(input: CliConfigInput, revealSecret = false): Cl
     case "codex": {
       const codexLines = [
         ...(model ? [`model = ${shellValue(model)}`] : []),
-        'model_provider = "swayrouter"',
+        'model_provider = "suwokrouter"',
         "",
-        "[model_providers.swayrouter]",
-        'name = "Sway Router"',
+        "[model_providers.suwokrouter]",
+        'name = "Suwok Router"',
         `base_url = ${shellValue(baseUrl)}`,
         'wire_api = "responses"',
       ];

@@ -65,8 +65,8 @@ function isObject(value: unknown): value is NineRouterPayload {
 
 function requireNineRouterPayload(value: unknown): NineRouterPayload {
   if (!isObject(value)) throw new Error("The selected file is not valid JSON data");
-  if (value.product === "swayrouter") {
-    throw new Error("This is an Sway Router backup. Use Import JSON instead.");
+  if (value.product === "suwokrouter") {
+    throw new Error("This is an Suwok Router backup. Use Import JSON instead.");
   }
   const looksLikeNineRouter = "modelAliases" in value
     || "mitmAlias" in value

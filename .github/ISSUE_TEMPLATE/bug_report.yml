@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible problem in Sway Router
+description: Report a reproducible problem in Suwok Router
 title: "[Bug]: "
 labels: [bug]
 body:
@@ -9,7 +9,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: Sway Router version
+      label: Suwok Router version
       placeholder: v1.0.0
     validations:
       required: true

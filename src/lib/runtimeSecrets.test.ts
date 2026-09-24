@@ -8,7 +8,7 @@ import { loadEnv } from "./env";
 const temporaryDirectories: string[] = [];
 
 function temporaryDataDir(): string {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "sway-runtime-secrets-"));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "suwok-runtime-secrets-"));
   temporaryDirectories.push(directory);
   return directory;
 }

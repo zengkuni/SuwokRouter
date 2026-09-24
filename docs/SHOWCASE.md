@@ -1,4 +1,4 @@
-# Sway Router UI showcase
+# Suwok Router UI showcase
 
 [Back to README](../README.md) · [Bahasa Indonesia](../README.id.md)
 

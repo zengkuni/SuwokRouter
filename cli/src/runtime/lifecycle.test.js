@@ -42,7 +42,7 @@ describe("runtime lifecycle helpers", () => {
         .running,
     ).toBe(false);
     expect(
-      lifecycle.parseDockerStatus("swayrouter   Up 2 minutes").running,
+      lifecycle.parseDockerStatus("suwokrouter   Up 2 minutes").running,
     ).toBe(true);
   });
 
@@ -62,7 +62,7 @@ describe("runtime lifecycle helpers", () => {
   });
 
   test("rejects legacy PID records as unmanaged", () => {
-    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "sway-lifecycle-"));
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "suwok-lifecycle-"));
     const installation = { installDir: process.cwd(), dataDir };
     const file = lifecycle.pidFile(installation);
     fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -75,7 +75,7 @@ describe("runtime lifecycle helpers", () => {
   });
 
   test("status and stop are idempotent without a managed PID", () => {
-    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "sway-lifecycle-"));
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "suwok-lifecycle-"));
     const installation = {
       installDir: process.cwd(),
       dataDir,
@@ -97,19 +97,19 @@ describe("runtime lifecycle helpers", () => {
   });
 
   test("records a compiled binary in managed PID metadata", () => {
-    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "sway-lifecycle-"));
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "suwok-lifecycle-"));
     const installation = {
       installDir: process.cwd(),
       dataDir,
       mode: "binary",
-      binaryFile: path.join(process.cwd(), "swayrouter"),
+      binaryFile: path.join(process.cwd(), "suwokrouter"),
     };
     const file = lifecycle.pidFile(installation);
     try {
       lifecycle.writePid?.(installation, process.pid);
       if (fs.existsSync(file))
         expect(JSON.parse(fs.readFileSync(file, "utf8")).executable).toContain(
-          "swayrouter",
+          "suwokrouter",
         );
     } finally {
       fs.rmSync(dataDir, { recursive: true, force: true });
@@ -121,7 +121,7 @@ describe("runtime lifecycle helpers", () => {
       mode: "native",
       installDir: process.cwd(),
       sourceFile: path.join(process.cwd(), "src", "server.ts"),
-      dataDir: path.join(os.tmpdir(), "sway-cli-production-env"),
+      dataDir: path.join(os.tmpdir(), "suwok-cli-production-env"),
       env: {},
     };
 

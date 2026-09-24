@@ -270,119 +270,119 @@ function applyPendingRestore(m) {
 
 function registerStandardMetrics() {
   httpRequestsTotal = counter({
-    name: "sway_http_requests_total",
+    name: "suwok_http_requests_total",
     help: "Total HTTP requests handled by the gateway",
     labels: ["method", "route", "status"],
   });
   httpRequestDuration = histogram({
-    name: "sway_http_request_duration_ms",
+    name: "suwok_http_request_duration_ms",
     help: "HTTP request handling latency in milliseconds",
     labels: ["method", "route"],
   });
   inFlightRequests = gauge({
-    name: "sway_in_flight_requests",
+    name: "suwok_in_flight_requests",
     help: "Currently in-flight proxy requests",
   });
   proxyCallsTotal = counter({
-    name: "sway_proxy_calls_total",
+    name: "suwok_proxy_calls_total",
     help: "Upstream provider proxy calls",
     labels: ["provider", "model", "status"],
   });
   proxyCallDuration = histogram({
-    name: "sway_proxy_call_duration_ms",
+    name: "suwok_proxy_call_duration_ms",
     help: "Upstream provider call latency in milliseconds",
     labels: ["provider", "model"],
   });
   tokensTotal = counter({
-    name: "sway_tokens_total",
+    name: "suwok_tokens_total",
     help: "Tokens processed by kind (input/output/cached)",
     labels: ["kind", "provider"],
   });
   errorsTotal = counter({
-    name: "sway_errors_total",
+    name: "suwok_errors_total",
     help: "Gateway errors by class",
     labels: ["class", "provider"],
   });
   sseListeners = gauge({
-    name: "sway_sse_listeners",
+    name: "suwok_sse_listeners",
     help: "Active SSE listener registrations",
   });
   sseListenerDropsTotal = counter({
-    name: "sway_sse_listeners_dropped_total",
+    name: "suwok_sse_listeners_dropped_total",
     help: "SSE listener registrations rejected due to the cap",
   });
   processRss = gauge({
-    name: "sway_process_rss_bytes",
+    name: "suwok_process_rss_bytes",
     help: "Bun process resident set size in bytes",
   });
   walloColumn = gauge({
 
-    name: "sway_write_behind_buffer_rows",
+    name: "suwok_write_behind_buffer_rows",
     help: "Rows pending in the usage write-behind buffer",
   });
 
   authFailuresTotal = counter({
-    name: "sway_auth_failures_total",
+    name: "suwok_auth_failures_total",
     help: "Authentication failures by source (login/api-key/cli-token)",
     labels: ["source"],
   });
   loginLockActive = gauge({
-    name: "sway_login_lock_active",
+    name: "suwok_login_lock_active",
     help: "Dashboard login lockouts currently active",
     labels: [],
   });
 
   traceSpansTotal = counter({
-    name: "sway_trace_spans_total",
+    name: "suwok_trace_spans_total",
     help: "W3C trace spans opened by origin (child=inbound parent present, root=fresh)",
     labels: ["kind"],
   });
 
   accountFallbackDecisionsTotal = counter({
-    name: "sway_account_fallback_decisions_total",
+    name: "suwok_account_fallback_decisions_total",
     help: "Per-model account fallback decisions by tier (T1 rate-limit / T2 transient / T3 permanent)",
     labels: ["tier", "action"],
   });
   cacheAffineSelectionsTotal = counter({
-    name: "sway_cache_affine_selections_total",
+    name: "suwok_cache_affine_selections_total",
     help: "Cache-affine routing outcomes (hit=sticky bucket kept, rotate=primary bucket locked→next, miss=no input key)",
     labels: ["result"],
   });
 
   clientDetectionsTotal = counter({
-    name: "sway_client_detections_total",
+    name: "suwok_client_detections_total",
     help: "Client-identity resolutions by the multi-signal detector (A4.5)",
     labels: ["client", "signals"],
   });
   clientDetectionConflictsTotal = counter({
-    name: "sway_client_detection_conflicts_total",
+    name: "suwok_client_detection_conflicts_total",
     help: "Requests where ≥2 detection channels disagreed on the client identity (A4.5)",
     labels: ["resolved", "conflicting"],
   });
 
   compatFallbackStripsTotal = counter({
-    name: "sway_compat_fallback_strips_total",
+    name: "suwok_compat_fallback_strips_total",
     help: "Optional-parameter compat auto-fallback strips (A4.4): pre-strip vs retry vs cache-miss",
     labels: ["provider", "model", "action"],
   });
   routerActiveRequests = gauge({
-    name: "sway_router_admission_active_requests",
+    name: "suwok_router_admission_active_requests",
     help: "Gateway requests currently holding an adaptive Router admission slot",
   });
   routerQueuedRequests = gauge({
-    name: "sway_router_admission_queued_requests",
+    name: "suwok_router_admission_queued_requests",
     help: "Gateway requests waiting for an adaptive Router admission slot",
   });
   routerConcurrencyLimit = gauge({
-    name: "sway_router_admission_concurrency_limit",
+    name: "suwok_router_admission_concurrency_limit",
     help: "Current adaptive Router admission target",
   });
   routerBodyBytesInUse = gauge({
-    name: "sway_router_admission_body_bytes",
+    name: "suwok_router_admission_body_bytes",
     help: "Request-body bytes retained by active gateway requests",
   });
   routerAdmissionRejectsTotal = counter({
-    name: "sway_router_admission_rejects_total",
+    name: "suwok_router_admission_rejects_total",
     help: "Gateway requests rejected by the adaptive Router admission guard",
     labels: ["reason"],
   });

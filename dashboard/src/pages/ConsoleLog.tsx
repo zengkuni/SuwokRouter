@@ -51,7 +51,7 @@ const ERROR_MARKER_RE = /(?:\bERROR\b|\b(?:Reference|Type|Syntax|Range|URI)Error
 const WARN_MARKER_RE = /(?:\bWARN(?:ING)?\b|\bstatus\s*[=:]\s*4\d\d\b|\bHTTP\s+4\d\d\b)/i;
 const SUCCESS_MARKER_RE = /(?:\b(?:HTTP\s*)?2\d\d\b|\bstatus\s*[=:]\s*2\d\d\b|\b(?:OK|SUCCESS|PASSED|HEALTHY)\b)/i;
 const EMOJI_RE = /[\p{Emoji_Presentation}\p{Extended_Pictographic}�️‍]/gu;
-const PRIVATE_DATABASE_PATH_RE = /(?:[A-Za-z]:[\\/]|\/)[^|]*?\.swayrouter[\\/]+db[\\/]+data\.sqlite/gi;
+const PRIVATE_DATABASE_PATH_RE = /(?:[A-Za-z]:[\\/]|\/)[^|]*?\.suwokrouter[\\/]+db[\\/]+data\.sqlite/gi;
 const EVENT_LABEL_RE = /^(?:(\w[\w-]*)\s+)?(START|FETCH|RESPONSE|RETRY|DONE|WARN|ERROR|FALLBACK|LOCK|REQUEST|STREAM)\s+([\s\S]+)$/i;
 const DEBUG_EVENT_RE = /^(?:(\w[\w-]*)\s+)?DEBUG\s+([A-Z][A-Z0-9_-]*)\s*(?:·\s*)?([\s\S]*)$/i;
 
@@ -68,7 +68,7 @@ function cleanRawLine(line: string): string {
   return normalizeLogLine(
     line
       .replace(EMOJI_RE, "")
-      .replace(PRIVATE_DATABASE_PATH_RE, ".swayrouter\\db\\data.sqlite")
+      .replace(PRIVATE_DATABASE_PATH_RE, ".suwokrouter\\db\\data.sqlite")
       .replace(/^\s*\[\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?\]\s*/, "")
   );
 }

@@ -8,8 +8,8 @@ import {
 
 describe("managed relay helpers", () => {
   test("normalizes deployment names and rejects unsafe names", () => {
-    expect(normalizeRelayProjectName("SwayRouter-Relay")).toBe("swayrouter-relay");
-    expect(() => normalizeRelayProjectName("SwayRouter_Relay")).toThrow();
+    expect(normalizeRelayProjectName("SuwokRouter-Relay")).toBe("suwokrouter-relay");
+    expect(() => normalizeRelayProjectName("SuwokRouter_Relay")).toThrow();
   });
 
   test("creates a high-entropy relay token", () => {

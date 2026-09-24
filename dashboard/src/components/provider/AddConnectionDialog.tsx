@@ -318,7 +318,7 @@ export function AddConnectionDialog({
         bulkKeys: validBulkRows.map(({ name, apiKey }, index) => {
           const explicitName = name.trim();
           return {
-            name: explicitName || `swayrouter-account${index + 1}`,
+            name: explicitName || `suwokrouter-account${index + 1}`,
             apiKey: apiKey.trim(),
             autoName: !explicitName,
           };
@@ -1059,7 +1059,7 @@ export function AddConnectionDialog({
     if (!authLink) return;
     const popup = window.open(
       authLink,
-      "sway-oauth",
+      "suwok-oauth",
       "popup,width=600,height=700"
     );
     popupRef.current = popup;
@@ -1099,7 +1099,7 @@ export function AddConnectionDialog({
               ...(row.credentialToken
                 ? { credentialToken: row.credentialToken }
                 : { accessToken: row.accessToken, refreshToken: row.refreshToken }),
-              name: explicitName || `swayrouter-account${index + 1}`,
+              name: explicitName || `suwokrouter-account${index + 1}`,
               autoName: !explicitName,
             };
           })
@@ -1205,7 +1205,7 @@ export function AddConnectionDialog({
             </label>
             <Input
               id="connection-account-name"
-              placeholder="Auto: swayrouter-account"
+              placeholder="Auto: suwokrouter-account"
               value={name}
               aria-invalid={Boolean(submitError)}
               aria-describedby={submitError ? "connection-submit-error" : undefined}

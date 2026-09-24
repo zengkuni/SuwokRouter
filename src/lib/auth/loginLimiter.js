@@ -79,10 +79,10 @@ export function recordSuccess(ip) {
 
 export function getClientIp(request) {
 
-  const realIp = request.headers.get("x-swayrouter-real-ip");
+  const realIp = request.headers.get("x-suwokrouter-real-ip");
   if (realIp) return realIp;
 
-  if (env.trustProxy && request.headers.get("x-swayrouter-via-proxy") === "1") {
+  if (env.trustProxy && request.headers.get("x-suwokrouter-via-proxy") === "1") {
     const xff = request.headers.get("x-forwarded-for");
     if (xff) return xff.split(",")[0].trim();
   }

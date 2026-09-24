@@ -27,9 +27,9 @@ import {
   MAX_IMAGES_PER_MSG,
   type ChatMessage,
   type ModelInfo,
-  parseSwayChatWorkspace,
-  reconcileSwayChatModel,
-  serializeSwayChatWorkspace,
+  parseSuwokChatWorkspace,
+  reconcileSuwokChatModel,
+  serializeSuwokChatWorkspace,
 } from "@/lib/chatStudio";
 
 function um(content: string, extra: Partial<ChatMessage> = {}): ChatMessage {
@@ -39,21 +39,21 @@ function am(content: string, extra: Partial<ChatMessage> = {}): ChatMessage {
   return { id: createId(), role: "assistant", content, status: "done", ...extra };
 }
 
-describe("Sway Chat workspace persistence", () => {
+describe("Suwok Chat workspace persistence", () => {
   test("round-trips messages and system prompt", () => {
-    const raw = serializeSwayChatWorkspace({ model: "openai/gpt", systemPrompt: "Be concise", messages: [um("hello"), am("hi")] });
-    expect(parseSwayChatWorkspace(raw)).toMatchObject({ model: "openai/gpt", systemPrompt: "Be concise", messages: [{ content: "hello" }, { content: "hi" }] });
+    const raw = serializeSuwokChatWorkspace({ model: "openai/gpt", systemPrompt: "Be concise", messages: [um("hello"), am("hi")] });
+    expect(parseSuwokChatWorkspace(raw)).toMatchObject({ model: "openai/gpt", systemPrompt: "Be concise", messages: [{ content: "hello" }, { content: "hi" }] });
   });
 
   test("rejects malformed or unsupported workspace data", () => {
-    expect(parseSwayChatWorkspace("not json")).toBeNull();
-    expect(parseSwayChatWorkspace(JSON.stringify({ schemaVersion: 99, messages: [] }))).toBeNull();
+    expect(parseSuwokChatWorkspace("not json")).toBeNull();
+    expect(parseSuwokChatWorkspace(JSON.stringify({ schemaVersion: 99, messages: [] }))).toBeNull();
   });
 
   test("filters malformed messages and reconciles unavailable models", () => {
     const raw = JSON.stringify({ schemaVersion: 1, model: "gone", systemPrompt: "x", messages: [um("ok"), { role: "user" }, { role: "system", id: "bad", content: "drop" }] });
-    expect(parseSwayChatWorkspace(raw)?.messages).toHaveLength(1);
-    expect(reconcileSwayChatModel("gone", [{ id: "keep", name: "Keep", provider: "test" }])).toBe("keep");
+    expect(parseSuwokChatWorkspace(raw)?.messages).toHaveLength(1);
+    expect(reconcileSuwokChatModel("gone", [{ id: "keep", name: "Keep", provider: "test" }])).toBe("keep");
   });
 
   test("normalizes persisted streaming assistants to interrupted errors without dropping stream state", () => {
@@ -61,7 +61,7 @@ describe("Sway Chat workspace persistence", () => {
       { id: "u", role: "user", content: "hello" },
       { id: "a", role: "assistant", content: "partial", status: "streaming", startAt: 9_000, thinking: "reasoning", streamUsage: { prompt: 12, completion: 4, reasoning: 3 }, ttfbMs: 100, thoughtMs: 80 },
     ] });
-    const parsed = parseSwayChatWorkspace(raw, 10_000);
+    const parsed = parseSuwokChatWorkspace(raw, 10_000);
     expect(parsed?.messages[1]).toMatchObject({ id: "a", content: "partial", status: "error", interrupted: true, startAt: 9_000, durationMs: 1_000, thinking: "reasoning", ttfbMs: 100, thoughtMs: 80, streamUsage: { prompt: 12, completion: 4, reasoning: 3 } });
   });
 
@@ -71,7 +71,7 @@ describe("Sway Chat workspace persistence", () => {
       { id: "legacy-tool", role: "tool", content: "{\"result\":4}" },
       { id: "a", role: "assistant", content: "hi", toolCalls: [{ id: "call_1", name: "calculator", arguments: "{}", status: "done" }] },
     ] });
-    expect(parseSwayChatWorkspace(raw)?.messages).toEqual([
+    expect(parseSuwokChatWorkspace(raw)?.messages).toEqual([
       expect.objectContaining({ id: "u", role: "user" }),
       expect.objectContaining({ id: "a", role: "assistant" }),
     ]);
@@ -207,7 +207,7 @@ describe("A7.1 Model Studio engine — SSE parsing", () => {
 
 describe("A7.1 Model Studio engine — misc", () => {
   test("adds authoritative runtime model context to the system prompt", () => {
-    const prompt = buildModelAwareSystemPrompt("You are Sway Router.", "custom-provider/zai-org/GLM-5.2");
+    const prompt = buildModelAwareSystemPrompt("You are Suwok Router.", "custom-provider/zai-org/GLM-5.2");
     expect(prompt).toContain("Active model ID: custom-provider/zai-org/GLM-5.2");
     expect(prompt).toContain("Provider: custom-provider");
     expect(prompt).toContain("Model name: GLM-5.2");

@@ -17,8 +17,8 @@ beforeEach(async () => {
   await initDb();
 });
 afterEach(() => {
-  delete process.env.SWAY_PAYLOAD_CAPTURE;
-  delete process.env.SWAY_PAYLOAD_SAMPLE_RATE;
+  delete process.env.SUWOK_PAYLOAD_CAPTURE;
+  delete process.env.SUWOK_PAYLOAD_SAMPLE_RATE;
   __resetPayloadCaptureForTests();
 });
 afterAll(async () => {
@@ -92,7 +92,7 @@ describe("payloadCapture: applyCaptureDecision strips bodies", () => {
 
   test("raw mode preserves sensitive and oversized payloads", async () => {
     process.env.ENABLE_REQUEST_LOGS = "true";
-    process.env.SWAY_PAYLOAD_CAPTURE = "raw";
+    process.env.SUWOK_PAYLOAD_CAPTURE = "raw";
     process.env.OBSERVABILITY_MAX_JSON_SIZE = "1";
     __resetPayloadCaptureForTests();
     const id = `e2e-raw-${Date.now()}`;
@@ -112,15 +112,15 @@ describe("payloadCapture: applyCaptureDecision strips bodies", () => {
     expect((row?.request as any)?.authorization).toBe("Bearer secret");
     expect((row?.request as any)?.body).toBe(prompt);
     delete process.env.ENABLE_REQUEST_LOGS;
-    delete process.env.SWAY_PAYLOAD_CAPTURE;
+    delete process.env.SUWOK_PAYLOAD_CAPTURE;
     delete process.env.OBSERVABILITY_MAX_JSON_SIZE;
   });
 
   test("disabled setting resolves to none", async () => {
-    process.env.SWAY_PAYLOAD_CAPTURE = "none";
+    process.env.SUWOK_PAYLOAD_CAPTURE = "none";
     __resetPayloadCaptureForTests();
     expect((await getCapturePolicy()).mode).toBe("none");
-    delete process.env.SWAY_PAYLOAD_CAPTURE;
+    delete process.env.SUWOK_PAYLOAD_CAPTURE;
   });
 
   test("drop replaces wire fields with redaction marker, keeps metadata", () => {
@@ -138,35 +138,35 @@ describe("payloadCapture: applyCaptureDecision strips bodies", () => {
 });
 
 describe("payloadCapture: getCapturePolicy env + cache", () => {
-  test("env SWAY_PAYLOAD_CAPTURE overrides; default none", async () => {
+  test("env SUWOK_PAYLOAD_CAPTURE overrides; default none", async () => {
     const p = await getCapturePolicy();
     expect(p.mode, `default none`).toBe("none");
-    process.env.SWAY_PAYLOAD_CAPTURE = "bounded";
+    process.env.SUWOK_PAYLOAD_CAPTURE = "bounded";
     __resetPayloadCaptureForTests();
     const p2 = await getCapturePolicy();
     expect(p2.mode, `env override bounded`).toBe("bounded");
-    delete process.env.SWAY_PAYLOAD_CAPTURE;
+    delete process.env.SUWOK_PAYLOAD_CAPTURE;
     __resetPayloadCaptureForTests();
   });
 
-  test("env SWAY_PAYLOAD_SAMPLE_RATE overrides", async () => {
-    process.env.SWAY_PAYLOAD_CAPTURE = "sample";
-    process.env.SWAY_PAYLOAD_SAMPLE_RATE = "0.25";
+  test("env SUWOK_PAYLOAD_SAMPLE_RATE overrides", async () => {
+    process.env.SUWOK_PAYLOAD_CAPTURE = "sample";
+    process.env.SUWOK_PAYLOAD_SAMPLE_RATE = "0.25";
     __resetPayloadCaptureForTests();
     const p = await getCapturePolicy();
     expect(p.mode, `sample mode`).toBe("sample");
     expect(p.sampleRate, `env rate 0.25`).toBe(0.25);
-    delete process.env.SWAY_PAYLOAD_CAPTURE;
-    delete process.env.SWAY_PAYLOAD_SAMPLE_RATE;
+    delete process.env.SUWOK_PAYLOAD_CAPTURE;
+    delete process.env.SUWOK_PAYLOAD_SAMPLE_RATE;
     __resetPayloadCaptureForTests();
   });
 
   test("invalid env mode falls back to default none", async () => {
-    process.env.SWAY_PAYLOAD_CAPTURE = "garbage";
+    process.env.SUWOK_PAYLOAD_CAPTURE = "garbage";
     __resetPayloadCaptureForTests();
     const p = await getCapturePolicy();
     expect(p.mode, `invalid → none`).toBe("none");
-    delete process.env.SWAY_PAYLOAD_CAPTURE;
+    delete process.env.SUWOK_PAYLOAD_CAPTURE;
     __resetPayloadCaptureForTests();
   });
 });
@@ -175,7 +175,7 @@ describe("payloadCapture: end-to-end via requestDetailsRepo flush", () => {
   test("mode=none strips bodies; row still written with metadata + payload_capture tag", async () => {
     process.env.ENABLE_REQUEST_LOGS = "true";
     process.env.OBSERVABILITY_MAX_JSON_SIZE = "20";
-    process.env.SWAY_PAYLOAD_CAPTURE = "none";
+    process.env.SUWOK_PAYLOAD_CAPTURE = "none";
     __resetPayloadCaptureForTests();
     const id = `e2e-none-${Date.now()}`;
     await saveRequestDetail({
@@ -205,7 +205,7 @@ describe("payloadCapture: end-to-end via requestDetailsRepo flush", () => {
   test("mode=bounded keeps bodies verbatim", async () => {
     process.env.ENABLE_REQUEST_LOGS = "true";
     process.env.OBSERVABILITY_MAX_JSON_SIZE = "20";
-    process.env.SWAY_PAYLOAD_CAPTURE = "bounded";
+    process.env.SUWOK_PAYLOAD_CAPTURE = "bounded";
     __resetPayloadCaptureForTests();
     const id = `e2e-bounded-${Date.now()}`;
     await saveRequestDetail({
@@ -226,13 +226,13 @@ describe("payloadCapture: end-to-end via requestDetailsRepo flush", () => {
     expect((row?.response as any)?.content, `response kept`).toBe("PLAIN ANSWER");
     delete process.env.ENABLE_REQUEST_LOGS;
     delete process.env.OBSERVABILITY_MAX_JSON_SIZE;
-    delete process.env.SWAY_PAYLOAD_CAPTURE;
+    delete process.env.SUWOK_PAYLOAD_CAPTURE;
   });
 
   test("mode=error keeps failure body, drops success body", async () => {
     process.env.ENABLE_REQUEST_LOGS = "true";
     process.env.OBSERVABILITY_MAX_JSON_SIZE = "20";
-    process.env.SWAY_PAYLOAD_CAPTURE = "error";
+    process.env.SUWOK_PAYLOAD_CAPTURE = "error";
     __resetPayloadCaptureForTests();
     const okId = `e2e-err-ok-${Date.now()}`;
     const badId = `e2e-err-bad-${Date.now()}`;
@@ -249,6 +249,6 @@ describe("payloadCapture: end-to-end via requestDetailsRepo flush", () => {
     expect((badRow?.request as any)?.body, `failure body kept`).toBe("FAILED");
     delete process.env.ENABLE_REQUEST_LOGS;
     delete process.env.OBSERVABILITY_MAX_JSON_SIZE;
-    delete process.env.SWAY_PAYLOAD_CAPTURE;
+    delete process.env.SUWOK_PAYLOAD_CAPTURE;
   });
 });

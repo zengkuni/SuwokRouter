@@ -4,7 +4,7 @@ export const BUILTIN_PROVIDER_CATALOG: AvailableProvider[] = [
   {"id":"alicode","name":"Alibaba","alias":"alicode","category":"apikey","authType":"apikey","color":"#FF6A00","icon":"cloud","textIcon":"ALi"},
   {"id":"alicode-intl","name":"Alibaba Coding","alias":"alicode-intl","category":"apikey","authType":"apikey","color":"#FF6A00","icon":"cloud","textIcon":"ALi"},
   {"id":"alims-intl","name":"Alibaba Studio","alias":"alims-intl","category":"apikey","authType":"apikey","color":"#FF6A00","icon":"cloud","textIcon":"ALi"},
-  {"id":"agentrouter","name":"Agent Router","alias":"agentrouter","category":"apikey","authType":"apikey","authModes":["apikey"],"color":"#7C5CFC","icon":"sway","textIcon":"SW","passthroughModels":true},
+  {"id":"agentrouter","name":"Agent Router","alias":"agentrouter","category":"apikey","authType":"apikey","authModes":["apikey"],"color":"#7C5CFC","icon":"suwok","textIcon":"SW","passthroughModels":true},
   {"id":"anthropic","name":"Anthropic","alias":"anthropic","category":"apikey","authType":"apikey","color":"#D97757","icon":"smart_toy","textIcon":"AN"},
   {"id":"antigravity","name":"Antigravity","alias":"ag","category":"oauth","authType":"oauth","color":"#F59E0B","icon":"rocket_launch"},
   {"id":"azure","name":"Azure OpenAI","alias":"azure","category":"apikey","authType":"apikey","color":"#0078D4","icon":"cloud","textIcon":"AZ"},

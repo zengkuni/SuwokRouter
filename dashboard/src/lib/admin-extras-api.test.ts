@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { formToSettingsPartial, settingsToForm, type SettingsForm } from "@/lib/admin-extras-api";
 
 const FORM: SettingsForm = {
-  profileName: "Sway Router",
+  profileName: "Suwok Router",
   profileAvatar: "",
   currency: "USD",
   requireApiKey: true,

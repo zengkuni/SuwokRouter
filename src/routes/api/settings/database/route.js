@@ -3,7 +3,7 @@ import { exportDb, importDb } from "@/lib/localDb";
 import { verifyDashboardPassword } from "@/lib/auth/dashboardSession";
 import { hasValidCliToken } from "@/dashboardGuard";
 
-const PASSWORD_HEADER = "x-swayrouter-password";
+const PASSWORD_HEADER = "x-suwokrouter-password";
 const HEADERS = { "Cache-Control": "no-store" };
 
 export async function GET(request) {

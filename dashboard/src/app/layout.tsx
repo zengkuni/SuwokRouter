@@ -7,7 +7,7 @@ import { CommandPalette } from "@/components/CommandPalette";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-const SwayChat = lazy(() => import("@/pages/SwayChat"));
+const SuwokChat = lazy(() => import("@/pages/SuwokChat"));
 
 export function ProtectedLayout() {
   const location = useLocation();
@@ -86,12 +86,12 @@ export function ProtectedLayout() {
             </button>
             <div className="flex min-w-0 max-w-[calc(100%-5rem)] items-center justify-center gap-2">
               <img
-                src="/logo/sway.svg"
+                src="/logo/suwok.svg"
                 alt=""
                 className="h-7 w-7 shrink-0 rounded-md object-contain"
               />
               <span className="truncate text-sm font-semibold tracking-tight">
-                Sway Router
+                Suwok Router
               </span>
             </div>
           </header>
@@ -121,7 +121,7 @@ export function ProtectedLayout() {
             {chatMounted ? (
               <div className={cn("min-h-0 flex-1", isChatRoute ? "flex" : "hidden")}>
                 <Suspense fallback={<div className="h-full min-h-[40vh] w-full animate-pulse rounded-xl bg-card/40" />}>
-                  <SwayChat />
+                  <SuwokChat />
                 </Suspense>
               </div>
             ) : null}

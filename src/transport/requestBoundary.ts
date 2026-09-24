@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
  * container, which is how a host-local request reaches a published port. Never
  * trusted from the wire: stampClientIp deletes any inbound copy first.
  */
-export const HOST_PEER_HEADER = "x-swayrouter-host-peer";
+export const HOST_PEER_HEADER = "x-suwokrouter-host-peer";
 
 /** Aliases a container runtime publishes for the machine that runs the container. */
 const HOST_ALIASES = ["host.docker.internal", "host.containers.internal", "gateway.docker.internal"];
@@ -107,12 +107,12 @@ export function stampClientIp(raw: Request, peerIp: string | null, trust: HostPe
     if (proxyIp) ip = proxyIp;
   }
 
-  raw.headers.delete("x-swayrouter-real-ip");
+  raw.headers.delete("x-suwokrouter-real-ip");
   raw.headers.delete("x-forwarded-for");
-  raw.headers.delete("x-swayrouter-via-proxy");
+  raw.headers.delete("x-suwokrouter-via-proxy");
   raw.headers.delete(HOST_PEER_HEADER);
-  raw.headers.set("x-swayrouter-real-ip", ip);
-  if (viaProxy) raw.headers.set("x-swayrouter-via-proxy", "1");
+  raw.headers.set("x-suwokrouter-real-ip", ip);
+  if (viaProxy) raw.headers.set("x-suwokrouter-via-proxy", "1");
   if (!isLoopback && isHostPeer(peer, trust)) raw.headers.set(HOST_PEER_HEADER, "1");
 }
 
@@ -295,7 +295,7 @@ export function normalizeQueryRequest(raw: Request): Request {
   const url = new URL(raw.url);
   if (!isQueryReadOnlyPath(url.pathname)) return raw;
   const headers = new Headers(raw.headers);
-  headers.set("x-swayrouter-query-method", "QUERY");
+  headers.set("x-suwokrouter-query-method", "QUERY");
   return new Request(url.toString(), { method: "GET", headers, signal: raw.signal });
 }
 
@@ -305,7 +305,7 @@ export function rewritePublicAlias(raw: Request): Request {
   const to = (dest: string) => {
     url.pathname = dest;
     const next = new Request(url.toString(), raw);
-    next.headers.set("x-swayrouter-rewritten", dest);
+    next.headers.set("x-suwokrouter-rewritten", dest);
     return next;
   };
 

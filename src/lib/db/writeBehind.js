@@ -1,13 +1,13 @@
 import { histogram, counter, writeBehindBufferRows } from "@/observability/metrics.js";
 
 const FLUSH_LATENCY = histogram({
-  name: "sway_write_behind_flush_ms",
+  name: "suwok_write_behind_flush_ms",
   help: "Write-behind buffer flush latency in milliseconds",
   labels: ["buffer"],
 });
 
 const COALESCED_TOTAL = counter({
-  name: "sway_write_behind_writes_total",
+  name: "suwok_write_behind_writes_total",
   help: "Rows coalesced and flushed by the write-behind buffer",
   labels: ["buffer"],
 });

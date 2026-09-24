@@ -15,12 +15,12 @@ describe("cli config formatter", () => {
     const parsed = JSON.parse(result.content) as Record<string, any>;
     expect(result.fileName).toBe("opencode.json");
     expect(result.modelCount).toBe(2);
-    expect(parsed.provider.swayrouter.options.baseURL).toBe(
+    expect(parsed.provider.suwokrouter.options.baseURL).toBe(
       "http://127.0.0.1:1212/v1",
     );
-    expect(parsed.provider.swayrouter.models["clinepass/glm-5.2"]).toBeTruthy();
-    expect(parsed.model).toBe("swayrouter/openai/gpt-5");
-    expect(parsed.agent.explorer.model).toBe("swayrouter/clinepass/glm-5.2");
+    expect(parsed.provider.suwokrouter.models["clinepass/glm-5.2"]).toBeTruthy();
+    expect(parsed.model).toBe("suwokrouter/openai/gpt-5");
+    expect(parsed.agent.explorer.model).toBe("suwokrouter/clinepass/glm-5.2");
     expect(result.content).not.toContain("sk-secret-value");
   });
 
@@ -50,7 +50,7 @@ describe("cli config formatter", () => {
     });
 
     expect(result.complete).toBe(true);
-    expect(result.content).toContain('model_provider = "swayrouter"');
+    expect(result.content).toContain('model_provider = "suwokrouter"');
     expect(result.content).not.toContain('model = ""');
   });
 

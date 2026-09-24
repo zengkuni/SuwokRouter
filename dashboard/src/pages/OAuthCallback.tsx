@@ -39,7 +39,7 @@ export default function OAuthCallback() {
     [],
   );
   const [state, setState] = useState<CallbackState>("processing");
-  const [message, setMessage] = useState("Returning to Sway Router…");
+  const [message, setMessage] = useState("Returning to Suwok Router…");
 
   const [callbackProviderId, setCallbackProviderId] = useState<string | undefined>(
     () =>
@@ -136,7 +136,7 @@ export default function OAuthCallback() {
       : state === "error"
         ? "Connection could not be completed"
         : state === "manual"
-          ? "Return to Sway Router"
+          ? "Return to Suwok Router"
         : "Completing authorization";
   const isSuccess = state === "success";
   const isError = state === "error";
@@ -146,11 +146,11 @@ export default function OAuthCallback() {
       <Card className="w-full max-w-[420px] items-stretch border-border bg-card p-4 text-center">
         <div className="inline-flex self-start items-center gap-2 text-[13px] font-semibold tracking-[0.01em] text-foreground">
           <img
-            src="/logo/sway.svg"
-            alt="Sway Router"
+            src="/logo/suwok.svg"
+            alt="Suwok Router"
             className="h-6 w-6 rounded-md object-contain"
           />
-          <span>Sway Router</span>
+          <span>Suwok Router</span>
         </div>
 
         <div className="relative mt-7 self-center">

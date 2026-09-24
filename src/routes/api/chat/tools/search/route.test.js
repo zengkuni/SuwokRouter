@@ -28,7 +28,7 @@ function searchRequest(body) {
   });
 }
 
-describe("Sway Chat web search tool", () => {
+describe("Suwok Chat web search tool", () => {
   test("validates the query before making a network request", async () => {
     let called = false;
     globalThis.fetch = (async () => {
@@ -49,21 +49,21 @@ describe("Sway Chat web search tool", () => {
     globalThis.fetch = (async (input) => {
       requestedUrl = String(input);
       return jsonResponse({
-        Heading: "Sway Router",
+        Heading: "Suwok Router",
         AbstractText: "A local-first AI gateway.",
-        AbstractURL: "https://example.com/sway",
+        AbstractURL: "https://example.com/suwok",
         RelatedTopics: [
           { Text: "Documentation", FirstURL: "https://example.com/docs" },
-          { Text: "Ignored duplicate", FirstURL: "https://example.com/sway" },
+          { Text: "Ignored duplicate", FirstURL: "https://example.com/suwok" },
         ],
       });
     });
 
-    const response = await POST(searchRequest({ query: "Sway Router", max_results: 2 }));
+    const response = await POST(searchRequest({ query: "Suwok Router", max_results: 2 }));
     const body = await response.json();
     expect(response.status).toBe(200);
     expect(new URL(requestedUrl).hostname).toBe("api.duckduckgo.com");
-    expect(body).toMatchObject({ ok: true, query: "Sway Router", provider: "duckduckgo", answer: "A local-first AI gateway." });
+    expect(body).toMatchObject({ ok: true, query: "Suwok Router", provider: "duckduckgo", answer: "A local-first AI gateway." });
     expect(body.results).toHaveLength(2);
     expect(body.results[1]).toMatchObject({ title: "Documentation", url: "https://example.com/docs" });
   });

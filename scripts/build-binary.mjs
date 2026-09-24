@@ -10,7 +10,7 @@ const platformTarget = process.platform === "win32"
     ? (process.arch === "arm64" ? "bun-darwin-arm64" : "bun-darwin-x64")
     : (process.arch === "arm64" ? "bun-linux-arm64" : "bun-linux-x64");
 const target = process.env.BUN_TARGET || platformTarget;
-const outputName = target.includes("windows") ? "swayrouter.exe" : "swayrouter";
+const outputName = target.includes("windows") ? "suwokrouter.exe" : "suwokrouter";
 const output = join(outDir, outputName);
 
 function run(command, args, cwd = root) {

@@ -1,7 +1,7 @@
-export const OAUTH_CALLBACK_SOURCE = "sway-oauth";
+export const OAUTH_CALLBACK_SOURCE = "suwok-oauth";
 export const OAUTH_CALLBACK_TYPE = "oauth_callback";
-const OAUTH_CALLBACK_STORAGE_PREFIX = "sway-oauth-callback:";
-const OAUTH_CALLBACK_PROVIDER_PREFIX = "sway-oauth-provider:";
+const OAUTH_CALLBACK_STORAGE_PREFIX = "suwok-oauth-callback:";
+const OAUTH_CALLBACK_PROVIDER_PREFIX = "suwok-oauth-provider:";
 const OAUTH_CALLBACK_MAX_AGE_MS = 10 * 60 * 1000;
 
 export type OAuthCallbackPayload = {

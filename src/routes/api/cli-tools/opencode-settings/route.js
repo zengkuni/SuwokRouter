@@ -44,9 +44,9 @@ const readConfig = async () => {
   }
 };
 
-const hasSwayRouterConfig = (config) => {
+const hasSuwokRouterConfig = (config) => {
   if (!config?.provider) return false;
-  return !!config.provider["swayrouter"];
+  return !!config.provider["suwokrouter"];
 };
 
 export async function GET() {
@@ -62,17 +62,17 @@ export async function GET() {
     }
 
     const config = await readConfig();
-    const providerConfig = config?.provider?.["swayrouter"];
+    const providerConfig = config?.provider?.["suwokrouter"];
     const modelMap = providerConfig?.models || {};
 
     return NextResponse.json({
       installed: true,
       config,
-      hasSwayRouter: hasSwayRouterConfig(config),
+      hasSuwokRouter: hasSuwokRouterConfig(config),
       configPath: getConfigPath(),
         opencode: {
           models: Object.keys(modelMap),
-          activeModel: config?.model?.startsWith("swayrouter/") ? config.model.replace(/^swayrouter\//, "") : null,
+          activeModel: config?.model?.startsWith("suwokrouter/") ? config.model.replace(/^suwokrouter\//, "") : null,
           baseURL: providerConfig?.options?.baseURL || null,
         },
     });
@@ -104,12 +104,12 @@ export async function POST(request) {
     } catch {                          }
 
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
-    const keyToUse = apiKey || "sk_swayrouter";
+    const keyToUse = apiKey || "sk_suwokrouter";
     const effectiveSubagentModel = subagentModel || modelsArray[0];
 
     if (!config.provider) config.provider = {};
 
-    const existingProvider = config.provider["swayrouter"] || { npm: "@ai-sdk/openai-compatible", options: {}, models: {} };
+    const existingProvider = config.provider["suwokrouter"] || { npm: "@ai-sdk/openai-compatible", options: {}, models: {} };
 
     existingProvider.options = {
       ...existingProvider.options,
@@ -121,13 +121,13 @@ export async function POST(request) {
       if (!m || typeof m !== "string") continue;
       existingProvider.models[m] = { name: m, modalities: { input: ["text", "image"], output: ["text"] } };
     }
-    config.provider["swayrouter"] = existingProvider;
+    config.provider["suwokrouter"] = existingProvider;
 
     const finalActive = activeModel || modelsArray[0];
     if (activeModel === "") {
-      if (config.model?.startsWith("swayrouter/")) delete config.model;
+      if (config.model?.startsWith("suwokrouter/")) delete config.model;
     } else if (finalActive) {
-      config.model = `swayrouter/${finalActive}`;
+      config.model = `suwokrouter/${finalActive}`;
     }
 
     if (effectiveSubagentModel) {
@@ -135,9 +135,9 @@ export async function POST(request) {
       config.agent.explorer = {
         description: "Fast explorer subagent for codebase exploration",
         mode: "subagent",
-        model: `swayrouter/${effectiveSubagentModel}`,
+        model: `suwokrouter/${effectiveSubagentModel}`,
       };
-    } else if (config.agent?.explorer?.model?.startsWith("swayrouter/")) {
+    } else if (config.agent?.explorer?.model?.startsWith("suwokrouter/")) {
       delete config.agent.explorer;
       if (Object.keys(config.agent).length === 0) delete config.agent;
     };
@@ -173,7 +173,7 @@ export async function PATCH(request) {
 
     if (clearActiveModel === true) {
 
-      if (config.model?.startsWith("swayrouter/")) {
+      if (config.model?.startsWith("suwokrouter/")) {
         config.model = "";
       }
     }
@@ -207,24 +207,24 @@ export async function DELETE(request) {
       throw error;
     }
 
-    if (modelToRemove && config.provider?.["swayrouter"]?.models) {
-      delete config.provider["swayrouter"].models[modelToRemove];
+    if (modelToRemove && config.provider?.["suwokrouter"]?.models) {
+      delete config.provider["suwokrouter"].models[modelToRemove];
 
-      if (Object.keys(config.provider["swayrouter"].models).length === 0) {
-        delete config.provider["swayrouter"];
-        if (config.model?.startsWith("swayrouter/")) delete config.model;
-      } else if (config.model === `swayrouter/${modelToRemove}`) {
+      if (Object.keys(config.provider["suwokrouter"].models).length === 0) {
+        delete config.provider["suwokrouter"];
+        if (config.model?.startsWith("suwokrouter/")) delete config.model;
+      } else if (config.model === `suwokrouter/${modelToRemove}`) {
 
-        const remainingModels = Object.keys(config.provider["swayrouter"].models);
-        config.model = `swayrouter/${remainingModels[0]}`;
+        const remainingModels = Object.keys(config.provider["suwokrouter"].models);
+        config.model = `suwokrouter/${remainingModels[0]}`;
       }
     } else {
 
-      if (config.provider) delete config.provider["swayrouter"];
-      if (config.model?.startsWith("swayrouter/")) delete config.model;
+      if (config.provider) delete config.provider["suwokrouter"];
+      if (config.model?.startsWith("suwokrouter/")) delete config.model;
     }
 
-    if (config.agent?.explorer?.model?.startsWith("swayrouter/")) {
+    if (config.agent?.explorer?.model?.startsWith("suwokrouter/")) {
       delete config.agent.explorer;
 
       if (Object.keys(config.agent).length === 0) delete config.agent;
@@ -234,7 +234,7 @@ export async function DELETE(request) {
 
     return NextResponse.json({
       success: true,
-      message: modelToRemove ? `Model "${modelToRemove}" removed` : "Sway Router settings removed from OpenCode",
+      message: modelToRemove ? `Model "${modelToRemove}" removed` : "Suwok Router settings removed from OpenCode",
     });
   } catch (error) {
     console.log("Error resetting opencode settings:", error);

@@ -32,7 +32,7 @@ export async function POST(request) {
     const body = await request.json();
     const validation = validateGenerationBody(body);
     if (validation.error) return NextResponse.json({ error: validation.error }, { status: 400 });
-    const normalizedBody = validation.value; const n = normalizedBody.n; const providers = parseAllowlist((await getSettings()).mediaProviders ?? process.env.SWAY_MEDIA_PROVIDERS);
+    const normalizedBody = validation.value; const n = normalizedBody.n; const providers = parseAllowlist((await getSettings()).mediaProviders ?? process.env.SUWOK_MEDIA_PROVIDERS);
     if (!providers.size) return NextResponse.json({ error: "Image generation is disabled" }, { status: 404 });
     const provider = String(normalizedBody.provider || [...providers][0]).toLowerCase();
     if (!providers.has(provider)) return NextResponse.json({ error: "Media provider is not enabled" }, { status: 404 });

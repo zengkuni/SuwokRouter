@@ -1,6 +1,6 @@
 <div align="center">
-  <img src="./assets/BannerGithubSway.png" alt="Sway Router banner" />
-  <h1 style="margin: 8px 0 0;">Sway Router</h1>
+  <img src="./assets/BannerGithubSuwok.png" alt="Suwok Router banner" />
+  <h1 style="margin: 8px 0 0;">Suwok Router</h1>
 </div>
 
 <p align="center">
@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/envielxyz/SwayRouter/stargazers"><img src="https://img.shields.io/github/stars/envielxyz/SwayRouter?style=flat" alt="GitHub stars" /></a>
+  <a href="https://github.com/bolone-sengkuni/SwayRouter/stargazers"><img src="https://img.shields.io/github/stars/bolone-sengkuni/SwayRouter?style=flat" alt="GitHub stars" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" /></a>
   <a href="https://bun.sh"><img src="https://img.shields.io/badge/runtime-Bun-black?logo=bun" alt="Bun" /></a>
   <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/code-TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript" /></a>
@@ -23,10 +23,10 @@
 </p>
 
 <p align="center">
-  <img src="./docs/media/screenshots/dashboard.png" alt="Sway Router dashboard" width="960" />
+  <img src="./docs/media/screenshots/dashboard.png" alt="Suwok Router dashboard" width="960" />
 </p>
 
-Sway Router brings all your AI providers into one clean gateway, with a simple
+Suwok Router brings all your AI providers into one clean gateway, with a simple
 dashboard to manage models, routing, and usage.
 
 ## Contents
@@ -39,8 +39,8 @@ dashboard to manage models, routing, and usage.
 - [Migrate from 9Router](#migrate-from-9router)
 - [Providers](#providers)
 - [Supported CLI Tools](#supported-cli-tools)
-- [Features](#what-sway-router-can-do)
-- [Comparison](#sway-router-vs-9router-vs-omniroute)
+- [Features](#what-suwok-router-can-do)
+- [Comparison](#suwok-router-vs-9router-vs-omniroute)
 - [Operations and security](#operations-and-security)
 - [Tech stack](#tech-stack)
 - [Configuration](#configuration)
@@ -53,8 +53,8 @@ dashboard to manage models, routing, and usage.
 Install it globally and start the router:
 
 ```bash
-bun install -g swayrouter@latest
-swayrouter
+bun install -g suwokrouter@latest
+suwokrouter
 ```
 
 The CLI can start, stop, restart, and check the router status. It also checks
@@ -78,11 +78,11 @@ installed, skip the first step.
    bun --version
    ```
 
-3. Install and start Sway Router:
+3. Install and start Suwok Router:
 
    ```powershell
-   bun install -g swayrouter@latest
-   swayrouter start -b
+   bun install -g suwokrouter@latest
+   suwokrouter start -b
    ```
 
 4. Open `http://127.0.0.1:1212/dashboard` in your browser and finish the
@@ -91,11 +91,11 @@ installed, skip the first step.
 5. Check or stop the local instance whenever you need:
 
    ```powershell
-   swayrouter status
-   swayrouter stop
+   suwokrouter status
+   suwokrouter stop
    ```
 
-The CLI keeps Sway Router's runtime data under `%APPDATA%\.swayrouter`.
+The CLI keeps Suwok Router's runtime data under `%APPDATA%\.suwokrouter`.
 You do not need to create a `.env` file for a normal local install.
 
 ### Uninstall
@@ -103,23 +103,23 @@ You do not need to create a `.env` file for a normal local install.
 Stop the local router before removing the global CLI:
 
 ```powershell
-swayrouter stop
-bun remove -g swayrouter
+suwokrouter stop
+bun remove -g suwokrouter
 ```
 
-If you installed it with npm, use `npm uninstall -g swayrouter` instead.
+If you installed it with npm, use `npm uninstall -g suwokrouter` instead.
 Uninstalling the package does not remove your provider credentials, settings,
 API keys, or usage data. To remove those as well, export a JSON backup first,
-stop the router, then delete `%APPDATA%\.swayrouter` on Windows or
-`~/.swayrouter` on Linux/macOS.
+stop the router, then delete `%APPDATA%\.suwokrouter` on Windows or
+`~/.suwokrouter` on Linux/macOS.
 
 ### Windows — run from source
 
 For contributors working from a checkout:
 
 ```powershell
-git clone https://github.com/envielxyz/SwayRouter.git
-cd SwayRouter
+git clone https://github.com/bolone-sengkuni/SwayRouter.git
+cd SuwokRouter
 bun install --frozen-lockfile
 Push-Location dashboard
 bun install --frozen-lockfile
@@ -152,12 +152,12 @@ second terminal.
 Use the public image from Docker Hub:
 
 ```bash
-docker pull envielxyz/swayrouter:latest
+docker pull sengkuni/suwokrouter:latest
 docker compose up -d
 docker compose ps
 ```
 
-To build the image from source instead, run `docker build -t envielxyz/swayrouter:latest .`
+To build the image from source instead, run `docker build -t sengkuni/suwokrouter:latest .`
 before starting Compose.
 
 Docker also generates persistent secrets in its data volume. Copy
@@ -166,10 +166,10 @@ Docker also generates persistent secrets in its data volume. Copy
 Open `http://127.0.0.1:1212/dashboard`. Follow the logs with:
 
 ```bash
-docker compose logs -f swayrouter
+docker compose logs -f suwokrouter
 ```
 
-The compose setup keeps the data in the `swayrouter-data` volume, publishes
+The compose setup keeps the data in the `suwokrouter-data` volume, publishes
 the port to localhost only, runs as an unprivileged user, uses a read-only
 root filesystem, and includes a readiness health check. Keep the volume if
 you want to keep your provider connections, keys, settings, and usage data.
@@ -183,17 +183,17 @@ you want to keep your provider connections, keys, settings, and usage data.
 | Native VPS | Bun `1.3+`, a writable data directory, and provider network access | `systemd` is recommended; PM2 is optional                           |
 
 For a small native VPS, start with **2 vCPU, 2 GB RAM, and 10 GB SSD**. A local
-dev machine can run with less. Put Sway Router behind an HTTPS reverse proxy before
+dev machine can run with less. Put Suwok Router behind an HTTPS reverse proxy before
 exposing it outside your private network.
 
 ### Native VPS with PM2 (optional)
 
-PM2 supports Bun, but it is only needed when you run Sway Router directly on the VPS
+PM2 supports Bun, but it is only needed when you run Suwok Router directly on the VPS
 instead of using Docker or another supervisor:
 
 ```bash
 npm install -g pm2
-pm2 start src/server.ts --name swayrouter --interpreter bun
+pm2 start src/server.ts --name suwokrouter --interpreter bun
 pm2 save
 pm2 startup
 ```
@@ -203,7 +203,7 @@ after a reboot. Do not run PM2 on top of Docker Compose for the same container.
 
 ## One HTTP API for your whole stack
 
-Use the client format you already know. Sway Router translates requests and
+Use the client format you already know. Suwok Router translates requests and
 responses for the provider behind the scenes.
 
 | Client / feature        | Endpoint                         |
@@ -225,9 +225,9 @@ common client setups.
 ### Tiny example
 
 ```bash
-export SWAY_API_KEY="swy-your_gateway_key"
+export SUWOK_API_KEY="swy-your_gateway_key"
 curl http://127.0.0.1:1212/v1/chat/completions \
-  --oauth2-bearer "${SWAY_API_KEY}" \
+  --oauth2-bearer "${SUWOK_API_KEY}" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "your-active-model-id",
@@ -235,7 +235,7 @@ curl http://127.0.0.1:1212/v1/chat/completions \
   }'
 ```
 
-Your Sway Router gateway key is separate from the provider credentials behind it.
+Your Suwok Router gateway key is separate from the provider credentials behind it.
 Provider secrets stay on the server.
 
 ## The dashboard you actually want to use
@@ -248,7 +248,7 @@ tablet, and mobile.
 
 | Dashboard                                                        | Providers                                                        |
 | ---------------------------------------------------------------- | ---------------------------------------------------------------- |
-| ![Sway Router dashboard](./docs/media/screenshots/dashboard.png) | ![Provider management](./docs/media/screenshots/providers.png)   |
+| ![Suwok Router dashboard](./docs/media/screenshots/dashboard.png) | ![Provider management](./docs/media/screenshots/providers.png)   |
 | Provider models                                                  | Custom provider                                                  |
 | ![Provider models](./docs/media/screenshots/provider-models.png) | ![Custom provider](./docs/media/screenshots/custom-provider.png) |
 | Usage & cost                                                     | Quota monitor                                                    |
@@ -270,7 +270,7 @@ tablet, and mobile.
 | **Usage**         | Charts, token breakdowns, estimated cost, history, filters, sorting, and request details |
 | **Quota Monitor** | Provider/account availability, quota state, diagnostics, and manual refresh              |
 | **CLI Tools**     | Configure supported coding tools, select models, and copy generated configs              |
-| **Sway Chat**     | Chat through the router with model selection and optional built-in tools                 |
+| **Suwok Chat**     | Chat through the router with model selection and optional built-in tools                 |
 | **Settings**      | Preferences, General, Security, Data controls, and 9Router migration                     |
 | **Console Logs**  | Search, filter, wrap, copy, and inspect runtime/provider diagnostics                     |
 
@@ -287,7 +287,7 @@ tablet, and mobile.
 ## Migrate from 9Router
 
 Moving from 9Router is built into **Settings → Data → Migrate from 9Router**.
-Sway Router supports both migration sources:
+Suwok Router supports both migration sources:
 
 - **Local installation:** automatically finds a supported 9Router database on
   the same machine.
@@ -303,17 +303,17 @@ Before importing, choose exactly what to bring over:
 - Routing settings — off by default
 - Activate imported accounts immediately — off by default
 
-Sway Router previews the migration first and shows what is ready, already present,
+Suwok Router previews the migration first and shows what is ready, already present,
 or skipped. It validates the source, maps provider and model references to
-Sway Router's format, removes duplicates, and reports incompatible or unavailable
+Suwok Router's format, removes duplicates, and reports incompatible or unavailable
 providers instead of importing broken entries. Previewing does not change your
 data.
 
-When you confirm with your dashboard password, Sway Router creates a safety backup,
+When you confirm with your dashboard password, Suwok Router creates a safety backup,
 merges the selected data into the existing database, and refreshes the
-dashboard. Existing Sway Router data is not replaced, and imported accounts remain
+dashboard. Existing Suwok Router data is not replaced, and imported accounts remain
 inactive unless you explicitly enable them during migration. Use **Import JSON**
-for Sway Router backups; use **Migrate from 9Router** for 9Router backups.
+for Suwok Router backups; use **Migrate from 9Router** for 9Router backups.
 
 ## Providers
 
@@ -411,7 +411,7 @@ Perplexity AI uses the official [Perplexity Router API](https://docs.perplexity.
 
 ## Supported CLI Tools
 
-Sway Router can detect and configure these coding tools to use the gateway:
+Suwok Router can detect and configure these coding tools to use the gateway:
 
 - Claude Code
 - Codex CLI
@@ -422,7 +422,7 @@ Sway Router can detect and configure these coding tools to use the gateway:
 - Grok Build
 - OMP (oh-my-pi)
 
-## What Sway Router can do
+## What Suwok Router can do
 
 ### Providers and accounts
 
@@ -468,7 +468,7 @@ Sway Router can detect and configure these coding tools to use the gateway:
 
 ### Backup and migration
 
-- Export and restore Sway Router data as JSON.
+- Export and restore Suwok Router data as JSON.
 - Migrate from a local 9Router installation or a 9Router JSON backup.
 - Select which accounts, custom providers, models, combos, and routing settings
   to import.
@@ -488,22 +488,22 @@ Sway Router can detect and configure these coding tools to use the gateway:
 
 ### Built-in tools
 
-- Sway Chat with optional Tavily or Brave web search.
+- Suwok Chat with optional Tavily or Brave web search.
 - Shell, curl, and router-inspection tools with explicit controls.
 - RTK, Caveman, and Ponytail token-saving features.
 - CLI model mappings for supported coding tools.
 
-## Sway Router vs. 9Router vs. OmniRoute
+## Suwok Router vs. 9Router vs. OmniRoute
 
 All three projects solve a similar problem and cover the usual routing,
 account, fallback, and provider workflows. The simple architecture comparison
 is:
 
-Sway Router also has multi-account rotation, quota-aware selection, token saving,
+Suwok Router also has multi-account rotation, quota-aware selection, token saving,
 retry, fallback, and provider token refresh; this section is intentionally about
 runtime weight, not a feature scoreboard.
 
-- **Sway Router:** Bun + Hono + SQLite, with a React/Vite dashboard. One core
+- **Suwok Router:** Bun + Hono + SQLite, with a React/Vite dashboard. One core
   server designed for local use and small VPS deployments.
 - **[9Router](https://github.com/decolua/9router):** Node + Next.js/React +
   Express + SQLite. More framework layers and a separate CLI runtime.
@@ -512,28 +512,28 @@ runtime weight, not a feature scoreboard.
 
 ### Which one is lighter?
 
-For a comparable local or small-VPS gateway setup, **Sway Router is the
+For a comparable local or small-VPS gateway setup, **Suwok Router is the
 lighter default**. Bun and Hono have less server overhead than a full Next.js
-application, and Sway Router's core does not require extra services to run.
+application, and Suwok Router's core does not require extra services to run.
 
 That is an architecture comparison, not a fixed RAM promise. Real usage still
 depends on concurrent streams, request size, account count, proxy layers, and
-optional services. Sway Router's documented small-VPS starting point is 2 vCPU and
+optional services. Suwok Router's documented small-VPS starting point is 2 vCPU and
 2 GB RAM, with bounded queues, concurrency, retries, and request bodies.
 
-### Why choose Sway Router?
+### Why choose Suwok Router?
 
 - **Smaller default footprint.** A Bun server and SQLite cover the core use
   case without requiring Redis, a hosted sync service, a desktop shell, or a
   browser pool.
 - **A dashboard built for daily use.** Providers, accounts, models, routing,
   usage, quotas, proxy, logs, and settings stay in one clean control room.
-- **Built-in resource guardrails.** Sway Router detects the host profile and keeps
+- **Built-in resource guardrails.** Suwok Router detects the host profile and keeps
   concurrency, queues, request bodies, retries, and background work bounded.
 - **Easy to ship and inspect.** Run it locally, on a small VPS, in Docker, or
   as a standalone binary, with SQLite backup/import and an inspectable API.
 
-The Sway Router figures and menu map come from the [provider registry](./src/providers/registry/index.js),
+The Suwok Router figures and menu map come from the [provider registry](./src/providers/registry/index.js),
 [dashboard navigation](./dashboard/src/components/Sidebar.tsx),
 [route table](./src/routes/table.js), and [package manifest](./package.json).
 
@@ -548,7 +548,7 @@ The Sway Router figures and menu map come from the [provider registry](./src/pro
 - SQLite WAL mode, migrations, indexes, backups, export, and import.
 - Docker/Compose, native source runs, Bun CLI, and standalone binaries.
 
-Sway Router protects its own process and account pools, but it does not create
+Suwok Router protects its own process and account pools, but it does not create
 provider quota or promise a fixed RPS. Your real capacity still depends on
 provider limits, account count, network latency, prompt size, and stream
 duration.
@@ -565,29 +565,29 @@ duration.
 ## Configuration
 
 Configuration is optional for a single local or Docker instance. On first
-start, Sway Router creates strong JWT, gateway-key, and machine-salt secrets under
+start, Suwok Router creates strong JWT, gateway-key, and machine-salt secrets under
 the persistent data directory. Use `.env` when you need to override the
 defaults, bind another host, or manage secrets externally:
 
 ```dotenv
 PORT=1212
 HOSTNAME=127.0.0.1
-DATA_DIR=/var/lib/swayrouter
+DATA_DIR=/var/lib/suwokrouter
 NODE_ENV=production
 JWT_SECRET=replace-with-a-random-secret-at-least-32-characters
 API_KEY_SECRET=replace-with-a-random-secret-at-least-32-characters
 MACHINE_ID_SALT=replace-with-a-random-private-salt
 ```
 
-Never point multiple independent Sway Router instances at the same SQLite data
+Never point multiple independent Suwok Router instances at the same SQLite data
 directory. If a supervisor injects secrets, keep their values stable across
 restarts so dashboard sessions and the instance identity remain stable.
 
 Default database paths:
 
 ```text
-Linux/macOS: ~/.swayrouter/db/data.sqlite
-Windows:     %APPDATA%\\.swayrouter\\db\\data.sqlite
+Linux/macOS: ~/.suwokrouter/db/data.sqlite
+Windows:     %APPDATA%\\.suwokrouter\\db\\data.sqlite
 Docker:      /app/data/db/data.sqlite
 ```
 
@@ -597,9 +597,9 @@ OAuth tokens, cookies, or logs.
 
 ## Why SQLite?
 
-SQLite keeps one private Sway Router instance small, portable, and easy to back up.
+SQLite keeps one private Suwok Router instance small, portable, and easy to back up.
 PostgreSQL and Redis make more sense for a separate commercial app with
-distributed users, billing, background jobs, or multiple Sway Router instances.
+distributed users, billing, background jobs, or multiple Suwok Router instances.
 
 ## Development checks
 
@@ -617,7 +617,7 @@ bun run test:e2e
 
 ## Attribution
 
-Sway Router is built as a standalone project. It reuses selected OAuth, tunnel, CLI,
+Suwok Router is built as a standalone project. It reuses selected OAuth, tunnel, CLI,
 and utility pieces from [9Router](https://github.com/decolua/9router), while the
 gateway, routing, dashboard, storage, API, performance, and release setup are
 built and maintained here.
@@ -628,6 +628,6 @@ See [`LICENSE`](./LICENSE) for the MIT attribution.
 
 MIT. See [`LICENSE`](./LICENSE).
 
-Sway Router is a gateway and administration tool. You are responsible for
+Suwok Router is a gateway and administration tool. You are responsible for
 your provider accounts, credentials, traffic, privacy, compliance, and
 deployment security.

@@ -278,7 +278,7 @@ export async function listAvailableProviders(): Promise<AvailableProvider[]> {
       alias: node?.prefix || display?.alias,
       name: node?.name || display?.name || canonicalId,
       color: display?.color,
-      icon: node ? "sway-custom" : display?.icon,
+      icon: node ? "suwok-custom" : display?.icon,
       textIcon: display?.textIcon,
       category: display?.category,
       authType: display?.authType || "apikey",
@@ -308,7 +308,7 @@ export async function listAvailableProviders(): Promise<AvailableProvider[]> {
       nodeType: n.type,
       apiType: n.apiType,
       iconUrl: n.iconUrl,
-      icon: "sway",
+      icon: "suwok",
       connected: 0,
     });
     seen.add(n.id);
