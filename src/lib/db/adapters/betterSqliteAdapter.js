@@ -1,3 +1,4 @@
+import { createAsyncTransaction } from "./sqliteAsyncShim.js";
 import Database from "better-sqlite3";
 import { PRAGMA_SQL } from "../schema.js";
 import { createStatementCache, startPeriodicTask } from "./runtimeHelpers.js";
@@ -18,14 +19,20 @@ export function createBetterSqliteAdapter(filePath) {
     try { statements.clear(); } catch {}
     try { db.close(); } catch {}
   }
-
   return {
     driver: "better-sqlite3",
-    run(sql, params = []) { return statements.get(sql).run(...params); },
-    get(sql, params = []) { return statements.get(sql).get(...params); },
-    all(sql, params = []) { return statements.get(sql).all(...params); },
-    exec(sql) { return db.exec(sql); },
-    transaction(fn) { return db.transaction(fn)(); },
+    async run(sql, params = []) {
+      const r = statements.get(sql).run(...params);
+      return { changes: Number(r.changes ?? 0), lastInsertRowid: Number(r.lastInsertRowid ?? 0) };
+    },
+    async get(sql, params = []) {
+      return statements.get(sql).get(...params);
+    },
+    async all(sql, params = []) {
+      return statements.get(sql).all(...params);
+    },
+    async exec(sql) { return db.exec(sql); },
+    transaction: createAsyncTransaction(db),
     checkpoint() { try { db.pragma("wal_checkpoint(TRUNCATE)"); } catch {} },
     close() {
       stopCheckpoint();
