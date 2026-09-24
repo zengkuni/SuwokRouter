@@ -1,4 +1,4 @@
-import { getLockStore } from "../cache/lockStore.js";
+import { getLockStore } from "../lib/cache/lockStore.js";
 import {
   getRefreshLeadMs,
   isUnrecoverableRefreshError,

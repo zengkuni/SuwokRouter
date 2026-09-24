@@ -20,7 +20,7 @@ function isTunnelRequest(request, settings) {
 export async function POST(request) {
   try {
     const ip = getClientIp(request);
-    const lock = checkLock(ip);
+    const lock = await checkLock(ip);
     if (lock.locked) {
       return NextResponse.json(
         { error: `Too many failed attempts. Try again in ${lock.retryAfter}s. ${RESET_HINT}`, retryAfter: lock.retryAfter, resetHint: RESET_HINT },
@@ -54,7 +54,7 @@ export async function POST(request) {
     }
 
     if (isValid) {
-      recordSuccess(ip);
+      await recordSuccess(ip);
       const cookieStore = await cookies();
 
       const mustChangePassword = !storedHash;
@@ -63,8 +63,8 @@ export async function POST(request) {
       return NextResponse.json({ success: true, mustChangePassword }, { headers: NO_STORE_HEADERS });
     }
 
-    const { remainingBeforeLock } = recordFail(ip);
-    const postLock = checkLock(ip);
+    const { remainingBeforeLock } = await recordFail(ip);
+    const postLock = await checkLock(ip);
     if (postLock.locked) {
       return NextResponse.json(
         { error: `Too many failed attempts. Try again in ${postLock.retryAfter}s. ${RESET_HINT}`, retryAfter: postLock.retryAfter, resetHint: RESET_HINT },
