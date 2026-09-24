@@ -108,3 +108,10 @@ export function getAdapterSync() {
   if (!state.instance) throw new Error("[DB] adapter not initialized — await getAdapter() first");
   return state.instance;
 }
+
+// Test-only: inject a prebuilt adapter so suites run against an isolated
+// database without touching the real data file.
+export async function setAdapterForTest(adapter) {
+  state.instance = adapter;
+  state.initPromise = Promise.resolve(adapter);
+}

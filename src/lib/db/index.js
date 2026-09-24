@@ -321,31 +321,31 @@ export async function exportDb({ scope = "configuration" } = {}) {
     providerCredentialsIncluded: true,
 
     settings: safeSettings,
-    providerConnections: db.all(`SELECT * FROM providerConnections`).map((r) => ({ ...parseJson(r.data, {}), id: r.id, provider: r.provider, authType: r.authType, name: r.name, email: r.email, priority: r.priority, isActive: r.isActive === 1, createdAt: r.createdAt, updatedAt: r.updatedAt })),
-    providerNodes: db.all(`SELECT * FROM providerNodes`).map((r) => ({ ...parseJson(r.data, {}), id: r.id, type: r.type, name: r.name, createdAt: r.createdAt, updatedAt: r.updatedAt })),
-    proxyPools: db.all(`SELECT * FROM proxyPools`).map((r) => ({ ...parseJson(r.data, {}), id: r.id, isActive: r.isActive === 1, testStatus: r.testStatus, createdAt: r.createdAt, updatedAt: r.updatedAt })),
+    providerConnections: (await db.all(`SELECT * FROM providerConnections`)).map((r) => ({ ...parseJson(r.data, {}), id: r.id, provider: r.provider, authType: r.authType, name: r.name, email: r.email, priority: r.priority, isActive: r.isActive === 1, createdAt: r.createdAt, updatedAt: r.updatedAt })),
+    providerNodes: (await db.all(`SELECT * FROM providerNodes`)).map((r) => ({ ...parseJson(r.data, {}), id: r.id, type: r.type, name: r.name, createdAt: r.createdAt, updatedAt: r.updatedAt })),
+    proxyPools: (await db.all(`SELECT * FROM proxyPools`)).map((r) => ({ ...parseJson(r.data, {}), id: r.id, isActive: r.isActive === 1, testStatus: r.testStatus, createdAt: r.createdAt, updatedAt: r.updatedAt })),
 
     apiKeysRedacted: true,
-    apiKeys: db.all(`SELECT * FROM apiKeys ORDER BY isDefault DESC, createdAt ASC`).map((r) => ({ id: r.id, name: r.name, machineId: r.machineId, isActive: r.isActive === 1, isDefault: r.isDefault === 1, createdAt: r.createdAt })),
-    combos: db.all(`SELECT * FROM combos`).map((r) => ({ id: r.id, name: r.name, kind: r.kind, models: parseJson(r.models, []), createdAt: r.createdAt, updatedAt: r.updatedAt })),
+    apiKeys: (await db.all(`SELECT * FROM apiKeys ORDER BY isDefault DESC, createdAt ASC`)).map((r) => ({ id: r.id, name: r.name, machineId: r.machineId, isActive: r.isActive === 1, isDefault: r.isDefault === 1, createdAt: r.createdAt })),
+    combos: (await db.all(`SELECT * FROM combos`)).map((r) => ({ id: r.id, name: r.name, kind: r.kind, models: parseJson(r.models, []), createdAt: r.createdAt, updatedAt: r.updatedAt })),
     customModels: [],
     pricing: {},
   };
 
-  for (const r of db.all(`SELECT key, value FROM kv WHERE scope = 'customModels'`)) out.customModels.push(parseJson(r.value));
-  for (const r of db.all(`SELECT key, value FROM kv WHERE scope = 'pricing'`)) out.pricing[r.key] = parseJson(r.value);
+  for (const r of await db.all(`SELECT key, value FROM kv WHERE scope = 'customModels'`)) out.customModels.push(parseJson(r.value));
+  for (const r of await db.all(`SELECT key, value FROM kv WHERE scope = 'pricing'`)) out.pricing[r.key] = parseJson(r.value);
 
   if (scope === "full") {
-    out.usageHistory = db.all(`SELECT id, timestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, status, tokens, meta FROM usageHistory ORDER BY id ASC`).map((row) => ({
+    out.usageHistory = (await db.all(`SELECT id, timestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, status, tokens, meta FROM usageHistory ORDER BY id ASC`)).map((row) => ({
       ...row,
       tokens: parseJson(row.tokens, {}),
       meta: parseJson(row.meta, {}),
     }));
-    out.usageDaily = db.all(`SELECT dateKey, data FROM usageDaily ORDER BY dateKey ASC`).map((row) => ({
+    out.usageDaily = (await db.all(`SELECT dateKey, data FROM usageDaily ORDER BY dateKey ASC`)).map((row) => ({
       dateKey: row.dateKey,
       data: parseJson(row.data, {}),
     }));
-    out.requestDetails = db.all(`SELECT id, timestamp, provider, model, connectionId, status, data, trace_id, payload_capture FROM requestDetails ORDER BY timestamp ASC, id ASC`).map((row) => ({
+    out.requestDetails = (await db.all(`SELECT id, timestamp, provider, model, connectionId, status, data, trace_id, payload_capture FROM requestDetails ORDER BY timestamp ASC, id ASC`)).map((row) => ({
       ...row,
       data: parseJson(row.data, {}),
     }));
@@ -363,19 +363,19 @@ export async function importDb(payload) {
   const currentSettings = await exportSettings();
   const preserveApiKeys = apiKeysRedacted || !hasKeyMaterial;
 
-  db.transaction(() => {
+  await db.transaction(async () => {
 
-    db.run(`DELETE FROM settings`);
-    db.run(`DELETE FROM providerConnections`);
-    db.run(`DELETE FROM providerNodes`);
-    db.run(`DELETE FROM proxyPools`);
-    if (!preserveApiKeys) db.run(`DELETE FROM apiKeys`);
-    db.run(`DELETE FROM combos`);
-    db.run(`DELETE FROM kv WHERE scope IN ('customModels', 'pricing')`);
+    await db.run(`DELETE FROM settings`);
+    await db.run(`DELETE FROM providerConnections`);
+    await db.run(`DELETE FROM providerNodes`);
+    await db.run(`DELETE FROM proxyPools`);
+    if (!preserveApiKeys) await db.run(`DELETE FROM apiKeys`);
+    await db.run(`DELETE FROM combos`);
+    await db.run(`DELETE FROM kv WHERE scope IN ('customModels', 'pricing')`);
     if (scope === "full") {
-      db.run(`DELETE FROM usageHistory`);
-      db.run(`DELETE FROM usageDaily`);
-      db.run(`DELETE FROM requestDetails`);
+      await db.run(`DELETE FROM usageHistory`);
+      await db.run(`DELETE FROM usageDaily`);
+      await db.run(`DELETE FROM requestDetails`);
     }
 
     if (payload.settings) {
@@ -384,7 +384,7 @@ export async function importDb(payload) {
       if (currentSettings?.password) settings.password = currentSettings.password;
       else delete settings.password;
       delete settings.upstreamUserAgent;
-      db.run(`INSERT INTO settings(id, data) VALUES(1, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`, [stringifyJson(settings)]);
+      await db.run(`INSERT INTO settings(id, data) VALUES(1, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`, [stringifyJson(settings)]);
     }
 
     for (const c of payload.providerConnections || []) {
@@ -394,62 +394,62 @@ export async function importDb(payload) {
         delete rest.providerSpecificData.upstreamUserAgent;
         delete rest.providerSpecificData.userAgentProfile;
       }
-      db.run(
+      await db.run(
         `INSERT OR REPLACE INTO providerConnections(id, provider, authType, name, email, priority, isActive, data, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [id, provider, authType || "oauth", name || null, email || null, priority || null, isActive === false ? 0 : 1, stringifyJson(rest), createdAt || new Date().toISOString(), updatedAt || new Date().toISOString()]
       );
     }
     for (const n of payload.providerNodes || []) {
       const { id, type, name, createdAt, updatedAt, ...rest } = n;
-      db.run(
+      await db.run(
         `INSERT OR REPLACE INTO providerNodes(id, type, name, data, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?)`,
         [id, type || null, name || null, stringifyJson(rest), createdAt || new Date().toISOString(), updatedAt || new Date().toISOString()]
       );
     }
     for (const p of payload.proxyPools || []) {
       const { id, isActive, testStatus, createdAt, updatedAt, ...rest } = p;
-      db.run(
+      await db.run(
         `INSERT OR REPLACE INTO proxyPools(id, isActive, testStatus, data, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?)`,
         [id, isActive === false ? 0 : 1, testStatus || "unknown", stringifyJson(rest), createdAt || new Date().toISOString(), updatedAt || new Date().toISOString()]
       );
     }
     if (!preserveApiKeys) {
       for (const k of apiKeys) {
-        db.run(
+        await db.run(
           `INSERT OR REPLACE INTO apiKeys(id, key, name, machineId, isActive, isDefault, createdAt) VALUES(?, ?, ?, ?, ?, ?, ?)`,
           [k.id, k.key.trim(), k.name || null, k.machineId || null, k.isActive === false ? 0 : 1, k.isDefault === true ? 1 : 0, k.createdAt || new Date().toISOString()]
         );
       }
     }
     for (const c of payload.combos || []) {
-      db.run(
+      await db.run(
         `INSERT OR REPLACE INTO combos(id, name, kind, models, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?)`,
         [c.id, c.name, c.kind || null, stringifyJson(c.models || []), c.createdAt || new Date().toISOString(), c.updatedAt || new Date().toISOString()]
       );
     }
     for (const m of payload.customModels || []) {
       const k = `${m.providerAlias}|${m.id}|${m.type || "llm"}`;
-      db.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('customModels', ?, ?)`, [k, stringifyJson(m)]);
+      await db.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('customModels', ?, ?)`, [k, stringifyJson(m)]);
     }
     for (const [provider, models] of Object.entries(payload.pricing || {})) {
-      db.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('pricing', ?, ?)`, [provider, stringifyJson(models || {})]);
+      await db.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('pricing', ?, ?)`, [provider, stringifyJson(models || {})]);
     }
 
     if (scope === "full") {
       for (const entry of payload.usageHistory) {
-        db.run(
+        await db.run(
           `INSERT OR REPLACE INTO usageHistory(id, timestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, status, tokens, meta) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [entry.id, entry.timestamp, entry.provider || null, entry.model || null, entry.connectionId || null, entry.apiKey || null, entry.endpoint || null, entry.promptTokens || 0, entry.completionTokens || 0, entry.cost || 0, entry.status || "ok", stringifyJson(entry.tokens || {}), stringifyJson(entry.meta || {})],
         );
       }
       for (const entry of payload.usageDaily) {
-        db.run(
+        await db.run(
           `INSERT OR REPLACE INTO usageDaily(dateKey, data) VALUES(?, ?)`,
           [entry.dateKey, stringifyJson(entry.data)],
         );
       }
       for (const entry of payload.requestDetails) {
-        db.run(
+        await db.run(
           `INSERT OR REPLACE INTO requestDetails(id, timestamp, provider, model, connectionId, status, data, trace_id, payload_capture) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [entry.id, entry.timestamp, entry.provider || null, entry.model || null, entry.connectionId || null, entry.status || null, stringifyJson(entry.data), entry.trace_id || null, entry.payload_capture || null],
         );
