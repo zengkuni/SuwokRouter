@@ -8,7 +8,7 @@ export default {
         const settings = JSON.parse(settingsRow.data);
         if (settings && typeof settings === "object" && !Array.isArray(settings)) {
           delete settings.upstreamUserAgent;
-          await db.run(`UPDATE settings SET data = ? WHERE id = 1`, [JSON.stringify(settings)]);
+          await db.run(`UPDATE settings SET data = $1 WHERE id = 1`, [JSON.stringify(settings)]);
         }
       } catch {
 
@@ -28,7 +28,7 @@ export default {
         ) {
           delete providerSpecificData.upstreamUserAgent;
           delete providerSpecificData.userAgentProfile;
-          await db.run(`UPDATE providerConnections SET data = ? WHERE id = ?`, [
+          await db.run(`UPDATE providerConnections SET data = $1 WHERE id = $2`, [
             JSON.stringify(connection),
             row.id,
           ]);

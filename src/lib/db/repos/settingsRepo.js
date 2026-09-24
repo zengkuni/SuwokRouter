@@ -106,7 +106,7 @@ export async function updateSettings(updates) {
     const current = stripRemovedSettings(row ? parseJson(row.data, {}) : {});
     next = stripRemovedSettings({ ...current, ...updates });
     await db.run(
-      `INSERT INTO settings(id, data) VALUES(1, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`,
+      `INSERT INTO settings(id, data) VALUES(1, $1) ON CONFLICT(id) DO UPDATE SET data = excluded.data`,
       [stringifyJson(next)],
     );
   });

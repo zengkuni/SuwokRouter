@@ -35,31 +35,61 @@ export function backupFile(srcPath, destDir, destName = null) {
   return dest;
 }
 
-export async function backupDbLite(adapter, destDir, destName = "data.sqlite") {
-  const dest = path.join(destDir, destName);
-  try { fs.rmSync(dest, { force: true }); } catch {}
-  const escaped = dest.replace(/'/g, "''");
+// Postgres backup: one JSON file per table (rows as-is), plus a manifest.
+// Portable and dependency-free — no pg_dump client needed in the app image.
+// requestDetails is excluded: it is high-volume, low-value telemetry.
+export async function backupDbLite(adapter, destDir, destName = null) {
+  const tables = await adapter.all(
+    `SELECT table_name FROM information_schema.tables
+     WHERE table_schema = current_schema() AND table_type = 'BASE TABLE'
+       AND table_name <> ALL($1)`,
+    [BACKUP_EXCLUDE_TABLES]
+  );
+  const dumped = [];
+  for (const { table_name: table } of tables) {
+    const rows = await adapter.all(`SELECT * FROM ${table}`);
+    const dest = path.join(destDir, `${table}.json`);
+    fs.writeFileSync(dest, JSON.stringify(rows), { mode: 0o600 });
+    applyPrivateMode(dest, 0o600);
+    dumped.push({ table, rows: rows.length });
+  }
+  const manifest = {
+    product: "suwokrouter",
+    driver: "postgres",
+    createdAt: new Date().toISOString(),
+    tables: dumped,
+  };
+  const manifestPath = path.join(destDir, "manifest.json");
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), { mode: 0o600 });
+  applyPrivateMode(manifestPath, 0o600);
+  return destDir;
+}
 
-  await adapter.exec(`ATTACH DATABASE '${escaped}' AS bak`);
-  try {
-    const excluded = new Set(BACKUP_EXCLUDE_TABLES);
-    const tables = await (await adapter
-      .all(`SELECT name, sql FROM main.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`))
-      .filter((t) => !excluded.has(t.name));
-
+// Restore a backupDbLite dump: truncate then insert every table. Column list
+// is taken from each row so schema drift between dump and restore surfaces as
+// a clear error instead of silent data loss.
+export async function restoreDbBackup(adapter, backupDir) {
+  const manifestPath = path.join(backupDir, "manifest.json");
+  if (!fs.existsSync(manifestPath)) throw new Error(`backup manifest not found: ${manifestPath}`);
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+  for (const { table } of manifest.tables) {
+    const file = path.join(backupDir, `${table}.json`);
+    if (!fs.existsSync(file)) continue;
+    const rows = JSON.parse(fs.readFileSync(file, "utf-8"));
+    if (!rows.length) continue;
+    const columns = Object.keys(rows[0]);
+    const placeholders = columns.map((_, i) => `$${i + 1}`).join(", ");
     await adapter.transaction(async () => {
-      for (const t of tables) {
-
-        const createSql = t.sql.replace(/CREATE TABLE\s+/i, "CREATE TABLE bak.");
-        await adapter.exec(createSql);
-        await adapter.exec(`INSERT INTO bak.${t.name} SELECT * FROM main.${t.name}`);
+      await adapter.run(`DELETE FROM ${table}`);
+      for (const row of rows) {
+        await adapter.run(
+          `INSERT INTO ${table}(${columns.join(", ")}) VALUES(${placeholders})`,
+          columns.map((c) => row[c])
+        );
       }
     });
-  } finally {
-    try { await adapter.exec("DETACH DATABASE bak"); } catch {}
   }
-  applyPrivateMode(dest, 0o600);
-  return dest;
+  return manifest.tables.length;
 }
 
 export function pruneOldBackups() {

@@ -19,25 +19,52 @@ const POOL_OPTIONS = {
   idle_timeout: 30,
   connect_timeout: 10,
   max_lifetime: 1800,
-  // BIGSERIAL/BIGINT come back as numbers; JSON stays TEXT in this schema, so
-  // no jsonb parsing surprises. Timestamps are TEXT by design.
+  // postgres.js wants { to, from, parse, serialize } per type. int8
+  // (BIGSERIAL/COUNT) -> Number or every count compare in repos breaks;
+  // numeric -> Number; date family -> ISO strings.
   types: {
-    bigint: (value) => Number(value),
-    numeric: (value) => Number(value),
-    timestamp: (value) => new Date(value).toISOString(),
-    timestamptz: (value) => new Date(value).toISOString(),
-    date: (value) => new Date(value).toISOString(),
+    bigint: { to: 20, from: [20], parse: (v) => Number(v), serialize: (v) => String(v) },
+    numeric: { to: 1700, from: [1700], parse: (v) => Number(v), serialize: (v) => String(v) },
+    timestamp: { to: 1114, from: [1114], parse: (v) => new Date(v).toISOString(), serialize: (v) => new Date(v).toISOString() },
+    timestamptz: { to: 1184, from: [1184], parse: (v) => new Date(v).toISOString(), serialize: (v) => new Date(v).toISOString() },
+    date: { to: 1082, from: [1082], parse: (v) => new Date(v).toISOString(), serialize: (v) => new Date(v).toISOString() },
   },
   transform: {
-    // Postgres folds unquoted identifiers to lowercase; repos read camelCase.
-    column: (name) => restoreColumnName(name),
     // undefined params become NULL instead of a driver error.
     value: (value) => (value === undefined ? null : value),
   },
   onnotice: () => {},
 };
 
-function createAdapter(sql) {
+// Postgres folds unquoted identifiers to lowercase; repos read camelCase.
+// Done here (not via pool transform) so any pool — app singleton or a
+// test-owned one — yields camelCase row keys.
+function camelize(rows) {
+  if (!Array.isArray(rows)) return rows;
+  return rows.map((row) => {
+    if (!row || typeof row !== "object") return row;
+    const out = {};
+    for (const key of Object.keys(row)) out[restoreColumnName(key)] = row[key];
+    return out;
+  });
+}
+
+// ownsPool: false for the shared singleton (its lifetime is the process);
+// true for a caller-supplied pool, whose close() really ends it.
+// postgres.js throws UNDEFINED_VALUE on undefined params (SQLite drivers
+// bound them as NULL). Normalize at the boundary so repos keep passing
+// possibly-undefined JSON fields straight through.
+function normParams(params) {
+  if (!Array.isArray(params)) return [];
+  return params.map((p) => (p === undefined ? null : p));
+}
+
+// postgres.js errors carry a readonly `query`; attach ours safely.
+function attachQuery(e, query) {
+  try { Object.defineProperty(e, "sqlText", { value: query, configurable: true }); } catch {}
+}
+
+function createAdapter(sql, ownsPool = false) {
   // Every method resolves the pool lazily through the ALS store so a single
   // adapter object serves both plain and transactional statements.
   const active = () => txStorage.getStore() ?? sql;
@@ -47,19 +74,24 @@ function createAdapter(sql) {
     raw: sql,
 
     async run(query, params = []) {
-      const res = await active().unsafe(query, params);
-      // No repo reads lastInsertRowid today; expose it when the SQL carries
-      // RETURNING id (BIGSERIAL inserts in usageHistory).
-      return { changes: res.count ?? 0, lastInsertRowid: res[0]?.id ?? null };
+      try {
+        const res = await active().unsafe(query, normParams(params));
+        // No repo reads lastInsertRowid today; expose it when the SQL carries
+        // RETURNING id (BIGSERIAL inserts in usageHistory).
+        return { changes: res.count ?? 0, lastInsertRowid: res[0]?.id ?? null };
+      } catch (e) { attachQuery(e, query); throw e; }
     },
 
     async get(query, params = []) {
-      const rows = await active().unsafe(query, params);
+      let rows;
+      try { rows = camelize(await active().unsafe(query, normParams(params))); }
+      catch (e) { attachQuery(e, query); throw e; }
       return rows[0] ?? null;
     },
 
     async all(query, params = []) {
-      return active().unsafe(query, params);
+      try { return camelize(await active().unsafe(query, normParams(params))); }
+      catch (e) { attachQuery(e, query); throw e; }
     },
 
     async exec(query) {
@@ -86,7 +118,7 @@ function createAdapter(sql) {
     },
 
     async close() {
-      await sql.end({ timeout: 5 });
+      if (ownsPool) await sql.end({ timeout: 5 });
     },
   };
 }
@@ -100,9 +132,9 @@ function getPool(url) {
 }
 
 export function createPostgresAdapter({ url, pool } = {}) {
-  if (pool) return createAdapter(pool);
+  if (pool) return createAdapter(pool, true);
   if (!url) throw new Error("createPostgresAdapter requires url or pool");
-  return createAdapter(getPool(url));
+  return createAdapter(getPool(url), false);
 }
 
 export async function closePostgresPool() {

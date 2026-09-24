@@ -35,13 +35,10 @@ maybe("postgres schema", () => {
   });
 
   afterAll(async () => {
-    if (!sql) return;
-    // Reverse dependency order; test DB is disposable, this keeps the local
-    // dev database clean for repeated runs.
-    for (const t of [...TABLES].reverse()) {
-      await sql.unsafe(`DROP TABLE IF EXISTS "${t}" CASCADE`);
-    }
-    await sql.end();
+    // Do NOT drop the tables: they are the app's real schema, shared by every
+    // other suite that runs after this file in the same `bun test` process.
+    // SCHEMA_STATEMENTS are all IF NOT EXISTS, so repeated runs are safe.
+    if (sql) await sql.end();
   });
 
   test("creates all 12 tables", async () => {

@@ -28,7 +28,7 @@ export function createTtlCache(opts) {
   async function currentVersionAsync() {
     try {
       const db = await getAdapter();
-      const row = await db.get(`SELECT value FROM _meta WHERE key = ?`, [VERSION_META_KEY]);
+      const row = await db.get(`SELECT value FROM _meta WHERE key = $1`, [VERSION_META_KEY]);
       return row ? parseInt(row.value, 10) || 0 : 0;
     } catch {
       return 0;
@@ -40,11 +40,11 @@ export function createTtlCache(opts) {
 
     let next = 0;
     await db.transaction(async () => {
-      const row = await db.get(`SELECT value FROM _meta WHERE key = ?`, [VERSION_META_KEY]);
+      const row = await db.get(`SELECT value FROM _meta WHERE key = $1`, [VERSION_META_KEY]);
       const cur = row ? parseInt(row.value, 10) || 0 : 0;
       next = cur + 1;
       await db.run(
-        `INSERT INTO _meta(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+        `INSERT INTO _meta(key, value) VALUES($1, $2) ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
         [VERSION_META_KEY, String(next)],
       );
     });

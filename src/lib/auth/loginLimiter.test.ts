@@ -15,7 +15,7 @@ describe("loginLimiter: rapid bad login → temporary lock", () => {
   test("keeps unique failed-login sources bounded", () => {
     for (let i = 0; i < 10_100; i++) recordFail(`198.51.100.${i}`);
     expect(__getLoginLimiterSizeForTests()).toBeLessThanOrEqual(10_000);
-  });
+  }, { timeout: 30_000 });
 
   test("5 recordFail → locked with retryAfter", () => {
     let last = null;

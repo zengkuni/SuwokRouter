@@ -2,7 +2,7 @@ import { getAdapter } from "../driver.js";
 import { parseJson, stringifyJson } from "./jsonCol.js";
 
 const UPSERT_SQL = `INSERT INTO kv(scope, key, value)
-  VALUES(?, ?, ?)
+  VALUES($1, $2, $3)
   ON CONFLICT(scope, key) DO UPDATE SET value = excluded.value`;
 
 async function saveValue(db, scope, key, value) {
@@ -15,12 +15,12 @@ export function makeKv(scope) {
   return {
     async get(key, fallback = null) {
       const db = await read();
-      const row = await db.get(`SELECT value FROM kv WHERE scope = ? AND key = ?`, [scope, key]);
+      const row = await db.get(`SELECT value FROM kv WHERE scope = $1 AND key = $2`, [scope, key]);
       return row ? parseJson(row.value, fallback) : fallback;
     },
     async getAll() {
       const db = await read();
-      const rows = await db.all(`SELECT key, value FROM kv WHERE scope = ?`, [scope]);
+      const rows = await db.all(`SELECT key, value FROM kv WHERE scope = $1`, [scope]);
       const out = {};
       for (const r of rows) out[r.key] = parseJson(r.value);
       return out;
@@ -38,11 +38,11 @@ export function makeKv(scope) {
     },
     async remove(key) {
       const db = await read();
-      await db.run(`DELETE FROM kv WHERE scope = ? AND key = ?`, [scope, key]);
+      await db.run(`DELETE FROM kv WHERE scope = $1 AND key = $2`, [scope, key]);
     },
     async clear() {
       const db = await read();
-      await db.run(`DELETE FROM kv WHERE scope = ?`, [scope]);
+      await db.run(`DELETE FROM kv WHERE scope = $1`, [scope]);
     },
   };
 }

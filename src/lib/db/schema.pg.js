@@ -155,6 +155,17 @@ export const SCHEMA_STATEMENTS = [
 
   `CREATE INDEX IF NOT EXISTS idx_aml_model_expires ON account_model_locks (modelId, expiresAt)`,
   `CREATE INDEX IF NOT EXISTS idx_aml_conn ON account_model_locks (connectionId)`,
+
+  // Safe text->jsonb extractor. The data columns are TEXT (repos stringify
+  // themselves); this replaces SQLite json_extract(data, '$.a.b') and returns
+  // NULL instead of throwing when a row is not valid JSON.
+  `CREATE OR REPLACE FUNCTION suwok_jsonb_text(p TEXT, path TEXT[]) RETURNS TEXT
+     LANGUAGE plpgsql IMMUTABLE AS $$
+   BEGIN
+     RETURN (p::jsonb #>> path);
+   EXCEPTION WHEN others THEN
+     RETURN NULL;
+   END $$`,
 ];
 
 // Postgres folds unquoted identifiers to lowercase; these are the exact
@@ -174,6 +185,11 @@ export const CAMEL_COLUMNS = {
   apikey: "apiKey",
   modelid: "modelId",
   expiresat: "expiresAt",
+  proxypoolid: "proxyPoolId",
+  connectionname: "connectionName",
+  connectionemail: "connectionEmail",
+  apikeyid: "apiKeyId",
+  authtype: "authType",
 };
 
 export function restoreColumnName(lowered) {

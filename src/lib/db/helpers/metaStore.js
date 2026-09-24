@@ -1,7 +1,7 @@
 import { getAdapter } from "../driver.js";
 
-const META_READ = `SELECT value FROM _meta WHERE key = ?`;
-const META_WRITE = `INSERT INTO _meta(key, value) VALUES(?, ?)
+const META_READ = `SELECT value FROM _meta WHERE key = $1`;
+const META_WRITE = `INSERT INTO _meta(key, value) VALUES($1, $2)
   ON CONFLICT(key) DO UPDATE SET value = excluded.value`;
 
 async function readMeta(adapter, key, fallback) {

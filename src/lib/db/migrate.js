@@ -1,10 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { LEGACY_FILES, DB_DIR } from "./paths.js";
-import { TABLES, buildCreateTableSql, SCHEMA_VERSION } from "./schema.js";
+import { SCHEMA_STATEMENTS, SCHEMA_VERSION } from "./schema.pg.js";
 import { MIGRATIONS, latestVersion } from "./migrations/index.js";
 import { getMetaSync, setMetaSync } from "./helpers/metaStore.js";
-import { makeBackupDir, backupFile, backupDbLite, pruneOldBackups } from "./backup.js";
+import { makeBackupDir, backupFile, pruneOldBackups } from "./backup.js";
 import { getAppVersion } from "./version.js";
 import { stringifyJson } from "./helpers/jsonCol.js";
 
@@ -20,6 +20,11 @@ export class MigrationAborted extends Error {
   }
 }
 
+// Idempotent bootstrap: every statement is CREATE ... IF NOT EXISTS.
+async function bootstrapSchema(adapter) {
+  for (const stmt of SCHEMA_STATEMENTS) await adapter.exec(stmt);
+}
+
 async function importWithAssertion(adapter, tableName, rows, insertFn, rowMeta) {
   const dropped = [];
   for (const row of rows) {
@@ -27,7 +32,7 @@ async function importWithAssertion(adapter, tableName, rows, insertFn, rowMeta) 
     catch (err) { dropped.push({ ...rowMeta(row), reason: err.message }); }
   }
   const row = await adapter.get(`SELECT COUNT(*) as c FROM ${tableName}`);
-  const inserted = row?.c ?? 0;
+  const inserted = Number(row?.c ?? 0);
   if (inserted !== rows.length) {
     console.warn(`[DB][migrate] ${tableName} row-count mismatch: expected ${rows.length}, got ${inserted}. Dropped:`, dropped);
     throw new MigrationAborted(`${tableName} row-count mismatch: expected ${rows.length}, got ${inserted}`, dropped);
@@ -40,18 +45,16 @@ function readJsonSafe(file) {
 }
 
 async function isFreshDb(adapter) {
-
   try {
     const row = await adapter.get(`SELECT COUNT(*) as c FROM _meta`);
-    return !row || row.c === 0;
+    return !row || Number(row.c) === 0;
   } catch {
     return true;
   }
 }
 
 async function runVersionedMigrations(adapter) {
-
-  await adapter.exec(buildCreateTableSql("_meta", TABLES._meta));
+  await bootstrapSchema(adapter);
 
   const current = parseInt(await getMetaSync(adapter, "schemaVersion", "0"), 10) || 0;
   const target = latestVersion();
@@ -70,46 +73,27 @@ async function runVersionedMigrations(adapter) {
   return { applied: pending.length, from: current, to: lastApplied };
 }
 
+// Safety net for columns added outside schema.pg.js: information_schema
+// replaces PRAGMA table_info; ADD COLUMN IF NOT EXISTS replaces the guard.
 async function syncSchemaFromTables(adapter) {
-  for (const [tableName, def] of Object.entries(TABLES)) {
-
-    await adapter.exec(buildCreateTableSql(tableName, def));
-
-    const existing = await adapter.all(`PRAGMA table_info(${tableName})`);
-    const existingNames = new Set(existing.map((r) => r.name));
-    for (const [colName, colDef] of Object.entries(def.columns)) {
-      if (!existingNames.has(colName)) {
-
-        const safeDef = colDef
-          .replace(/PRIMARY KEY( AUTOINCREMENT)?/i, "")
-          .replace(/UNIQUE/i, "")
-          .trim();
-        try {
-          await adapter.exec(`ALTER TABLE ${tableName} ADD COLUMN ${colName} ${safeDef}`);
-          console.log(`[DB][sync] +column ${tableName}.${colName}`);
-        } catch (e) {
-          console.warn(`[DB][sync] add column ${tableName}.${colName} failed: ${e.message}`);
-        }
-      }
-    }
-
-    for (const idx of def.indexes || []) {
-      try { await adapter.exec(idx); } catch {}
-    }
-  }
+  await bootstrapSchema(adapter);
 }
 
 async function importLegacyMain(adapter, data) {
   if (!data || typeof data !== "object") return;
 
   if (data.settings) {
-    await adapter.run(`INSERT INTO settings(id, data) VALUES(1, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`, [stringifyJson(data.settings)]);
+    await adapter.run(`INSERT INTO settings(id, data) VALUES(1, $1) ON CONFLICT(id) DO UPDATE SET data = excluded.data`, [stringifyJson(data.settings)]);
   }
 
   await importWithAssertion(adapter, "providerConnections", data.providerConnections || [], async (c) => {
     const { id, provider, authType, name, email, priority, isActive, createdAt, updatedAt, ...rest } = c;
     await adapter.run(
-      `INSERT OR REPLACE INTO providerConnections(id, provider, authType, name, email, priority, isActive, data, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO providerConnections(id, provider, authType, name, email, priority, isActive, data, createdAt, updatedAt)
+       VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       ON CONFLICT(id) DO UPDATE SET provider = excluded.provider, authType = excluded.authType, name = excluded.name,
+         email = excluded.email, priority = excluded.priority, isActive = excluded.isActive, data = excluded.data,
+         createdAt = excluded.createdAt, updatedAt = excluded.updatedAt`,
       [id, provider, authType || "oauth", name || null, email || null, priority || null, isActive === false ? 0 : 1, stringifyJson(rest), createdAt || new Date().toISOString(), updatedAt || new Date().toISOString()]
     );
   }, (c) => ({ id: c.id ?? null, provider: c.provider ?? null, name: c.name ?? null }));
@@ -117,40 +101,51 @@ async function importLegacyMain(adapter, data) {
   await importWithAssertion(adapter, "providerNodes", data.providerNodes || [], async (n) => {
     const { id, type, name, createdAt, updatedAt, ...rest } = n;
     await adapter.run(
-      `INSERT OR REPLACE INTO providerNodes(id, type, name, data, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO providerNodes(id, type, name, data, createdAt, updatedAt)
+       VALUES($1, $2, $3, $4, $5, $6)
+       ON CONFLICT(id) DO UPDATE SET type = excluded.type, name = excluded.name, data = excluded.data,
+         createdAt = excluded.createdAt, updatedAt = excluded.updatedAt`,
       [id, type || null, name || null, stringifyJson(rest), createdAt || new Date().toISOString(), updatedAt || new Date().toISOString()]
     );
   }, (n) => ({ id: n.id ?? null, type: n.type ?? null, name: n.name ?? null }));
 
   await importWithAssertion(adapter, "proxyPools", data.proxyPools || [], async (p) => {
     const { id, isActive, testStatus, createdAt, updatedAt, ...rest } = p;
-
     await adapter.run(
-      `INSERT OR REPLACE INTO proxyPools(id, isActive, testStatus, data, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO proxyPools(id, isActive, testStatus, data, createdAt, updatedAt)
+       VALUES($1, $2, $3, $4, $5, $6)
+       ON CONFLICT(id) DO UPDATE SET isActive = excluded.isActive, testStatus = excluded.testStatus,
+         data = excluded.data, createdAt = excluded.createdAt, updatedAt = excluded.updatedAt`,
       [id, isActive === false ? 0 : 1, testStatus || "unknown", stringifyJson(rest), createdAt || new Date().toISOString(), updatedAt || new Date().toISOString()]
     );
   }, (p) => ({ id: p.id ?? null }));
 
   await importWithAssertion(adapter, "apiKeys", data.apiKeys || [], async (k) => {
     await adapter.run(
-      `INSERT OR REPLACE INTO apiKeys(id, key, name, machineId, isActive, createdAt) VALUES(?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO apiKeys(id, key, name, machineId, isActive, createdAt)
+       VALUES($1, $2, $3, $4, $5, $6)
+       ON CONFLICT(id) DO UPDATE SET key = excluded.key, name = excluded.name, machineId = excluded.machineId,
+         isActive = excluded.isActive, createdAt = excluded.createdAt`,
       [k.id, k.key, k.name || null, k.machineId || null, k.isActive === false ? 0 : 1, k.createdAt || new Date().toISOString()]
     );
   }, (k) => ({ id: k.id ?? null, name: k.name ?? null }));
 
   await importWithAssertion(adapter, "combos", data.combos || [], async (c) => {
     await adapter.run(
-      `INSERT OR REPLACE INTO combos(id, name, kind, models, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO combos(id, name, kind, models, createdAt, updatedAt)
+       VALUES($1, $2, $3, $4, $5, $6)
+       ON CONFLICT(id) DO UPDATE SET name = excluded.name, kind = excluded.kind, models = excluded.models,
+         createdAt = excluded.createdAt, updatedAt = excluded.updatedAt`,
       [c.id, c.name, c.kind || null, stringifyJson(c.models || []), c.createdAt || new Date().toISOString(), c.updatedAt || new Date().toISOString()]
     );
   }, (c) => ({ id: c.id ?? null, name: c.name ?? null }));
 
   for (const m of data.customModels || []) {
     const k = `${m.providerAlias}|${m.id}|${m.type || "llm"}`;
-    await adapter.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('customModels', ?, ?)`, [k, stringifyJson(m)]);
+    await adapter.run(`INSERT INTO kv(scope, key, value) VALUES('customModels', $1, $2) ON CONFLICT(scope, key) DO UPDATE SET value = excluded.value`, [k, stringifyJson(m)]);
   }
   for (const [provider, models] of Object.entries(data.pricing || {})) {
-    await adapter.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('pricing', ?, ?)`, [provider, stringifyJson(models || {})]);
+    await adapter.run(`INSERT INTO kv(scope, key, value) VALUES('pricing', $1, $2) ON CONFLICT(scope, key) DO UPDATE SET value = excluded.value`, [provider, stringifyJson(models || {})]);
   }
 }
 
@@ -159,7 +154,8 @@ async function importLegacyUsage(adapter, data) {
   for (const e of data.history || []) {
     const t = e.tokens || {};
     await adapter.run(
-      `INSERT INTO usageHistory(timestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, status, tokens, meta) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO usageHistory(timestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, status, tokens, meta)
+       VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
       [
         e.timestamp || new Date().toISOString(),
         e.provider || null, e.model || null, e.connectionId || null, e.apiKey || null, e.endpoint || null,
@@ -173,7 +169,7 @@ async function importLegacyUsage(adapter, data) {
     );
   }
   for (const [dateKey, day] of Object.entries(data.dailySummary || {})) {
-    await adapter.run(`INSERT OR REPLACE INTO usageDaily(dateKey, data) VALUES(?, ?)`, [dateKey, stringifyJson(day)]);
+    await adapter.run(`INSERT INTO usageDaily(dateKey, data) VALUES($1, $2) ON CONFLICT(dateKey) DO UPDATE SET data = excluded.data`, [dateKey, stringifyJson(day)]);
   }
   if (typeof data.totalRequestsLifetime === "number") {
     await setMetaSync(adapter, "totalRequestsLifetime", data.totalRequestsLifetime);
@@ -183,7 +179,7 @@ async function importLegacyUsage(adapter, data) {
 async function importLegacyDisabled(adapter, data) {
   if (!data || typeof data.disabled !== "object") return;
   for (const [provider, ids] of Object.entries(data.disabled)) {
-    await adapter.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('disabledModels', ?, ?)`, [provider, stringifyJson(ids || [])]);
+    await adapter.run(`INSERT INTO kv(scope, key, value) VALUES('disabledModels', $1, $2) ON CONFLICT(scope, key) DO UPDATE SET value = excluded.value`, [provider, stringifyJson(ids || [])]);
   }
 }
 
@@ -191,7 +187,10 @@ async function importLegacyDetails(adapter, data) {
   if (!data || !Array.isArray(data.records)) return;
   for (const r of data.records) {
     await adapter.run(
-      `INSERT OR REPLACE INTO requestDetails(id, timestamp, provider, model, connectionId, status, data) VALUES(?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO requestDetails(id, timestamp, provider, model, connectionId, status, data)
+       VALUES($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT(id) DO UPDATE SET timestamp = excluded.timestamp, provider = excluded.provider, model = excluded.model,
+         connectionId = excluded.connectionId, status = excluded.status, data = excluded.data`,
       [r.id, r.timestamp || new Date().toISOString(), r.provider || null, r.model || null, r.connectionId || null, r.status || null, stringifyJson(r)]
     );
   }
@@ -205,20 +204,10 @@ export async function runMigrationOnce(adapter) {
 
   pruneOldBackups();
 
-  await adapter.exec(buildCreateTableSql("_meta", TABLES._meta));
+  await bootstrapSchema(adapter);
 
-  const storedSchemaVer = parseInt(await getMetaSync(adapter, "backupSchemaVersion", "0"), 10) || 0;
-  const schemaChanging = !fresh && storedSchemaVer < SCHEMA_VERSION;
-  if (schemaChanging) {
-    try {
-      const backupDir = makeBackupDir(`schema-${storedSchemaVer}-to-${SCHEMA_VERSION}`);
-      await backupDbLite(adapter, backupDir);
-      pruneOldBackups();
-      console.log(`[DB][migrate] pre-schema backup ${storedSchemaVer} → ${SCHEMA_VERSION}: ${backupDir}`);
-    } catch (e) {
-      console.warn(`[DB][migrate] pre-schema backup failed (continuing): ${e.message}`);
-    }
-  }
+  // backupSchemaVersion is refreshed below; the pre-schema backup itself is
+  // pg_dump-based and lands with the backup redesign (B6).
 
   const migInfo = await runVersionedMigrations(adapter);
 
@@ -258,7 +247,7 @@ export async function runMigrationOnce(adapter) {
 
     try { fs.writeFileSync(MIGRATED_MARKER, new Date().toISOString()); } catch {}
     pruneOldBackups();
-    console.log(`[DB][migrate] JSON → SQLite in ${Date.now() - t0}ms | legacy JSON kept at DATA_DIR | backup: ${backupDir}`);
+    console.log(`[DB][migrate] JSON → Postgres in ${Date.now() - t0}ms | legacy JSON kept at DATA_DIR | backup: ${backupDir}`);
     return;
   }
 

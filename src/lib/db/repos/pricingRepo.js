@@ -61,14 +61,14 @@ export async function updatePricing(pricingData) {
   const db = await getAdapter();
   await db.transaction(async () => {
     for (const [provider, models] of Object.entries(pricingData)) {
-      const row = await db.get(`SELECT value FROM kv WHERE scope = 'pricing' AND key = ?`, [provider]);
+      const row = await db.get(`SELECT value FROM kv WHERE scope = 'pricing' AND key = $1`, [provider]);
       const current = row ? (parseJson(row.value, {}) || {}) : {};
       const merged = { ...current };
       for (const [model, pricing] of Object.entries(models)) {
         merged[model] = pricing;
       }
       await db.run(
-        `INSERT INTO kv(scope, key, value) VALUES('pricing', ?, ?) ON CONFLICT(scope, key) DO UPDATE SET value = excluded.value`,
+        `INSERT INTO kv(scope, key, value) VALUES('pricing', $1, $2) ON CONFLICT(scope, key) DO UPDATE SET value = excluded.value`,
         [provider, stringifyJson(merged)]
       );
     }
@@ -82,17 +82,17 @@ export async function resetPricing(provider, model) {
   const db = await getAdapter();
   await db.transaction(async () => {
     if (!model) {
-      await db.run(`DELETE FROM kv WHERE scope = 'pricing' AND key = ?`, [provider]);
+      await db.run(`DELETE FROM kv WHERE scope = 'pricing' AND key = $1`, [provider]);
       return;
     }
-    const row = await db.get(`SELECT value FROM kv WHERE scope = 'pricing' AND key = ?`, [provider]);
+    const row = await db.get(`SELECT value FROM kv WHERE scope = 'pricing' AND key = $1`, [provider]);
     const current = row ? (parseJson(row.value, {}) || {}) : {};
     delete current[model];
     if (Object.keys(current).length === 0) {
-      await db.run(`DELETE FROM kv WHERE scope = 'pricing' AND key = ?`, [provider]);
+      await db.run(`DELETE FROM kv WHERE scope = 'pricing' AND key = $1`, [provider]);
     } else {
       await db.run(
-        `INSERT INTO kv(scope, key, value) VALUES('pricing', ?, ?) ON CONFLICT(scope, key) DO UPDATE SET value = excluded.value`,
+        `INSERT INTO kv(scope, key, value) VALUES('pricing', $1, $2) ON CONFLICT(scope, key) DO UPDATE SET value = excluded.value`,
         [provider, stringifyJson(current)]
       );
     }

@@ -29,7 +29,7 @@ export async function getCombos() {
 
 export async function getComboById(id) {
   const db = await getAdapter();
-  const row = await db.get(`SELECT * FROM combos WHERE id = ?`, [id]);
+  const row = await db.get(`SELECT * FROM combos WHERE id = $1`, [id]);
   return rowToCombo(row);
 }
 
@@ -52,7 +52,7 @@ export async function createCombo(data) {
     updatedAt: now,
   };
   await db.run(
-    `INSERT INTO combos(id, name, kind, models, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO combos(id, name, kind, models, createdAt, updatedAt) VALUES($1, $2, $3, $4, $5, $6)`,
     [combo.id, combo.name, combo.kind, stringifyJson(combo.models), combo.createdAt, combo.updatedAt]
   );
   await bumpConfigCacheVersion().catch(() => {});
@@ -63,11 +63,11 @@ export async function updateCombo(id, data) {
   const db = await getAdapter();
   let result = null;
   await db.transaction(async () => {
-    const row = await db.get(`SELECT * FROM combos WHERE id = ?`, [id]);
+    const row = await db.get(`SELECT * FROM combos WHERE id = $1`, [id]);
     if (!row) return;
     const merged = { ...rowToCombo(row), ...data, updatedAt: new Date().toISOString() };
     await db.run(
-      `UPDATE combos SET name = ?, kind = ?, models = ?, updatedAt = ? WHERE id = ?`,
+      `UPDATE combos SET name = $1, kind = $2, models = $3, updatedAt = $4 WHERE id = $5`,
       [merged.name, merged.kind, stringifyJson(merged.models || []), merged.updatedAt, id]
     );
     result = merged;
@@ -78,7 +78,7 @@ export async function updateCombo(id, data) {
 
 export async function deleteCombo(id) {
   const db = await getAdapter();
-  const res = await db.run(`DELETE FROM combos WHERE id = ?`, [id]);
+  const res = await db.run(`DELETE FROM combos WHERE id = $1`, [id]);
   const deleted = (res?.changes ?? 0) > 0;
   if (deleted) await bumpConfigCacheVersion().catch(() => {});
   return deleted;

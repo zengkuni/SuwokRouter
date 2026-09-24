@@ -3,6 +3,8 @@ process.env.PORT = process.env.PORT || String(envPortFallback());
 import * as dashboardGuard from "@/dashboardGuard";
 import { initConsoleLogCapture } from "@/lib/consoleLogBuffer.js";
 import { closeAdapter } from "@/lib/db/driver.js";
+import { initDb } from "@/lib/db/index.js";
+import { closePostgresPool } from "@/lib/db/adapters/postgresAdapter.js";
 import { flushRequestDetails } from "@/lib/db/repos/requestDetailsRepo.js";
 import { flushAllWriteBehindBuffers } from "@/lib/db/writeBehind.js";
 import { env } from "@/lib/env";
@@ -213,6 +215,10 @@ initTranslators();
 restoreMetrics().catch((e) => console.error("[metrics:restore]", e));
 
 const hostPeerTrust = await resolveHostPeerTrust();
+
+// Boot gate: schema + migrations + lock reaping complete before the socket
+// accepts traffic. Without this the first requests race migration DDL.
+await initDb();
 
 const server = Bun.serve({
   port: env.port,
@@ -567,6 +573,8 @@ async function gracefulShutdown(exitCode = 0) {
     await flushAllWriteBehindBuffers();
     await persistMetrics();
     await closeAdapter();
+    // End the process-lifetime pool after the adapter state is reset.
+    await closePostgresPool();
   })();
   let shutdownTimer: ReturnType<typeof setTimeout> | null = null;
   const timeout = new Promise<void>((resolve) => {

@@ -168,7 +168,7 @@ async function flushToDatabase() {
             record.payload_capture = `${policy.mode}:${decision}`;
 
             await db.run(
-              `INSERT INTO requestDetails(id, timestamp, provider, model, connectionId, status, data, trace_id, payload_capture) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET timestamp = excluded.timestamp, provider = excluded.provider, model = excluded.model, connectionId = excluded.connectionId, status = excluded.status, data = excluded.data, trace_id = excluded.trace_id, payload_capture = excluded.payload_capture`,
+              `INSERT INTO requestDetails(id, timestamp, provider, model, connectionId, status, data, trace_id, payload_capture) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT(id) DO UPDATE SET timestamp = excluded.timestamp, provider = excluded.provider, model = excluded.model, connectionId = excluded.connectionId, status = excluded.status, data = excluded.data, trace_id = excluded.trace_id, payload_capture = excluded.payload_capture`,
               [record.id, record.timestamp, record.provider, record.model, record.connectionId, record.status, stringifyJson(record), trace_id, record.payload_capture]
             );
           }
@@ -176,7 +176,7 @@ async function flushToDatabase() {
           const cnt = await db.get(`SELECT COUNT(*) as c FROM requestDetails`);
           if (cnt && cnt.c > config.maxRecords) {
             await db.run(
-              `DELETE FROM requestDetails WHERE id IN (SELECT id FROM requestDetails ORDER BY timestamp ASC LIMIT ?)`,
+              `DELETE FROM requestDetails WHERE id IN (SELECT id FROM requestDetails ORDER BY timestamp ASC LIMIT $1)`,
               [cnt.c - config.maxRecords]
             );
           }
@@ -203,11 +203,11 @@ export async function clearRequestDetails({ startDate, endDate } = {}) {
   const conds = [];
   const params = [];
   if (startDate) {
-    conds.push("timestamp >= ?");
+    conds.push(`timestamp >= $${params.length + 1}`);
     params.push(new Date(startDate).toISOString());
   }
   if (endDate) {
-    conds.push("timestamp <= ?");
+    conds.push(`timestamp <= $${params.length + 1}`);
     params.push(new Date(endDate).toISOString());
   }
   const where = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
@@ -291,17 +291,17 @@ export async function getRequestDetails(filter = {}) {
   const conds = [];
   const params = [];
 
-  if (filter.provider) { conds.push("provider = ?"); params.push(filter.provider); }
-  if (filter.model) { conds.push("model = ?"); params.push(filter.model); }
-  if (filter.connectionId) { conds.push("connectionId = ?"); params.push(filter.connectionId); }
-  if (filter.status) { conds.push("status = ?"); params.push(filter.status); }
+  if (filter.provider) { conds.push(`provider = $${params.length + 1}`); params.push(filter.provider); }
+  if (filter.model) { conds.push(`model = $${params.length + 1}`); params.push(filter.model); }
+  if (filter.connectionId) { conds.push(`connectionId = $${params.length + 1}`); params.push(filter.connectionId); }
+  if (filter.status) { conds.push(`status = $${params.length + 1}`); params.push(filter.status); }
   if (filter.query) {
     const like = `%${String(filter.query).replace(/[\\%_]/g, "\\$&").slice(0, 200)}%`;
-    conds.push("(provider LIKE ? ESCAPE '\\' OR model LIKE ? ESCAPE '\\' OR status LIKE ? ESCAPE '\\' OR connectionId LIKE ? ESCAPE '\\')");
+    conds.push(`(provider LIKE $${params.length + 1} ESCAPE '\\' OR model LIKE $${params.length + 2} ESCAPE '\\' OR status LIKE $${params.length + 3} ESCAPE '\\' OR connectionId LIKE $${params.length + 4} ESCAPE '\\')`);
     params.push(like, like, like, like);
   }
-  if (filter.startDate) { conds.push("timestamp >= ?"); params.push(new Date(filter.startDate).toISOString()); }
-  if (filter.endDate) { conds.push("timestamp <= ?"); params.push(new Date(filter.endDate).toISOString()); }
+  if (filter.startDate) { conds.push(`timestamp >= $${params.length + 1}`); params.push(new Date(filter.startDate).toISOString()); }
+  if (filter.endDate) { conds.push(`timestamp <= $${params.length + 1}`); params.push(new Date(filter.endDate).toISOString()); }
 
   const where = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
   const cntRow = await db.get(`SELECT COUNT(*) as c FROM requestDetails ${where}`, params);
@@ -314,7 +314,7 @@ export async function getRequestDetails(filter = {}) {
 
   const order = filter.sortDir === "asc" ? "ASC" : "DESC";
   const rows = await db.all(
-    `SELECT data FROM requestDetails ${where} ORDER BY timestamp ${order}, id ${order} LIMIT ? OFFSET ?`,
+    `SELECT data FROM requestDetails ${where} ORDER BY timestamp ${order}, id ${order} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
     [...params, pageSize, offset]
   );
   const details = await enrichDetailsWithUsage(db, rows.map((r) => parseJson(r.data, {})));
@@ -335,7 +335,7 @@ export async function getDistinctProviders() {
 export async function getRequestDetailById(id) {
   await flushToDatabase();
   const db = await getAdapter();
-  const row = await db.get(`SELECT data FROM requestDetails WHERE id = ?`, [id]);
+  const row = await db.get(`SELECT data FROM requestDetails WHERE id = $1`, [id]);
   return row ? parseJson(row.data, null) : null;
 }
 

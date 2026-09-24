@@ -283,7 +283,7 @@ describe("A4.2 account_model_locks ledger — dual-write/clear/reap", () => {
     expect(await countActiveLocks()).toBe(1);
     await reapExpired();
     const db = await getAdapter();
-    const row = await db.get(`SELECT COUNT(*) AS c FROM account_model_locks WHERE connectionId = ?`, ["conn-D"]);
+    const row = await db.get(`SELECT COUNT(*) AS c FROM account_model_locks WHERE connectionId = $1`, ["conn-D"]);
     expect(row?.c).toBe(1);
   });
 });
