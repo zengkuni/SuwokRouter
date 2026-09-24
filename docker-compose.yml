@@ -1,8 +1,52 @@
 services:
-  swayrouter:
-    # image: envielxyz/swayrouter:latest
+  postgres:
+    image: postgres:17-alpine
+    container_name: suwokrouter-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-suwok}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-suwok}
+      POSTGRES_DB: ${POSTGRES_DB:-suwokrouter}
+    command:
+      - postgres
+      - -c
+      - max_connections=300
+      - -c
+      - shared_buffers=1024MB
+      - -c
+      - effective_cache_size=3072MB
+      - -c
+      - work_mem=32MB
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - suwokrouter-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-suwok} -d ${POSTGRES_DB:-suwokrouter}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: suwokrouter-valkey
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - internal
+
+  suwokrouter:
+    # image: sengkuni/suwokrouter:latest
     build: .
-    container_name: swayrouter
+    container_name: suwokrouter
     restart: always
     read_only: true
     security_opt:
@@ -22,7 +66,7 @@ services:
     ports:
       - "127.0.0.1:1212:1212"
     volumes:
-      - ${SWAY_DATA_VOLUME:-swayrouter-data}:/app/data
+      - ${SUWOK_DATA_VOLUME:-suwokrouter-data}:/app/data
 
     healthcheck:
       test:
@@ -30,7 +74,7 @@ services:
           "CMD",
           "bun",
           "-e",
-          "fetch('http://127.0.0.1:14045/api/health/ready').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))",
+          "fetch('http://127.0.0.1:1212/api/health/ready').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))",
         ]
       interval: 30s
       timeout: 5s
@@ -42,15 +86,24 @@ services:
       PORT: "1212"
       HOSTNAME: "0.0.0.0"
       NODE_ENV: production
+      DB_URL: postgres://${POSTGRES_USER:-suwok}:${POSTGRES_PASSWORD:-suwok}@postgres:5432/${POSTGRES_DB:-suwokrouter}
+      REDIS_URL: redis://valkey:6379
       JWT_SECRET: ${JWT_SECRET:-}
       API_KEY_SECRET: ${API_KEY_SECRET:-}
       MACHINE_ID_SALT: ${MACHINE_ID_SALT:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
     networks:
       - internal
 
 volumes:
-  swayrouter-data:
-    name: ${SWAY_DATA_VOLUME:-swayrouter-data}
+  suwokrouter-data:
+    name: ${SUWOK_DATA_VOLUME:-suwokrouter-data}
+  suwokrouter-postgres:
+    name: suwokrouter-postgres
 
 networks:
   internal:
