@@ -1,3 +1,5 @@
+import crypto from "node:crypto";
+import { ttlGetRaw, ttlSetRaw } from "../../lib/cache/ttlStore.js";
 import { proxyAwareFetch } from "../../utils/proxyFetch.js";
 import { ANTHROPIC_API_VERSION } from "../../providers/shared.js";
 import { U, parseResetTime } from "./shared.js";
@@ -10,12 +12,19 @@ const CLAUDE_CONFIG = {
 };
 
 const OAUTH_429_COOLDOWN_MS = 180000;
-const oauthCooldown = new Map();
+
+// Cooldown keyed by a hash of the access token (never the token itself) in
+// the shared store, so a 429 cools down every process. Valkey when
+// configured, memory otherwise.
+function cooldownKey(accessToken) {
+  return `cooldown:claude-oauth:${crypto.createHash("sha256").update(accessToken).digest("hex")}`;
+}
 
 export async function getClaudeUsage(accessToken, proxyOptions = null) {
   try {
 
-    const cooldownUntil = oauthCooldown.get(accessToken);
+    const cooldownRaw = await ttlGetRaw(cooldownKey(accessToken));
+    const cooldownUntil = cooldownRaw ? Number(cooldownRaw) : 0;
     if (cooldownUntil && Date.now() < cooldownUntil) {
       return await getClaudeUsageLegacy(accessToken, proxyOptions);
     }
@@ -72,7 +81,7 @@ export async function getClaudeUsage(accessToken, proxyOptions = null) {
     }
 
     if (oauthResponse.status === 429) {
-      oauthCooldown.set(accessToken, Date.now() + OAUTH_429_COOLDOWN_MS);
+      await ttlSetRaw(cooldownKey(accessToken), String(Date.now() + OAUTH_429_COOLDOWN_MS), OAUTH_429_COOLDOWN_MS);
     }
 
     console.warn(`[Claude Usage] OAuth endpoint returned ${oauthResponse.status}, falling back to legacy`);

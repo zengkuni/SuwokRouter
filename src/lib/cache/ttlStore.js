@@ -46,21 +46,56 @@ function createMemoryTtl() {
   };
 }
 
+// Valkey with a hot fail-open to the memory backend: a command that throws
+// (connection still establishing, brief outage) must not drop the value the
+// caller just wrote — it degrades to memory for that op. After
+// FAILURE_THRESHOLD consecutive failures the store flips to memory for good
+// until reset (circuit-breaker), instead of paying a timeout on every call.
+const FAILURE_THRESHOLD = 3;
+
 function createRedisTtl(redis) {
+  const memory = createMemoryTtl();
+  let failures = 0;
+  const fail = () => {
+    failures += 1;
+    if (failures >= FAILURE_THRESHOLD) resetTtlStore();
+    return true;
+  };
   return {
     kind: "valkey",
     async get(key) {
-      return redis.get(key);
+      try {
+        const value = await redis.get(key);
+        failures = 0;
+        return value;
+      } catch {
+        if (fail()) return memory.get(key);
+      }
     },
     async set(key, text, ttlMs) {
-      if (ttlMs > 0) await redis.set(key, text, "PX", ttlMs);
-      else await redis.set(key, text);
+      try {
+        if (ttlMs > 0) await redis.set(key, text, "PX", ttlMs);
+        else await redis.set(key, text);
+        failures = 0;
+      } catch {
+        if (fail()) await memory.set(key, text, ttlMs);
+      }
     },
     async del(key) {
-      await redis.del(key);
+      try {
+        await redis.del(key);
+        failures = 0;
+      } catch {
+        if (fail()) await memory.del(key);
+      }
     },
     async expire(key, ttlMs) {
-      await redis.pexpire(key, ttlMs);
+      try {
+        await redis.pexpire(key, ttlMs);
+        failures = 0;
+      } catch {
+        if (fail()) await memory.expire(key, ttlMs);
+      }
     },
   };
 }

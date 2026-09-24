@@ -1,3 +1,4 @@
+import { ttlGetRaw, ttlSetRaw } from "../../lib/cache/ttlStore.js";
 import os from "os";
 import { cleanupProviderConnections, getApiKeys, getSettings } from "@/lib/localDb";
 import {
@@ -102,7 +103,9 @@ async function safeRestartTunnel(reason) {
 
   if (isCloudflaredRunning()) return;
 
-  if (!force && Date.now() - svc.lastRestartAt < RESTART_COOLDOWN_MS) {
+  const lastRestartRaw = await ttlGetRaw("cooldown:tunnel-restart");
+  const lastRestartAt = lastRestartRaw ? Number(lastRestartRaw) : 0;
+  if (!force && lastRestartAt && Date.now() - lastRestartAt < RESTART_COOLDOWN_MS) {
     console.log(`[Tunnel] degraded but cooldown active, skip (${reason})`);
     return;
   }
@@ -111,7 +114,7 @@ async function safeRestartTunnel(reason) {
   console.log(`[Tunnel] safeRestart (${reason}) — tunnel unreachable${force ? " [force]" : ""}`);
   try {
     await enableTunnel();
-    svc.lastRestartAt = Date.now();
+    await ttlSetRaw("cooldown:tunnel-restart", String(Date.now()), RESTART_COOLDOWN_MS);
     console.log("[Tunnel] restart success");
   } catch (err) {
     if (!/cloudflared killed|tunnel cancelled/.test(err.message)) {

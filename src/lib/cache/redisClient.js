@@ -34,8 +34,11 @@ export function getRedis() {
   return client;
 }
 
+// "connecting"/"reconnecting" count as available: ioredis queues commands
+// until the handshake finishes, and maxRetriesPerRequest bounds the wait.
+// Only a closed client means "use the memory backend".
 export function isRedisAvailable() {
-  return Boolean(client && client.status === "ready");
+  return Boolean(client && client.status !== "end" && client.status !== "close");
 }
 
 export async function closeRedis() {
