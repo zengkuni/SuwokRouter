@@ -153,4 +153,40 @@ describe("writeBehind: flush-before-read (usageRepo)", () => {
     // database no other suite has written to; the orphan-repair assertion
     // above is the behavior under test.
   });
+
+  test("concurrent stats reconcile does not hit usagedaily_pkey", async () => {
+    // Two concurrent getUsageStats calls each open a reconcile transaction;
+    // under READ COMMITTED a plain INSERT inside the second can collide with
+    // the first's just-committed row. The upsert must make the rebuild safe.
+    await initDb();
+    const db = await getAdapter();
+    await db.run("UPDATE settings SET data = '{}'");
+    await db.run(
+      "INSERT INTO _meta(key, value) VALUES('totalRequestsLifetime', '424242') ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+    );
+    const [a, b] = await Promise.all([getUsageStats("all"), getUsageStats("all")]);
+    expect(a).toBeTruthy();
+    expect(b).toBeTruthy();
+  });
+
+  test("reconcile is idempotent when run back to back", async () => {
+    await initDb();
+    const db = await getAdapter();
+    await saveRequestUsage({
+      provider: "wb-test",
+      model: `wb-idem-${Math.random().toString(36).slice(2, 8)}`,
+      tokens: { prompt_tokens: 1, completion_tokens: 1 },
+      timestamp: new Date().toISOString(),
+    });
+    await flushUsageBuffer();
+    const drift = async () =>
+      db.run(
+        "INSERT INTO _meta(key, value) VALUES('totalRequestsLifetime', '999999') ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+      );
+    await drift();
+    await getUsageStats("all");
+    await drift();
+    await getUsageStats("all"); // must not throw on the second rebuild
+    expect(true).toBe(true);
+  });
 });

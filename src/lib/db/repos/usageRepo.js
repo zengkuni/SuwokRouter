@@ -228,7 +228,11 @@ async function reconcileUsageAggregates(db) {
     await db.run("DELETE FROM usageDaily");
     for (const [dateKey, day] of Object.entries(dayMap)) {
       await db.run(
-        "INSERT INTO usageDaily(dateKey, data) VALUES($1, $2)",
+        // ON CONFLICT: two concurrent reconciles (dashboard chart + stats
+        // read) can both pass their DELETE before either commits; a plain
+        // INSERT then hits the other transaction's just-committed row and
+        // fails with usagedaily_pkey. The rebuild is idempotent, so upsert.
+        "INSERT INTO usageDaily(dateKey, data) VALUES($1, $2) ON CONFLICT(dateKey) DO UPDATE SET data = excluded.data",
         [dateKey, stringifyJson(day)],
       );
     }
