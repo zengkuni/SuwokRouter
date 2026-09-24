@@ -8,32 +8,32 @@ let defaultApiKeyPromise = null;
 async function readAllKeys() {
   const db = await getAdapter();
   await ensureDefaultApiKey(db);
-  const rows = db.all(`SELECT * FROM apiKeys ORDER BY isDefault DESC, createdAt ASC`);
+  const rows = await db.all(`SELECT * FROM apiKeys ORDER BY isDefault DESC, createdAt ASC`);
   return rows.map(rowToKey);
 }
 
 async function ensureDefaultApiKey(db) {
-  const existing = db.get(`SELECT id FROM apiKeys WHERE isDefault = 1 ORDER BY createdAt ASC LIMIT 1`);
+  const existing = await db.get(`SELECT id FROM apiKeys WHERE isDefault = 1 ORDER BY createdAt ASC LIMIT 1`);
   if (existing?.id) {
-    db.run(`UPDATE apiKeys SET isDefault = 0 WHERE id <> ? AND isDefault = 1`, [existing.id]);
+    await db.run(`UPDATE apiKeys SET isDefault = 0 WHERE id <> ? AND isDefault = 1`, [existing.id]);
     return existing.id;
   }
-  const first = db.get(`SELECT id FROM apiKeys ORDER BY createdAt ASC LIMIT 1`);
+  const first = await db.get(`SELECT id FROM apiKeys ORDER BY createdAt ASC LIMIT 1`);
   if (first?.id) {
-    db.run(`UPDATE apiKeys SET isDefault = 0`);
-    db.run(`UPDATE apiKeys SET isDefault = 1 WHERE id = ?`, [first.id]);
+    await db.run(`UPDATE apiKeys SET isDefault = 0`);
+    await db.run(`UPDATE apiKeys SET isDefault = 1 WHERE id = ?`, [first.id]);
     return first.id;
   }
 
   if (!defaultApiKeyPromise) {
     defaultApiKeyPromise = (async () => {
 
-      const currentDefault = db.get(`SELECT id FROM apiKeys WHERE isDefault = 1 ORDER BY createdAt ASC LIMIT 1`);
+      const currentDefault = await db.get(`SELECT id FROM apiKeys WHERE isDefault = 1 ORDER BY createdAt ASC LIMIT 1`);
       if (currentDefault?.id) return currentDefault.id;
-      const currentFirst = db.get(`SELECT id FROM apiKeys ORDER BY createdAt ASC LIMIT 1`);
+      const currentFirst = await db.get(`SELECT id FROM apiKeys ORDER BY createdAt ASC LIMIT 1`);
       if (currentFirst?.id) {
-        db.run(`UPDATE apiKeys SET isDefault = 0`);
-        db.run(`UPDATE apiKeys SET isDefault = 1 WHERE id = ?`, [currentFirst.id]);
+        await db.run(`UPDATE apiKeys SET isDefault = 0`);
+        await db.run(`UPDATE apiKeys SET isDefault = 1 WHERE id = ?`, [currentFirst.id]);
         return currentFirst.id;
       }
 
@@ -45,7 +45,7 @@ async function ensureDefaultApiKey(db) {
       const generated = generateApiKeyWithMachine(machineId);
       const id = uuidv4();
       const createdAt = new Date().toISOString();
-      db.run(
+      await db.run(
         `INSERT INTO apiKeys(id, key, name, machineId, isActive, isDefault, createdAt) VALUES(?, ?, ?, ?, ?, ?, ?)`,
         [id, generated.key, "Primary", machineId, 1, 1, createdAt]
       );
@@ -61,7 +61,7 @@ async function ensureDefaultApiKey(db) {
 async function readKeyMap() {
 
   const db = await getAdapter();
-  const rows = db.all(`SELECT key, isActive FROM apiKeys`);
+  const rows = await db.all(`SELECT key, isActive FROM apiKeys`);
   const map = {};
   for (const r of rows) map[r.key] = r.isActive === 1 || r.isActive === true;
   return map;
@@ -101,7 +101,7 @@ export function mergeApiKeyUpdate(row, data = {}) {
 async function readActiveKey() {
   const db = await getAdapter();
   await ensureDefaultApiKey(db);
-  const row = db.get(`SELECT key FROM apiKeys WHERE isActive = 1 ORDER BY isDefault DESC, createdAt ASC LIMIT 1`);
+  const row = await db.get(`SELECT key FROM apiKeys WHERE isActive = 1 ORDER BY isDefault DESC, createdAt ASC LIMIT 1`);
   return row?.key || null;
 }
 
@@ -111,7 +111,7 @@ export async function getActiveApiKey() {
 
 export async function getApiKeySecretById(id) {
   const db = await getAdapter();
-  const row = db.get(`SELECT key FROM apiKeys WHERE id = ?`, [id]);
+  const row = await db.get(`SELECT key FROM apiKeys WHERE id = ?`, [id]);
   return row?.key || null;
 }
 
@@ -122,7 +122,7 @@ export async function getApiKeys() {
 export async function getApiKeyById(id) {
   const db = await getAdapter();
   await ensureDefaultApiKey(db);
-  const row = db.get(`SELECT * FROM apiKeys WHERE id = ?`, [id]);
+  const row = await db.get(`SELECT * FROM apiKeys WHERE id = ?`, [id]);
   return rowToKey(row);
 }
 
@@ -132,7 +132,7 @@ export async function createApiKey(name, machineId) {
   await ensureDefaultApiKey(db);
   const { generateApiKeyWithMachine } = await import("@/shared/utils/apiKey");
   const result = generateApiKeyWithMachine(machineId);
-  const isDefault = !db.get(`SELECT id FROM apiKeys WHERE isDefault = 1 LIMIT 1`);
+  const isDefault = !await db.get(`SELECT id FROM apiKeys WHERE isDefault = 1 LIMIT 1`);
   const apiKey = {
     id: uuidv4(),
     name,
@@ -142,7 +142,7 @@ export async function createApiKey(name, machineId) {
     isDefault,
     createdAt: new Date().toISOString(),
   };
-  db.run(
+  await db.run(
     `INSERT INTO apiKeys(id, key, name, machineId, isActive, isDefault, createdAt) VALUES(?, ?, ?, ?, ?, ?, ?)`,
     [apiKey.id, apiKey.key, apiKey.name, apiKey.machineId, 1, isDefault ? 1 : 0, apiKey.createdAt]
   );
@@ -154,12 +154,12 @@ export async function updateApiKey(id, data) {
   const db = await getAdapter();
   await ensureDefaultApiKey(db);
   let result = null;
-  db.transaction(() => {
-    const row = db.get(`SELECT * FROM apiKeys WHERE id = ?`, [id]);
+  await db.transaction(async () => {
+    const row = await db.get(`SELECT * FROM apiKeys WHERE id = ?`, [id]);
     if (!row) return;
 
     const merged = mergeApiKeyUpdate(row, data);
-    db.run(
+    await db.run(
       `UPDATE apiKeys SET key = ?, name = ?, machineId = ?, isActive = ? WHERE id = ?`,
       [merged.key, merged.name, merged.machineId, merged.isActive ? 1 : 0, id]
     );
@@ -172,14 +172,14 @@ export async function updateApiKey(id, data) {
 export async function deleteApiKey(id) {
   const db = await getAdapter();
   await ensureDefaultApiKey(db);
-  const row = db.get(`SELECT isDefault FROM apiKeys WHERE id = ?`, [id]);
+  const row = await db.get(`SELECT isDefault FROM apiKeys WHERE id = ?`, [id]);
   if (!row) return false;
   if (row.isDefault === 1 || row.isDefault === true) {
     const error = new Error("The default API key cannot be deleted. Revoke or rotate it instead.");
     error.code = "DEFAULT_API_KEY";
     throw error;
   }
-  const res = db.run(`DELETE FROM apiKeys WHERE id = ?`, [id]);
+  const res = await db.run(`DELETE FROM apiKeys WHERE id = ?`, [id]);
   const deleted = (res?.changes ?? 0) > 0;
   if (deleted) await bumpConfigCacheVersion().catch(() => {});
   return deleted;
@@ -187,12 +187,12 @@ export async function deleteApiKey(id) {
 
 export async function rotateApiKey(id) {
   const db = await getAdapter();
-  const row = db.get(`SELECT * FROM apiKeys WHERE id = ?`, [id]);
+  const row = await db.get(`SELECT * FROM apiKeys WHERE id = ?`, [id]);
   if (!row) return null;
   if (!row.machineId) throw new Error("This API key has no machine id and cannot be rotated.");
   const { generateApiKeyWithMachine } = await import("@/shared/utils/apiKey");
   const generated = generateApiKeyWithMachine(row.machineId);
-  db.run(`UPDATE apiKeys SET key = ? WHERE id = ?`, [generated.key, id]);
+  await db.run(`UPDATE apiKeys SET key = ? WHERE id = ?`, [generated.key, id]);
   await bumpConfigCacheVersion().catch(() => {});
   return rowToKey({ ...row, key: generated.key }, true);
 }

@@ -7,7 +7,7 @@ const combosCache = getConfigCache("combos", { ttlMs: 5000 });
 
 async function readAllCombos() {
   const db = await getAdapter();
-  const rows = db.all(`SELECT * FROM combos ORDER BY createdAt ASC`);
+  const rows = await db.all(`SELECT * FROM combos ORDER BY createdAt ASC`);
   return rows.map(rowToCombo);
 }
 
@@ -29,7 +29,7 @@ export async function getCombos() {
 
 export async function getComboById(id) {
   const db = await getAdapter();
-  const row = db.get(`SELECT * FROM combos WHERE id = ?`, [id]);
+  const row = await db.get(`SELECT * FROM combos WHERE id = ?`, [id]);
   return rowToCombo(row);
 }
 
@@ -51,7 +51,7 @@ export async function createCombo(data) {
     createdAt: now,
     updatedAt: now,
   };
-  db.run(
+  await db.run(
     `INSERT INTO combos(id, name, kind, models, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?)`,
     [combo.id, combo.name, combo.kind, stringifyJson(combo.models), combo.createdAt, combo.updatedAt]
   );
@@ -62,11 +62,11 @@ export async function createCombo(data) {
 export async function updateCombo(id, data) {
   const db = await getAdapter();
   let result = null;
-  db.transaction(() => {
-    const row = db.get(`SELECT * FROM combos WHERE id = ?`, [id]);
+  await db.transaction(async () => {
+    const row = await db.get(`SELECT * FROM combos WHERE id = ?`, [id]);
     if (!row) return;
     const merged = { ...rowToCombo(row), ...data, updatedAt: new Date().toISOString() };
-    db.run(
+    await db.run(
       `UPDATE combos SET name = ?, kind = ?, models = ?, updatedAt = ? WHERE id = ?`,
       [merged.name, merged.kind, stringifyJson(merged.models || []), merged.updatedAt, id]
     );
@@ -78,7 +78,7 @@ export async function updateCombo(id, data) {
 
 export async function deleteCombo(id) {
   const db = await getAdapter();
-  const res = db.run(`DELETE FROM combos WHERE id = ?`, [id]);
+  const res = await db.run(`DELETE FROM combos WHERE id = ?`, [id]);
   const deleted = (res?.changes ?? 0) > 0;
   if (deleted) await bumpConfigCacheVersion().catch(() => {});
   return deleted;
