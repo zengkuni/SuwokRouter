@@ -106,17 +106,6 @@ async function extractTokensViaBunSqlite(dbPath) {
   }
 }
 
-function extractTokensViaBetterSqlite(dbPath) {
-  const Database = require("better-sqlite3");
-  const db = new Database(dbPath, { readonly: true, fileMustExist: true });
-
-  try {
-    return readTokenRows(db);
-  } finally {
-    db.close();
-  }
-}
-
 async function extractTokensViaCLI(dbPath) {
   const normalize = (raw) => {
     const value = raw.trim();
@@ -212,9 +201,10 @@ export async function GET() {
     }
 
     try {
-      const tokens = process.versions.bun
-        ? await extractTokensViaBunSqlite(dbPath)
-        : extractTokensViaBetterSqlite(dbPath);
+      // The server is Bun-only (Bun.serve), so the builtin bun:sqlite path is
+      // the only one. The old better-sqlite3 fallback blocked `bun build
+      // --compile` (the dependency was removed with the SQLite drivers).
+      const tokens = await extractTokensViaBunSqlite(dbPath);
       if (tokens.accessToken && tokens.machineId) {
         return NextResponse.json({
           found: true,
