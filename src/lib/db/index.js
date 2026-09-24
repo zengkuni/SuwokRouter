@@ -133,7 +133,7 @@ export function validateDatabaseBackup(payload) {
   if (isNineRouterBackupPayload(payload)) {
     invalidBackup("9Router backups must use Migrate from 9Router");
   }
-  if (payload.product !== undefined && payload.product !== "swayrouter") {
+  if (payload.product !== undefined && payload.product !== "suwokrouter") {
     invalidBackup("backup was created by a different product");
   }
   if (payload.formatVersion !== undefined && payload.formatVersion !== 1) {
@@ -315,7 +315,7 @@ export async function exportDb({ scope = "configuration" } = {}) {
   const { password: _password, ...safeSettings } = stripRemovedSettings(rawSettings);
 
   const out = {
-    product: "swayrouter",
+    product: "suwokrouter",
     formatVersion: 1,
     backupScope: scope,
     providerCredentialsIncluded: true,

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const TEST_PASSWORD = "SwayRouter-E2E-2026";
+const TEST_PASSWORD = "SuwokRouter-E2E-2026";
 
 const DASHBOARD_ROUTES = [
   ["Dashboard", "/dashboard"],

@@ -38,7 +38,7 @@ function reportFatalError(error) {
     .slice(0, 1000);
   process.stderr.write(`Error: ${message}\n`);
 
-  const logPath = process.env.SWAYROUTER_AUTOSTART_LOG;
+  const logPath = process.env.SUWOKROUTER_AUTOSTART_LOG;
   if (!logPath) return;
   try {
     fs.mkdirSync(path.dirname(logPath), { recursive: true });
@@ -51,9 +51,9 @@ function reportFatalError(error) {
 
 function usage() {
   console.log(`
-Usage: swayrouter [command] [options]
+Usage: suwokrouter [command] [options]
 
-Start and manage an already prepared Sway Router runtime.
+Start and manage an already prepared Suwok Router runtime.
 
 Commands:
   start                    Start the router attached to this terminal
@@ -78,11 +78,11 @@ Runtime options:
   -v, --version            Show version
 
 Examples:
-  swayrouter                   Start in the background and open the control menu
-  swayrouter start             Start the router attached to this terminal
-  swayrouter start -b          Start in the background with the system tray
-  swayrouter status            Check whether it is running
-  swayrouter stop              Stop it safely
+  suwokrouter                   Start in the background and open the control menu
+  suwokrouter start             Start the router attached to this terminal
+  suwokrouter start -b          Start in the background with the system tray
+  suwokrouter status            Check whether it is running
+  suwokrouter stop              Stop it safely
 `);
 }
 
@@ -120,7 +120,7 @@ function parseArgs(argv) {
       }
       if (arg === "xai") {
         throw new Error(
-          "xai video must be invoked as `swayrouter xai video ...`",
+          "xai video must be invoked as `suwokrouter xai video ...`",
         );
       }
       throw new Error(`unknown command: ${arg}`);
@@ -248,9 +248,9 @@ function resolveInstallation(options) {
 
 async function startForeground(installation, options) {
   const result = await withProgress(
-    "Starting Sway Router",
+    "Starting Suwok Router",
     (progress) => {
-      progress.update(35, "Starting Sway Router");
+      progress.update(35, "Starting Suwok Router");
       return lifecycle.start(installation, {
         background: false,
         showLog: options.showLog,
@@ -258,10 +258,10 @@ async function startForeground(installation, options) {
         host: options.host,
       });
     },
-    { doneMessage: "Sway Router started" },
+    { doneMessage: "Suwok Router started" },
   );
   const url = dashboardUrl(installation, result.port);
-  console.log(`Sway Router is running at ${url}`);
+  console.log(`Suwok Router is running at ${url}`);
   console.log("Press Ctrl+C to stop the router gracefully.");
   await new Promise((resolve) => {
     const stop = () => {
@@ -277,9 +277,9 @@ async function startForeground(installation, options) {
 
 async function startBackground(installation, options) {
   const result = await withProgress(
-    "Starting Sway Router",
+    "Starting Suwok Router",
     (progress) => {
-      progress.update(35, "Starting Sway Router");
+      progress.update(35, "Starting Suwok Router");
       return lifecycle.start(installation, {
         background: true,
         showLog: options.showLog,
@@ -287,12 +287,12 @@ async function startBackground(installation, options) {
         host: options.host,
       });
     },
-    { doneMessage: "Sway Router started" },
+    { doneMessage: "Suwok Router started" },
   );
   const url = dashboardUrl(installation, result.port);
   const tray = startTrayHost(installation, result.port);
   console.log(
-    `Sway Router is running in the background at ${url}${tray ? " with the tray enabled" : ""}`,
+    `Suwok Router is running in the background at ${url}${tray ? " with the tray enabled" : ""}`,
   );
 }
 
@@ -315,13 +315,13 @@ async function startDefaultMenu(installation, options, updateInfo) {
 
   if (current.running) {
     console.log(
-      `Sway Router is already running at ${dashboardUrl(installation, port)}`,
+      `Suwok Router is already running at ${dashboardUrl(installation, port)}`,
     );
   } else {
     const result = await withProgress(
-      "Starting Sway Router",
+      "Starting Suwok Router",
       (progress) => {
-        progress.update(35, "Starting Sway Router");
+        progress.update(35, "Starting Suwok Router");
         return lifecycle.start(installation, {
           background: true,
           showLog: options.showLog,
@@ -329,11 +329,11 @@ async function startDefaultMenu(installation, options, updateInfo) {
           host: options.host,
         });
       },
-      { doneMessage: "Sway Router started" },
+      { doneMessage: "Suwok Router started" },
     );
     port = result.port;
     console.log(
-      `Sway Router is running in the background at ${dashboardUrl(installation, port)}`,
+      `Suwok Router is running in the background at ${dashboardUrl(installation, port)}`,
     );
   }
 
@@ -341,7 +341,7 @@ async function startDefaultMenu(installation, options, updateInfo) {
 }
 
 function showRuntimeStatus(installation, status, port) {
-  console.log("Sway Router");
+  console.log("Suwok Router");
   console.log(`  Status: ${status.running ? "running" : "stopped"}`);
   console.log(`  Current Version: v${pkg.version}`);
   console.log(`  Mode: ${installation.mode}`);
@@ -364,18 +364,18 @@ async function main(argv) {
   const installation = resolveInstallation(options);
   if (!installation) {
     if (command === "status") {
-      console.log("Sway Router is not prepared.");
+      console.log("Suwok Router is not prepared.");
       console.log(
-        "Prepare the Sway Router runtime and installation metadata first.",
+        "Prepare the Suwok Router runtime and installation metadata first.",
       );
       return;
     }
     if (command === "stop") {
-      console.log("Sway Router was not prepared; nothing to stop.");
+      console.log("Suwok Router was not prepared; nothing to stop.");
       return;
     }
     throw new Error(
-      "Sway Router is not prepared. Prepare the runtime and installation metadata first.",
+      "Suwok Router is not prepared. Prepare the runtime and installation metadata first.",
     );
   }
 
@@ -386,14 +386,14 @@ async function main(argv) {
   }
   if (command === "stop") {
     const result = await withProgress(
-      "Stopping Sway Router",
+      "Stopping Suwok Router",
       () => lifecycle.stop(installation),
       {
-        doneMessage: "Sway Router stopped",
+        doneMessage: "Suwok Router stopped",
       },
     );
     console.log(
-      result.stopped ? "Sway Router stopped." : "Sway Router was not running.",
+      result.stopped ? "Suwok Router stopped." : "Suwok Router was not running.",
     );
     return;
   }
@@ -405,7 +405,7 @@ async function main(argv) {
       : null;
   if (updateInfo?.updateAvailable && !updateInfo.updateSupported) {
     console.log(
-      `Sway Router v${updateInfo.latestVersion} is available, but this installation cannot self-update.`,
+      `Suwok Router v${updateInfo.latestVersion} is available, but this installation cannot self-update.`,
     );
   }
   if (
@@ -415,16 +415,16 @@ async function main(argv) {
     !isDefaultMenuInvocation(options)
   ) {
     console.log(
-      `Sway Router v${updateInfo.latestVersion} is available. Run \'swayrouter\' to update from the menu.`,
+      `Suwok Router v${updateInfo.latestVersion} is available. Run \'suwokrouter\' to update from the menu.`,
     );
   }
   if (command === "restart") {
     if (status.running) {
       await withProgress(
-        "Stopping Sway Router",
+        "Stopping Suwok Router",
         () => lifecycle.stop(installation),
         {
-          doneMessage: "Sway Router stopped",
+          doneMessage: "Suwok Router stopped",
         },
       );
     }

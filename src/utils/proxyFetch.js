@@ -252,7 +252,7 @@ export async function proxyAwareFetch(url, options = {}, proxyOptions = null) {
     relayHeaders.set("x-relay-target", `${parsed.protocol}//${parsed.host}`);
     relayHeaders.set("x-relay-path", `${parsed.pathname}${parsed.search}`);
     const relayToken = normalizeString(proxyOptions?.relayToken);
-    if (relayToken) relayHeaders.set("x-sway-relay-token", relayToken);
+    if (relayToken) relayHeaders.set("x-suwok-relay-token", relayToken);
     return Bun.fetch(relayUrl, { ...options, headers: relayHeaders });
   }
 

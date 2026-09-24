@@ -14,7 +14,7 @@ describe("provider connection identity", () => {
         autoName: true,
       });
       createdIds.push(first.id);
-      expect(first.name).toBe("swayrouter-account");
+      expect(first.name).toBe("suwokrouter-account");
 
       const second = await createProviderConnection({
         provider,
@@ -23,17 +23,17 @@ describe("provider connection identity", () => {
         autoName: true,
       });
       createdIds.push(second.id);
-      expect(second.name).toBe("swayrouter-account1");
+      expect(second.name).toBe("suwokrouter-account1");
 
       const bulkFirst = await createProviderConnection({
         provider,
         authType: "apikey",
         apiKey: "test-secret-3",
-        name: "swayrouter-account1",
+        name: "suwokrouter-account1",
         autoName: true,
       });
       createdIds.push(bulkFirst.id);
-      expect(bulkFirst.name).toBe("swayrouter-account2");
+      expect(bulkFirst.name).toBe("suwokrouter-account2");
 
       await expect(createProviderConnection({
         provider,

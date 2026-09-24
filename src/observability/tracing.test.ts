@@ -124,17 +124,17 @@ describe("tracing: outbound + response stamping", () => {
     expect(out!, `outbound format`).toBe(`00-${HEX32}-${store.trace.spanId}-01`);
   });
 
-  test("stampResponseWithTrace menambah x-swayrouter-trace-id + traceparent", () => {
+  test("stampResponseWithTrace menambah x-suwokrouter-trace-id + traceparent", () => {
     const trace = { version: "00", traceId: HEX32, spanId: HEX16, flags: "01" } as any;
     const resp = stampResponseWithTrace(new Response("ok", { status: 200 }), trace);
-    expect(resp.headers.get("x-swayrouter-trace-id"), `trace-id header`).toBe(HEX32);
+    expect(resp.headers.get("x-suwokrouter-trace-id"), `trace-id header`).toBe(HEX32);
     expect(resp.headers.get("traceparent"), `traceparent header`).toBe(`00-${HEX32}-${HEX16}-01`);
   });
 
   test("stampResponseWithTrace no-op saat trace null", () => {
     const orig = new Response("ok");
     const resp = stampResponseWithTrace(orig, null);
-    expect(resp.headers.get("x-swayrouter-trace-id"), `no header`).toBeNull();
+    expect(resp.headers.get("x-suwokrouter-trace-id"), `no header`).toBeNull();
   });
 
   test("stampResponseTrace ALS convenience stamps inside scope", () => {
@@ -144,6 +144,6 @@ describe("tracing: outbound + response stamping", () => {
     cookieStoreAls.run(store, () => {
       stamped = stampResponseTrace(new Response("ok"));
     });
-    expect(stamped!.headers.get("x-swayrouter-trace-id"), `ALS stamp traceId`).toBe(HEX32);
+    expect(stamped!.headers.get("x-suwokrouter-trace-id"), `ALS stamp traceId`).toBe(HEX32);
   });
 });

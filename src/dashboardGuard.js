@@ -6,8 +6,8 @@ import { getDashboardAuthSession } from "@/lib/auth/dashboardSession";
 import { loadState } from "@/lib/tunnel/shared/state.js";
 import { isTunnelHost } from "@/lib/tunnel/cloudflare/publicUrl.js";
 
-const CLI_TOKEN_HEADER = "x-swayrouter-cli-token";
-const CLI_TOKEN_SALT = "swayrouter-cli-auth";
+const CLI_TOKEN_HEADER = "x-suwokrouter-cli-token";
+const CLI_TOKEN_SALT = "suwokrouter-cli-auth";
 
 let cachedCliToken = null;
 async function getCliToken() {
@@ -81,14 +81,14 @@ function isLoopbackHostname(h) {
 
 export function isLocalRequest(request) {
 
-  if (request.headers.get("x-swayrouter-via-proxy")) return false;
+  if (request.headers.get("x-suwokrouter-via-proxy")) return false;
 
   // A container never sees loopback for host-local traffic: the boundary stamps
   // HOST_PEER_HEADER only when the peer address belongs to the machine hosting this
   // container, and strips any inbound copy, so the marker is not client-controlled.
   // The marker additionally requires a loopback Host header, so a reverse proxy on
   // the host cannot turn remote traffic into local traffic by rewriting only the peer.
-  const realIp = request.headers.get("x-swayrouter-real-ip");
+  const realIp = request.headers.get("x-suwokrouter-real-ip");
   const hostPeer = request.headers.get(HOST_PEER_HEADER) === "1";
   const loopbackHost = isLoopbackHostname(request.headers.get("host"));
   if (realIp) {

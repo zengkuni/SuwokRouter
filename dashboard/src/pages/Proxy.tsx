@@ -955,7 +955,7 @@ export default function Proxy() {
               <Input
                 value={deployProjectName}
                 onChange={(event) => setDeployProjectName(event.target.value)}
-                placeholder="sway-router-relay"
+                placeholder="suwok-router-relay"
                 autoComplete="off"
               />
             </label>

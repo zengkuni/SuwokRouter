@@ -199,7 +199,7 @@ function loadCallbackProviderIcon(provider) {
 function renderCodexResultPage(success, message, provider = "codex") {
   const safeMessage = escapeHtml(message);
   const title = success ? "Connected successfully" : "Connection could not be completed";
-  const eyebrow = success ? "Sway Router" : "Sway Router OAuth";
+  const eyebrow = success ? "Suwok Router" : "Suwok Router OAuth";
   const accent = success ? "#22c55e" : "#ef4444";
   const fallbackIcon = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>`;
   const providerIcon = success ? loadCallbackProviderIcon(provider) : null;
@@ -209,7 +209,7 @@ function renderCodexResultPage(success, message, provider = "codex") {
   const iconClass = providerIcon ? "icon provider-icon" : "icon";
   const brandLogo = `<svg class="brand-logo" viewBox="0 0 500 500" aria-hidden="true"><rect width="500" height="500" rx="100" fill="#0077FF"/><path d="M408.8 346c-2.6 9.3-6.5 17.5-11.4 24.7-11.7 17.3-28.3 28.2-49.9 35.1-10.9 3.5-20.9 5.2-30.3 5.2H117.9c-9.1 0-17.2-4.1-22.6-10.5 1.7.4 3.5.7 5.2.7h106.6c11.3 0 20.5-9.2 20.5-20.5s-9.2-20.5-20.5-20.5H100.5c-1.3 0-2.5.1-3.7.3 5.4-5.5 12.9-8.8 21.1-8.8h199.2c10.1 0 18.2-2.6 24.3-7.7h67.4ZM155.9 211.6c6.2 5.5 14.5 8.2 24.8 8.2h136.9c6.4.2 13.2 1.1 20.3 2.8 21.6 4.6 38.9 14.6 51.5 29.9 8.1 9.8 14.5 21.3 19.3 34.5h-68.5c-2.4-1.9-5.1-3.5-8.2-4.7-4.4-1.8-9.3-2.7-14.8-2.7H180.7c-9.6 0-20-1.7-31-5-20.5-6.2-37.5-17.2-51.1-33-8.1-9.4-14.7-20.1-19.8-32h67.1Zm197-125.6c8.4 0 16 3.5 21.4 9.1H269.4c-11.3 0-20.5 9.2-20.5 20.5s9.2 20.5 20.5 20.5h105.1c-5.4 5.7-13 9.2-21.5 9.2H180.7c-9.4 0-17.1 2.4-23.1 7.2H89.2c1.5-5.3 3.3-10.2 5.7-14.7 7.6-14.7 18.8-24.7 33.7-32.1 15.1-7.5 32.4-9.7 52-9.7h172.3Z" fill="white"/></svg>`;
   return `<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · Sway Router</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · Suwok Router</title>
 <style>
 :root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#121214;color:#f4f4f5;--background:#121214;--foreground:#f4f4f5;--card:#1a1a1e;--muted:#242428;--muted-foreground:#a1a1aa;--border:#2e2e34;--primary:#006fff}
 *{box-sizing:border-box}body{min-width:320px;min-height:100vh;margin:0;display:grid;place-items:center;background:var(--background);color:var(--foreground);padding:16px;-webkit-font-smoothing:antialiased}

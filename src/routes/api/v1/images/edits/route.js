@@ -30,7 +30,7 @@ export async function POST(request) {
     const prompt = form.get("prompt");
     if (typeof prompt !== "string" || !prompt.trim() || prompt.length > 8000) return NextResponse.json({ error: "prompt is required and must be at most 8000 characters" }, { status: 400 });
     const settings = await getSettings();
-    const enabled = parseAllowlist(settings?.mediaProviders ?? process.env.SWAY_MEDIA_PROVIDERS);
+    const enabled = parseAllowlist(settings?.mediaProviders ?? process.env.SUWOK_MEDIA_PROVIDERS);
     if (!enabled.size) return NextResponse.json({ error: "Image generation is disabled" }, { status: 404 });
     const provider = String(form.get("provider") || [...enabled][0]).toLowerCase();
     if (!enabled.has(provider)) return NextResponse.json({ error: "Media provider is not enabled" }, { status: 404 });

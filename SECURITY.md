@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Security fixes target the latest published Sway Router release.
+Security fixes target the latest published Suwok Router release.
 
 ## Report a vulnerability
 

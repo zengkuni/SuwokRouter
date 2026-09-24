@@ -140,7 +140,7 @@ export function CustomProviderDialog({
               />
             </div>
             <p className="text-[10px] text-muted-foreground/70">
-              Shown in the provider list. Falls back to the Sway Router mark when empty
+              Shown in the provider list. Falls back to the Suwok Router mark when empty
               or unreachable.
             </p>
           </div>

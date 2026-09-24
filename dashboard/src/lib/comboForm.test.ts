@@ -5,7 +5,7 @@ const CHARSET_MESSAGE = "Name can only contain letters, numbers, -, _ and .";
 
 describe("combo name validation", () => {
   test("accepts every character the gateway accepts", () => {
-    for (const name of ["smart", "sway-v2", "a.b_c-d", "9router", "A1", "a_b.c-d"]) {
+    for (const name of ["smart", "suwok-v2", "a.b_c-d", "9router", "A1", "a_b.c-d"]) {
       expect(comboNameError(name, [])).toBe("");
     }
   });

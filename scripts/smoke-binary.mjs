@@ -12,7 +12,7 @@ const platformTarget = process.platform === "win32"
     ? (process.arch === "arm64" ? "bun-darwin-arm64" : "bun-darwin-x64")
     : (process.arch === "arm64" ? "bun-linux-arm64" : "bun-linux-x64");
 const target = process.env.BUN_TARGET || platformTarget;
-const binary = join(outDir, target.includes("windows") ? "swayrouter.exe" : "swayrouter");
+const binary = join(outDir, target.includes("windows") ? "suwokrouter.exe" : "suwokrouter");
 
 function freePort() {
   return new Promise((resolve, reject) => {
@@ -55,7 +55,7 @@ async function waitForExit(child, timeoutMs = 5_000) {
   ]);
 }
 
-const dataDir = await mkdtemp(join(tmpdir(), "sway-binary-smoke-"));
+const dataDir = await mkdtemp(join(tmpdir(), "suwok-binary-smoke-"));
 const port = await freePort();
 const childEnv = { ...process.env };
 delete childEnv.JWT_SECRET;

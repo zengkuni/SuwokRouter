@@ -80,9 +80,9 @@ async function runTrayHost(installation, options = {}) {
   }
   if (!running) {
     await withProgress(
-      "Starting Sway Router",
+      "Starting Suwok Router",
       (progress) => {
-        progress.update(35, "Starting Sway Router");
+        progress.update(35, "Starting Suwok Router");
         return lifecycle.start(installation, {
           background: true,
           showLog: options.showLog,
@@ -90,7 +90,7 @@ async function runTrayHost(installation, options = {}) {
           host: options.host,
         });
       },
-      { doneMessage: "Sway Router started" },
+      { doneMessage: "Suwok Router started" },
     );
   }
 
@@ -120,7 +120,7 @@ function isHeadless() {
 
 function backgroundStatusMessage(installation, port) {
   const suffix = isHeadless() ? " (headless mode; no system tray)" : "";
-  return `Sway Router is running in background at ${dashboardUrl(installation, port)}${suffix}`;
+  return `Suwok Router is running in background at ${dashboardUrl(installation, port)}${suffix}`;
 }
 
 function startTrayForMenu(installation, port) {
@@ -134,12 +134,12 @@ function dashboardUrl(installation, port) {
 async function startAndShow(installation, options, background) {
   try {
     const result = await withProgress(
-      "Starting Sway Router",
+      "Starting Suwok Router",
       (progress) => {
-        progress.update(35, "Starting Sway Router");
+        progress.update(35, "Starting Suwok Router");
         return lifecycle.start(installation, { ...options, background });
       },
-      { doneMessage: "Sway Router started" },
+      { doneMessage: "Suwok Router started" },
     );
     if (background) {
       const tray = startTrayForMenu(installation, result.port);
@@ -149,7 +149,7 @@ async function startAndShow(installation, options, background) {
       );
     } else {
       showStatus(
-        `Sway Router is ready at ${dashboardUrl(installation, result.port)}`,
+        `Suwok Router is ready at ${dashboardUrl(installation, result.port)}`,
         "success",
       );
     }
@@ -179,8 +179,8 @@ async function disableTray(installation) {
 function menuItems(updateInfo = null) {
   const items = [
     { id: "background", label: "Run in Background / Tray" },
-    { id: "restart", label: "Restart Sway Router" },
-    { id: "stop", label: "Stop Sway Router" },
+    { id: "restart", label: "Restart Suwok Router" },
+    { id: "stop", label: "Stop Suwok Router" },
   ];
   if (
     updateInfo?.updateAvailable &&
@@ -198,10 +198,10 @@ function menuItems(updateInfo = null) {
 
 async function stopManaged(installation) {
   const result = await withProgress(
-    "Stopping Sway Router",
+    "Stopping Suwok Router",
     () => lifecycle.stop(installation),
     {
-      doneMessage: "Sway Router stopped",
+      doneMessage: "Suwok Router stopped",
     },
   );
   await disableTray(installation);
@@ -219,7 +219,7 @@ function menuStatusText(status, version = pkg.version) {
 async function stopWithMessage(installation) {
   const result = await stopManaged(installation);
   showStatus(
-    result.stopped ? "Sway Router stopped." : "Sway Router was not running.",
+    result.stopped ? "Suwok Router stopped." : "Suwok Router was not running.",
     result.stopped ? "success" : "info",
   );
 }
@@ -253,7 +253,7 @@ async function runMenu(installation, options = {}) {
     const current = currentStatus(installation);
     const items = menuItems(updateInfo);
     const selected = await selectMenu(
-      "Sway Router",
+      "Suwok Router",
       items,
       0,
       menuStatusText(current),
@@ -269,7 +269,7 @@ async function runMenu(installation, options = {}) {
       if (current.running) {
         const tray = startTrayForMenu(installation, port);
         showStatus(
-          `Sway Router will keep running in the background${tray ? " with the tray enabled" : ""}. Closing menu.`,
+          `Suwok Router will keep running in the background${tray ? " with the tray enabled" : ""}. Closing menu.`,
           "success",
         );
       } else {
@@ -284,7 +284,7 @@ async function runMenu(installation, options = {}) {
     if (selectedItem.id === "restart") {
       if (!currentStatus(installation).running) {
         showStatus(
-          "Sway Router is stopped. Start it with `swayrouter start` first.",
+          "Suwok Router is stopped. Start it with `suwokrouter start` first.",
           "warning",
         );
       } else {
@@ -296,7 +296,7 @@ async function runMenu(installation, options = {}) {
     }
     if (selectedItem.id === "stop") {
       if (!currentStatus(installation).running) {
-        showStatus("Sway Router is already stopped.", "info");
+        showStatus("Suwok Router is already stopped.", "info");
       } else {
         await stopWithMessage(installation);
       }

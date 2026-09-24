@@ -45,11 +45,11 @@ import { VersionUpdateBanner } from "@/components/VersionUpdateBanner";
 type NavItem = { to: string; label: string; icon: LucideIcon };
 
 const DASH = "/dashboard";
-const PROFILE_NAME = "Sway Router";
-const PROFILE_NAME_KEY = "swayrouter.profile.name";
-const PROFILE_AVATAR_KEY = "swayrouter.profile.avatar";
+const PROFILE_NAME = "Suwok Router";
+const PROFILE_NAME_KEY = "suwokrouter.profile.name";
+const PROFILE_AVATAR_KEY = "suwokrouter.profile.avatar";
 
-const SIDEBAR_COLLAPSED_KEY = "swayrouter.sidebar.collapsed.v4";
+const SIDEBAR_COLLAPSED_KEY = "suwokrouter.sidebar.collapsed.v4";
 const NAV_HIGHLIGHT_SPRING = {
   type: "spring" as const,
   stiffness: 460,
@@ -298,11 +298,11 @@ export function Sidebar({
                     ? hasUpdate
                       ? "Open sidebar, update available"
                       : "Open sidebar"
-                    : "Sway Router"}
+                    : "Suwok Router"}
                   className="group/brand relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-100 touch-manipulation hover:bg-surface-hover"
                 >
                   <img
-                    src="/logo/sway.svg"
+                    src="/logo/suwok.svg"
                     alt=""
                     className={cn(
                       "h-8 w-8 rounded-lg object-contain transition-opacity duration-150 ease-out",
@@ -333,7 +333,7 @@ export function Sidebar({
               )}
             >
               <span className="block truncate text-sm font-semibold leading-tight tracking-tight">
-                Sway Router
+                Suwok Router
               </span>
               <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span>Version</span>

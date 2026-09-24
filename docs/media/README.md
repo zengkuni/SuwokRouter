@@ -1,4 +1,4 @@
-# Sway Router media
+# Suwok Router media
 
 Keep public showcase media here so the repository stays organized:
 

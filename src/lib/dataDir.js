@@ -3,7 +3,7 @@ import path from "path";
 import os from "os";
 import { env } from "./env.ts";
 
-const APP_NAME = ".swayrouter";
+const APP_NAME = ".suwokrouter";
 
 function defaultDir() {
   const base = process.platform === "win32"

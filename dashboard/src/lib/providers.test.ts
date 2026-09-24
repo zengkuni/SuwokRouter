@@ -23,10 +23,10 @@ describe("provider auth flow resolution", () => {
     expect(resolveAuthFlow("cursor", "import")).toBe("import");
   });
 
-  test("uses the Sway Router mark for Agent Router", () => {
+  test("uses the Suwok Router mark for Agent Router", () => {
     const agentRouter = BUILTIN_PROVIDER_CATALOG.find((provider) => provider.id === "agentrouter");
     expect(agentRouter?.name).toBe("Agent Router");
-    expect(getProviderIconSrc("agentrouter")).toBe("/providers/SwayCustom.svg");
+    expect(getProviderIconSrc("agentrouter")).toBe("/providers/SuwokCustom.svg");
   });
 
   test("uses the local SumoPod mark", () => {
@@ -55,7 +55,7 @@ describe("custom provider icon resolution", () => {
     );
   });
 
-  test("falls back to the Sway Router mark when unset", () => {
+  test("falls back to the Suwok Router mark when unset", () => {
     expect(resolveCustomProviderIcon()).toBe(CUSTOM_PROVIDER_FALLBACK_ICON);
     expect(resolveCustomProviderIcon("")).toBe(CUSTOM_PROVIDER_FALLBACK_ICON);
     expect(resolveCustomProviderIcon("   ")).toBe(CUSTOM_PROVIDER_FALLBACK_ICON);

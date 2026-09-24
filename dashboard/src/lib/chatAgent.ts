@@ -26,12 +26,12 @@ const objectParameters = {
   additionalProperties: false,
 };
 
-export const SWAY_AGENT_TOOLS = [
+export const SUWOK_AGENT_TOOLS = [
   {
     type: "function",
     function: {
       name: "router_overview",
-      description: "Inspect the local Sway Router status. The result explicitly separates totalProviders (the unique union of built-in registry providers and custom provider nodes, including zero-connection providers), registeredProviderTypes, providerNodes, configuredProviders, activeProviders, inactiveOnlyProviders, connections, API keys, proxy pools, combos, admission load, and safe settings. When asked for the total number of providers, use totalProviders, not activeProviders or connectedProviders.",
+      description: "Inspect the local Suwok Router status. The result explicitly separates totalProviders (the unique union of built-in registry providers and custom provider nodes, including zero-connection providers), registeredProviderTypes, providerNodes, configuredProviders, activeProviders, inactiveOnlyProviders, connections, API keys, proxy pools, combos, admission load, and safe settings. When asked for the total number of providers, use totalProviders, not activeProviders or connectedProviders.",
       parameters: objectParameters,
     },
   },
@@ -39,7 +39,7 @@ export const SWAY_AGENT_TOOLS = [
     type: "function",
     function: {
       name: "router_models",
-      description: "List models currently exposed by Sway Router, including provider and known capabilities such as vision, tools, reasoning, and image output.",
+      description: "List models currently exposed by Suwok Router, including provider and known capabilities such as vision, tools, reasoning, and image output.",
       parameters: {
         type: "object",
         properties: {
@@ -147,7 +147,7 @@ export const SWAY_AGENT_TOOLS = [
     type: "function",
     function: {
       name: "generate_image",
-      description: "Generate an image through an enabled Sway Router media provider. Use only when the user asks for an image and report clearly if media generation is not configured.",
+      description: "Generate an image through an enabled Suwok Router media provider. Use only when the user asks for an image and report clearly if media generation is not configured.",
       parameters: {
         type: "object",
         properties: {
@@ -197,7 +197,7 @@ async function postJson(url: string, body: unknown, apiKey = "") {
   return payload ?? { ok: true };
 }
 
-export async function executeSwayTool(
+export async function executeSuwokTool(
   name: string,
   args: Record<string, unknown>,
   options: { apiKey?: string; approve?: AgentApprovalHandler } = {},

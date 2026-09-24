@@ -1,6 +1,6 @@
 const { commandFor, isDefaultMenuInvocation, parseArgs, usage } = require("./cli");
 
-describe("swayrouter CLI arguments", () => {
+describe("suwokrouter CLI arguments", () => {
   test("bare invocation resolves to the default start command", () => {
     const options = parseArgs([]);
     expect(options.foreground).toBe(false);

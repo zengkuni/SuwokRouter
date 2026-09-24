@@ -19,7 +19,7 @@ describe("request boundary", () => {
     );
     expect(new URL(request.url).pathname).toBe("/api/v1/models");
     expect(new URL(request.url).search).toBe("?limit=5");
-    expect(request.headers.get("x-swayrouter-rewritten")).toBe(
+    expect(request.headers.get("x-suwokrouter-rewritten")).toBe(
       "/api/v1/models",
     );
   });
@@ -83,7 +83,7 @@ describe("request boundary", () => {
     );
     expect(normalized.method).toBe("GET");
     expect(new URL(normalized.url).search).toBe("?x=1");
-    expect(normalized.headers.get("x-swayrouter-query-method")).toBe("QUERY");
+    expect(normalized.headers.get("x-suwokrouter-query-method")).toBe("QUERY");
   });
 
   test("trusts forwarding headers only from loopback peers", () => {
@@ -92,14 +92,14 @@ describe("request boundary", () => {
       headers: { "x-forwarded-for": "203.0.113.2" },
     });
     stampClientIp(local, "::ffff:127.0.0.1", trust);
-    expect(local.headers.get("x-swayrouter-real-ip")).toBe("203.0.113.2");
+    expect(local.headers.get("x-suwokrouter-real-ip")).toBe("203.0.113.2");
     expect(local.headers.get("x-forwarded-for")).toBeNull();
 
     const remote = new Request("http://localhost/", {
       headers: { "x-forwarded-for": "203.0.113.2" },
     });
     stampClientIp(remote, "198.51.100.4", trust);
-    expect(remote.headers.get("x-swayrouter-real-ip")).toBe("198.51.100.4");
+    expect(remote.headers.get("x-suwokrouter-real-ip")).toBe("198.51.100.4");
   });
 
   test("marks a host peer that arrives from the container gateway", () => {
@@ -108,7 +108,7 @@ describe("request boundary", () => {
       headers: { host: "localhost:1212" },
     });
     stampClientIp(local, "172.17.0.1", trust);
-    expect(local.headers.get("x-swayrouter-real-ip")).toBe("172.17.0.1");
+    expect(local.headers.get("x-suwokrouter-real-ip")).toBe("172.17.0.1");
     expect(local.headers.get(HOST_PEER_HEADER)).toBe("1");
 
     const remote = new Request("http://localhost:1212/");

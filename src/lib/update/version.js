@@ -6,11 +6,11 @@ const REQUEST_TIMEOUT_MS = 4000;
 let cachedCheck = null;
 
 function packageName() {
-  return process.env.SWAYROUTER_PACKAGE_NAME || pkg.name || "swayrouter";
+  return process.env.SUWOKROUTER_PACKAGE_NAME || pkg.name || "suwokrouter";
 }
 
 function registryUrl() {
-  return String(process.env.SWAYROUTER_NPM_REGISTRY || "https://registry.npmjs.org").replace(/\/+$/, "");
+  return String(process.env.SUWOKROUTER_NPM_REGISTRY || "https://registry.npmjs.org").replace(/\/+$/, "");
 }
 
 function normalizeVersion(value) {

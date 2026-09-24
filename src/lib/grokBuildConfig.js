@@ -1,8 +1,8 @@
-export const GROK_MAIN_MODEL_SLOT = "swayrouter";
+export const GROK_MAIN_MODEL_SLOT = "suwokrouter";
 export const GROK_BUILTIN_DEFAULT = "grok-build";
 export const GROK_SUBAGENT_TYPES = ["general-purpose", "explore", "plan"];
 
-const UNSET_SENTINEL = "__swayrouter_unset__";
+const UNSET_SENTINEL = "__suwokrouter_unset__";
 const MODELS_SECTION = "models";
 const SUBAGENT_MODELS_SECTION = "subagents.models";
 
@@ -17,10 +17,10 @@ const sectionRegExp = (section) =>
 
 const modelSlot = (type) => `${GROK_MAIN_MODEL_SLOT}-${type}`;
 
-const previousDefaultRegExp = /^# swayrouter-prev-default = "([^"]*)"[ \t]*\r?\n?/m;
+const previousDefaultRegExp = /^# suwokrouter-prev-default = "([^"]*)"[ \t]*\r?\n?/m;
 const previousSubagentRegExp = (type) =>
   new RegExp(
-    `^# swayrouter-prev-subagent-${escapeRegExp(type)} = "([^"]*)"[ \\t]*\\r?\\n?`,
+    `^# suwokrouter-prev-subagent-${escapeRegExp(type)} = "([^"]*)"[ \\t]*\\r?\\n?`,
     "m",
   );
 
@@ -97,7 +97,7 @@ function buildModelSection({ slot, model, baseUrl, apiKey, contextWindow, name }
     `model = ${tomlString(model)}`,
     `base_url = ${tomlString(baseUrl)}`,
     `name = ${tomlString(name)}`,
-    `description = ${tomlString("Routed via Sway Router gateway")}`,
+    `description = ${tomlString("Routed via Suwok Router gateway")}`,
     `api_backend = "chat_completions"`,
   ];
   if (apiKey) lines.push(`api_key = ${tomlString(apiKey)}`);
@@ -132,7 +132,7 @@ function rememberPreviousDefault(toml) {
   if (previousDefaultRegExp.test(toml)) return toml;
   const current = getSectionField(toml, MODELS_SECTION, "default");
   if (!current || current === GROK_MAIN_MODEL_SLOT) return toml;
-  return insertMarker(toml, `# swayrouter-prev-default = ${tomlString(current)}\n`);
+  return insertMarker(toml, `# suwokrouter-prev-default = ${tomlString(current)}\n`);
 }
 
 function restorePreviousDefault(toml) {
@@ -151,7 +151,7 @@ function rememberPreviousSubagent(toml, type) {
   const previous = current == null ? UNSET_SENTINEL : current;
   return insertMarker(
     toml,
-    `# swayrouter-prev-subagent-${type} = ${tomlString(previous)}\n`,
+    `# suwokrouter-prev-subagent-${type} = ${tomlString(previous)}\n`,
   );
 }
 
@@ -198,7 +198,7 @@ export function applyGrokBuildConfig(
     baseUrl,
     apiKey,
     contextWindow,
-    name: "Sway Router",
+    name: "Suwok Router",
   });
   next = setSectionField(next, MODELS_SECTION, "default", GROK_MAIN_MODEL_SLOT);
 
@@ -214,7 +214,7 @@ export function applyGrokBuildConfig(
           baseUrl,
           apiKey,
           contextWindow: selected.contextWindow,
-          name: `Sway Router ${type}`,
+          name: `Suwok Router ${type}`,
         });
         next = setSectionField(next, SUBAGENT_MODELS_SECTION, type, slot);
       } else {

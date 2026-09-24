@@ -515,7 +515,7 @@ export default function CliTools() {
       <Header
         className="mb-0 sm:mb-0 shrink-0"
         title="CLI Tools"
-        description="Detect and configure CLI tools on the machine running Sway Router."
+        description="Detect and configure CLI tools on the machine running Suwok Router."
         actions={
           <>
             <RippleButton
@@ -901,7 +901,7 @@ export default function CliTools() {
           <DialogHeader>
             <DialogTitle>Reset {resetTarget?.name}?</DialogTitle>
             <DialogDescription>
-              This removes Sway Router settings from {resetTarget?.name}. All selected models will be cleared, while the CLI installation and unrelated settings stay untouched.
+              This removes Suwok Router settings from {resetTarget?.name}. All selected models will be cleared, while the CLI installation and unrelated settings stay untouched.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

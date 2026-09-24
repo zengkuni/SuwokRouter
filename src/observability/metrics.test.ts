@@ -159,7 +159,7 @@ describe("metrics: recordHttpRequest helper", () => {
     recordHttpRequest("POST", "/api/v1/chat/completions", 200, 8);
     const text = toPrometheus();
 
-    expect(text, `http requests total`).toMatch(/sway_http_requests_total\{method="POST",route="\/api\/v1\/chat\/completions",status="200"\} 2/);
-    expect(text, `http duration count`).toMatch(/sway_http_request_duration_ms_count\{method="POST",route="\/api\/v1\/chat\/completions"\} 2/);
+    expect(text, `http requests total`).toMatch(/suwok_http_requests_total\{method="POST",route="\/api\/v1\/chat\/completions",status="200"\} 2/);
+    expect(text, `http duration count`).toMatch(/suwok_http_request_duration_ms_count\{method="POST",route="\/api\/v1\/chat\/completions"\} 2/);
   });
 });

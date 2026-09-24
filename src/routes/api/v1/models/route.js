@@ -146,7 +146,7 @@ export function stripKnownModelPrefix(modelId, prefixes) {
   return normalized;
 }
 
-const INTERNAL_MODELS_FETCH_HEADER = "x-swayrouter-internal-models-fetch";
+const INTERNAL_MODELS_FETCH_HEADER = "x-suwokrouter-internal-models-fetch";
 const LLM_KIND = "llm";
 
 function normalizedCustomModelId(value) {

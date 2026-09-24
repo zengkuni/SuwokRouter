@@ -4,15 +4,15 @@ const DEFAULT_TTL_MS = 5000;
 const DEFAULT_MAX_ENTRIES = 64;
 const VERSION_META_KEY = "configCacheVersion";
 
-if (!global._swayTtlCache) {
-  global._swayTtlCache = {
+if (!global._suwokTtlCache) {
+  global._suwokTtlCache = {
 
     caches: new Map(),
 
     inflight: new Map(),
   };
 }
-const STATE = global._swayTtlCache;
+const STATE = global._suwokTtlCache;
 
 export function createTtlCache(opts) {
   const name = opts.name;

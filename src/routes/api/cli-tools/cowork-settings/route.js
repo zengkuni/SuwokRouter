@@ -13,8 +13,8 @@ import { logRouteError, publicError } from "@/lib/errors/publicError";
 const COWORK_ERROR = publicError("provider", "Failed to apply Cowork settings");
 
 const APP_PORT = RUNTIME_CONFIG.appPort;
-const CLI_TOKEN_HEADER = "x-swayrouter-cli-token";
-const CLI_TOKEN_SALT = "swayrouter-cli-auth";
+const CLI_TOKEN_HEADER = "x-suwokrouter-cli-token";
+const CLI_TOKEN_SALT = "suwokrouter-cli-auth";
 const LOCAL_MCP_PREFIX = `http://localhost:${APP_PORT}/api/mcp/`;
 
 let cachedCliToken = null;
@@ -250,7 +250,7 @@ export async function GET() {
       ? config.inferenceModels.map((m) => (typeof m === "string" ? m : m?.name)).filter(Boolean)
       : [];
     const managedMcp = Array.isArray(config?.managedMcpServers) ? config.managedMcpServers : [];
-    const hasSwayRouter = !!(config?.inferenceProvider === PROVIDER && baseUrl);
+    const hasSuwokRouter = !!(config?.inferenceProvider === PROVIDER && baseUrl);
 
     const stdioNames = new Set(LOCAL_STDIO_PLUGINS.map((p) => p.name));
     const activeLocalNames = managedMcp
@@ -264,7 +264,7 @@ export async function GET() {
     return NextResponse.json({
       installed: true,
       config,
-      hasSwayRouter,
+      hasSuwokRouter,
       configPath,
       cowork: {
         appliedId,

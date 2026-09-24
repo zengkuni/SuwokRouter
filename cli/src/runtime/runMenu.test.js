@@ -11,8 +11,8 @@ describe("runtime menu", () => {
     const labels = menuItems(true).map((item) => item.label);
     expect(labels).toEqual([
       "Run in Background / Tray",
-      "Restart Sway Router",
-      "Stop Sway Router",
+      "Restart Suwok Router",
+      "Stop Suwok Router",
       "Exit & Stop Router",
     ]);
     expect(menuItems(false).map((item) => item.label)).toEqual(labels);
@@ -24,8 +24,8 @@ describe("runtime menu", () => {
       }).map((item) => item.label),
     ).toEqual([
       "Run in Background / Tray",
-      "Restart Sway Router",
-      "Stop Sway Router",
+      "Restart Suwok Router",
+      "Stop Suwok Router",
       "Update to v1.1.0",
       "Exit & Stop Router",
     ]);

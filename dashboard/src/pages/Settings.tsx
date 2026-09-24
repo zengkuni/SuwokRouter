@@ -105,7 +105,7 @@ const RESTORE_STEPS: Array<{
   {
     key: "restoring",
     label: "Restore data",
-    description: "Import the backup into Sway Router.",
+    description: "Import the backup into Suwok Router.",
   },
   {
     key: "refreshing",
@@ -665,7 +665,7 @@ function ShutdownDialog({
     <Dialog open={open} onOpenChange={(nextOpen) => (nextOpen ? onOpenChange(true) : close())}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-        <DialogTitle>Shut down Sway Router?</DialogTitle>
+        <DialogTitle>Shut down Suwok Router?</DialogTitle>
           <DialogDescription>
             The router will stop accepting new requests and gracefully drain active work before the process exits.
           </DialogDescription>
@@ -788,7 +788,7 @@ export default function Settings() {
 
   function set<K extends keyof SettingsForm>(key: K, value: SettingsForm[K]) {
     const nextValue = key === "profileName" && typeof value === "string"
-      ? value.trim().replace(/\s+/g, " ").slice(0, 40) || "Sway Router"
+      ? value.trim().replace(/\s+/g, " ").slice(0, 40) || "Suwok Router"
       : value;
     const nextForm = { ...formRef.current, [key]: nextValue };
     formRef.current = nextForm;
@@ -1062,7 +1062,7 @@ export default function Settings() {
                   value={form.profileName}
                   onChange={(event) => set("profileName", event.target.value)}
                   maxLength={40}
-                  placeholder="Sway Router"
+                  placeholder="Suwok Router"
                 />
                 <span className="block text-[11px] text-muted-foreground/80">
                   Shown in the sidebar account card.

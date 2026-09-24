@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const APP_DATA_DIR = ".swayrouter";
+const APP_DATA_DIR = ".suwokrouter";
 const SECRET_DIRECTORY = "auth";
 
 const SECRET_SPECS = {

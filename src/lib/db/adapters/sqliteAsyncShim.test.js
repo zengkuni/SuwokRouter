@@ -7,7 +7,7 @@ let counter = 0;
 async function makeAdapter() {
   const fs = await import("node:fs");
   const os = await import("node:os");
-  const path = `${os.tmpdir()}/sway-async-shim-${Date.now()}-${counter++}.sqlite`;
+  const path = `${os.tmpdir()}/suwok-async-shim-${Date.now()}-${counter++}.sqlite`;
   fs.writeFileSync(path, Buffer.alloc(0));
   const adapter = await createBunSqliteAdapter(path);
   await adapter.exec(`CREATE TABLE IF NOT EXISTS t (id INTEGER PRIMARY KEY, v TEXT)`);

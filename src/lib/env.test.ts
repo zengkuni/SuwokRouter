@@ -18,9 +18,9 @@ describe("runtime environment", () => {
   test("loads bounded history and upstream retry overrides", () => {
     const config = loadEnv({
       NODE_ENV: "development",
-      SWAY_USAGE_RETENTION_DAYS: "30",
-      SWAY_USAGE_HISTORY_MAX_ROWS: "1200000",
-      SWAY_UPSTREAM_MAX_ATTEMPTS: "4",
+      SUWOK_USAGE_RETENTION_DAYS: "30",
+      SUWOK_USAGE_HISTORY_MAX_ROWS: "1200000",
+      SUWOK_UPSTREAM_MAX_ATTEMPTS: "4",
     });
     expect(config.usageHistoryRetentionDays).toBe(30);
     expect(config.usageHistoryMaxRows).toBe(1_200_000);
@@ -32,7 +32,7 @@ describe("runtime environment", () => {
       NODE_ENV: "production",
       JWT_SECRET: "j".repeat(40),
       API_KEY_SECRET: "k".repeat(40),
-      SWAY_PERFORMANCE_PROFILE: "low-memory",
+      SUWOK_PERFORMANCE_PROFILE: "low-memory",
     });
     expect(config.routerQueueWaitMs).toBe(15_000);
   });
@@ -60,8 +60,8 @@ describe("runtime environment", () => {
       AUTH_COOKIE_SECURE: "true",
       BASE_URL: "https://router.example.com/",
       DATA_DIR: "./data",
-      SWAY_METRICS_TOKEN: "metrics-secret",
-      SWAY_METRICS_LOCAL: "0",
+      SUWOK_METRICS_TOKEN: "metrics-secret",
+      SUWOK_METRICS_LOCAL: "0",
     });
     expect(config.port).toBe(18080);
     expect(config.hostname).toBe("10.0.0.5");
@@ -116,21 +116,21 @@ describe("database and cache environment", () => {
   test("parses DB_URL into individual fields", () => {
     const config = loadEnv({
       NODE_ENV: "development",
-      DB_URL: "postgres://router:secret@db.internal:6432/swayrouter",
+      DB_URL: "postgres://router:secret@db.internal:6432/suwokrouter",
     });
-    expect(config.dbUrl).toBe("postgres://router:secret@db.internal:6432/swayrouter");
+    expect(config.dbUrl).toBe("postgres://router:secret@db.internal:6432/suwokrouter");
     expect(config.dbHost).toBe("db.internal");
     expect(config.dbPort).toBe(6432);
     expect(config.dbUser).toBe("router");
     expect(config.dbPassword).toBe("secret");
-    expect(config.dbName).toBe("swayrouter");
+    expect(config.dbName).toBe("suwokrouter");
     expect(config.dbSsl).toBe(false);
   });
 
   test("enables ssl when the URL asks for sslmode=require", () => {
     const config = loadEnv({
       NODE_ENV: "development",
-      DB_URL: "postgres://router:secret@db.internal:5432/swayrouter?sslmode=require",
+      DB_URL: "postgres://router:secret@db.internal:5432/suwokrouter?sslmode=require",
     });
     expect(config.dbHost).toBe("db.internal");
     expect(config.dbSsl).toBe(true);
@@ -139,7 +139,7 @@ describe("database and cache environment", () => {
   test("lets split POSTGRES_* fields override DB_URL components", () => {
     const config = loadEnv({
       NODE_ENV: "development",
-      DB_URL: "postgres://router:secret@db.internal:5432/swayrouter",
+      DB_URL: "postgres://router:secret@db.internal:5432/suwokrouter",
       POSTGRES_HOST: "override.internal",
       POSTGRES_PORT: "7432",
       POSTGRES_USER: "other",

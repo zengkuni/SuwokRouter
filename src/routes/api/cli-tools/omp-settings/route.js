@@ -14,22 +14,22 @@ const getOmpDir = () => path.join(os.homedir(), ".omp", "agent");
 const getModelsPath = () => path.join(getOmpDir(), "models.yml");
 const getOmpBinPath = () => path.join(os.homedir(), ".bun", "bin", "omp.exe");
 
-const SWAY_ROUTER_MATCH_HOSTS = [
+const SUWOK_ROUTER_MATCH_HOSTS = [
   "127.0.0.1:1212",
   "localhost:1212",
   "localhost",
   "127.0.0.1",
 ];
-const SWAY_ROUTER_URL_HOST_RE = /^(?:127\.0\.0\.1|localhost)(?::1212)?$/;
+const SUWOK_ROUTER_URL_HOST_RE = /^(?:127\.0\.0\.1|localhost)(?::1212)?$/;
 
-function isSwayRouterBaseUrl(baseUrl) {
+function isSuwokRouterBaseUrl(baseUrl) {
   if (typeof baseUrl !== "string" || !baseUrl) return false;
   try {
     const u = new URL(baseUrl);
     return (
       u.pathname.endsWith("/v1") &&
-      (SWAY_ROUTER_URL_HOST_RE.test(u.host) ||
-        SWAY_ROUTER_MATCH_HOSTS.includes(u.host))
+      (SUWOK_ROUTER_URL_HOST_RE.test(u.host) ||
+        SUWOK_ROUTER_MATCH_HOSTS.includes(u.host))
     );
   } catch {
     return false;
@@ -106,7 +106,7 @@ const getOmpVersion = async () => {
 
 const providerPointsAtRouter = (provider) => {
   if (!provider || typeof provider !== "object") return false;
-  return isSwayRouterBaseUrl(provider.baseUrl);
+  return isSuwokRouterBaseUrl(provider.baseUrl);
 };
 
 const isFromCloudflare = (req) =>
@@ -151,14 +151,14 @@ export async function GET(request) {
       });
     }
 
-    const provider = config?.providers?.swayrouter ?? null;
-    const hasSwayRouter = providerPointsAtRouter(provider);
+    const provider = config?.providers?.suwokrouter ?? null;
+    const hasSuwokRouter = providerPointsAtRouter(provider);
 
     return NextResponse.json({
       installed: true,
       config: config ? stringifyYAML(config) : null,
-      hasSwayRouter,
-      connected: hasSwayRouter,
+      hasSuwokRouter,
+      connected: hasSuwokRouter,
       configPath: getModelsPath(),
       version,
     });
@@ -225,7 +225,7 @@ export async function POST(request, { params }) {
           }
         : {}),
     };
-    setNestedSection(parsed, "providers.swayrouter", provider);
+    setNestedSection(parsed, "providers.suwokrouter", provider);
 
     const content = stringifyYAML(parsed);
     await fs.writeFile(modelsPath, content);
@@ -268,7 +268,7 @@ export async function DELETE(request) {
       });
     }
 
-    deleteNestedSection(parsed, "providers.swayrouter");
+    deleteNestedSection(parsed, "providers.suwokrouter");
 
     if (parsed.providers && Object.keys(parsed.providers).length === 0) {
       delete parsed.providers;
@@ -279,7 +279,7 @@ export async function DELETE(request) {
 
     return NextResponse.json({
       success: true,
-      message: "Sway Router settings removed successfully",
+      message: "Suwok Router settings removed successfully",
     });
   } catch (error) {
     console.log("Error resetting omp settings:", error);

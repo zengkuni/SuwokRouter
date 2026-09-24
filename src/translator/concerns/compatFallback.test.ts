@@ -148,7 +148,7 @@ describe("A4.4 per-provider cache (the spec improvement)", () => {
     rememberRejectedParam("pexp", "mexp", "tool_choice");
     const key = "pexp:mexp";
 
-    const store = (globalThis as Record<string, any>)._swayCompatFallback
+    const store = (globalThis as Record<string, any>)._suwokCompatFallback
       .rejected as Map<string, { paths: Set<string>; expireAt: number }>;
     store.get(key)!.expireAt = Date.now() - 1;
     const next = { messages: [], tool_choice: "auto", model: "mexp" };

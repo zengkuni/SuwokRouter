@@ -3,10 +3,10 @@ const path = require("path");
 const os = require("os");
 const { execFileSync, execSync } = require("child_process");
 
-const APP_NAME = "swayrouter";
-const APP_LABEL = "com.swayrouter.autostart";
+const APP_NAME = "suwokrouter";
+const APP_LABEL = "com.suwokrouter.autostart";
 const WINDOWS_RUN_KEY = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run";
-const WINDOWS_RUN_VALUE = "SwayRouter";
+const WINDOWS_RUN_VALUE = "SuwokRouter";
 const WINDOWS_START_DELAY_MS = 5000;
 
 function roamingAppData() {
@@ -14,7 +14,7 @@ function roamingAppData() {
 }
 
 function windowsAutoStartPaths() {
-  const runtimeDir = path.join(roamingAppData(), ".swayrouter", "runtime");
+  const runtimeDir = path.join(roamingAppData(), ".suwokrouter", "runtime");
   return {
     runtimeDir,
     vbsPath: path.join(runtimeDir, `${APP_NAME}-autostart.vbs`),
@@ -48,10 +48,10 @@ Set ProcessEnv = WshShell.Environment("PROCESS")
 Set Fso = CreateObject("Scripting.FileSystemObject")
 LogPath = "${escapeVbsString(logPath)}"
 WScript.Sleep ${WINDOWS_START_DELAY_MS}
-ProcessEnv("SWAYROUTER_AUTOSTART_LOG") = LogPath
+ProcessEnv("SUWOKROUTER_AUTOSTART_LOG") = LogPath
 On Error Resume Next
 Set LogFile = Fso.OpenTextFile(LogPath, 8, True)
-LogFile.WriteLine Now & " Launching Sway Router"
+LogFile.WriteLine Now & " Launching Suwok Router"
 LogFile.Close
 Err.Clear
 WshShell.Run "${escapeVbsString(command)}", 0, False
@@ -65,7 +65,7 @@ End If
 
 function parseWindowsRunValue(output) {
   for (const line of String(output || "").split(/\r?\n/)) {
-    const match = line.match(/^\s*SwayRouter\s+REG_\w+\s+(.+?)\s*$/i);
+    const match = line.match(/^\s*SuwokRouter\s+REG_\w+\s+(.+?)\s*$/i);
     if (match) return match[1];
   }
   return null;
@@ -221,9 +221,9 @@ function enableMacOS(cliPath) {
     <key>KeepAlive</key>
     <false/>
     <key>StandardOutPath</key>
-    <string>/tmp/swayrouter.log</string>
+    <string>/tmp/suwokrouter.log</string>
     <key>StandardErrorPath</key>
-    <string>/tmp/swayrouter.error.log</string>
+    <string>/tmp/suwokrouter.error.log</string>
 </dict>
 </plist>`;
 
@@ -318,8 +318,8 @@ function enableLinux(cliPath) {
 
   const desktopContent = `[Desktop Entry]
 Type=Application
-Name=Sway Router
-Comment=Sway Router API Proxy
+Name=Suwok Router
+Comment=Suwok Router API Proxy
 Exec=${nodePath} ${routerScript} --tray --skip-update
 Hidden=false
 NoDisplay=false

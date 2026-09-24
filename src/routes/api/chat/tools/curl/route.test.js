@@ -9,7 +9,7 @@ function request(body) {
   });
 }
 
-describe("Sway Chat curl tool", () => {
+describe("Suwok Chat curl tool", () => {
   test("blocks private, loopback, and metadata targets before fetch", async () => {
     for (const url of [
       "http://127.0.0.1:1212/",

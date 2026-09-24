@@ -46,7 +46,7 @@ export async function testRelayEndpoint(relayUrl, relayToken, timeoutMs = 15000)
     const response = await undiciFetch(relayUrl, {
       method: "GET",
       headers: {
-        ...(relayToken ? { "x-sway-relay-token": relayToken } : {}),
+        ...(relayToken ? { "x-suwok-relay-token": relayToken } : {}),
         "x-relay-target": "https://www.google.com",
         "x-relay-path": "/generate_204",
       },

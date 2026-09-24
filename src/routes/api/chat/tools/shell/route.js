@@ -7,7 +7,7 @@ import { promisify } from "node:util";
 import { NextResponse } from "@/next/server";
 
 const execFileAsync = promisify(execFile);
-const WORKSPACE_ROOT = path.resolve(process.env.SWAY_CHAT_WORKSPACE || process.cwd());
+const WORKSPACE_ROOT = path.resolve(process.env.SUWOK_CHAT_WORKSPACE || process.cwd());
 const MAX_COMMAND_LENGTH = 500;
 const MAX_OUTPUT_LENGTH = 24_000;
 const MAX_FILE_LENGTH = 64_000;
@@ -214,7 +214,7 @@ export async function POST(request) {
           ok: false,
           requiresApproval: true,
           action: "execute_javascript",
-          warning: "This runs JavaScript in the local Sway Router workspace.",
+          warning: "This runs JavaScript in the local Suwok Router workspace.",
         }, { status: 409 });
       }
       return NextResponse.json(await runApprovedJavaScript(body.code));

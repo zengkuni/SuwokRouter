@@ -48,7 +48,7 @@ export function BulkApiKeyFields({
   return (
     <div className="space-y-2">
       <p className="text-xs text-muted-foreground">
-        1 key per line; optionally use <code>name|key</code>. Unnamed rows receive <code>swayrouter-account1…N</code> automatically.
+        1 key per line; optionally use <code>name|key</code>. Unnamed rows receive <code>suwokrouter-account1…N</code> automatically.
       </p>
       <textarea
         id="bulk-api-keys"

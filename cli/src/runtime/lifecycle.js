@@ -141,7 +141,7 @@ function spawnNative(
   if (!command) {
     throw new Error(
       isBinary
-        ? "Compiled Sway Router binary was not found"
+        ? "Compiled Suwok Router binary was not found"
         : "Bun is required to run a native source installation",
     );
   }
@@ -175,12 +175,12 @@ function dataDirectory(installation) {
     process.platform === "win32"
       ? process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming")
       : os.homedir(),
-    ".swayrouter",
+    ".suwokrouter",
   );
 }
 
 function pidFile(installation) {
-  return path.join(dataDirectory(installation), "runtime", "swayrouter.pid");
+  return path.join(dataDirectory(installation), "runtime", "suwokrouter.pid");
 }
 
 function readPidRecord(installation) {
@@ -303,7 +303,7 @@ function waitForProcessOrReady(child, port, host) {
       finish(
         reject,
         new Error(
-          `Sway Router exited before readiness (code=${code ?? "unknown"}, signal=${signal || "none"})`,
+          `Suwok Router exited before readiness (code=${code ?? "unknown"}, signal=${signal || "none"})`,
         ),
       );
     child.once("error", onError);
@@ -313,7 +313,7 @@ function waitForProcessOrReady(child, port, host) {
       else
         finish(
           reject,
-          new Error(`Sway Router did not become ready on port ${port}`),
+          new Error(`Suwok Router did not become ready on port ${port}`),
         );
     });
   });
@@ -327,7 +327,7 @@ async function start(
   const targetHost = localHost(host || installation.host);
   if (status(installation).running)
     throw new Error(
-      "Sway Router is already running; stop it before starting again",
+      "Suwok Router is already running; stop it before starting again",
     );
 
   if (installation.mode === "docker") {
@@ -343,7 +343,7 @@ async function start(
       });
       if (!(await waitForReady(targetPort, { host: targetHost }))) {
         throw new Error(
-          `Sway Router did not become ready on port ${targetPort}`,
+          `Suwok Router did not become ready on port ${targetPort}`,
         );
       }
     } else {
@@ -358,14 +358,14 @@ async function start(
     showLog,
     detached: background,
   });
-  if (!child.pid) throw new Error("Sway Router process did not start");
+  if (!child.pid) throw new Error("Suwok Router process did not start");
   writePid(installation, child.pid);
   child.once("error", () => removePid(installation));
   child.once("close", () => removePid(installation));
   try {
     const ready = await waitForReady(targetPort, { host: targetHost });
     if (!ready)
-      throw new Error(`Sway Router did not become ready on port ${targetPort}`);
+      throw new Error(`Suwok Router did not become ready on port ${targetPort}`);
   } catch (error) {
     stopNative(installation);
     throw error;

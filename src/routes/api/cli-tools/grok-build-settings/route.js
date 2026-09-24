@@ -70,7 +70,7 @@ const normalizeSubagentModels = (value) => {
   return result;
 };
 
-const hasSwayRouterConfig = (settings) => Boolean(settings?.model?.base_url);
+const hasSuwokRouterConfig = (settings) => Boolean(settings?.model?.base_url);
 
 export async function GET() {
   try {
@@ -87,7 +87,7 @@ export async function GET() {
     return NextResponse.json({
       installed: true,
       settings,
-      hasSwayRouter: hasSwayRouterConfig(settings),
+      hasSuwokRouter: hasSuwokRouterConfig(settings),
       configPath: getGrokConfigPath(),
     });
   } catch (error) {
@@ -108,7 +108,7 @@ export async function POST(request) {
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
     const toml = applyGrokBuildConfig(await readConfigToml(), {
       baseUrl: normalizedBaseUrl,
-      apiKey: apiKey || "sk_swayrouter",
+      apiKey: apiKey || "sk_suwokrouter",
       model: selectedModel,
       contextWindow: normalizeContextWindow(contextWindow, selectedModel),
       subagentModels: normalizeSubagentModels(subagentModels),
@@ -119,7 +119,7 @@ export async function POST(request) {
       success: true,
       message: "Grok Build settings applied successfully!",
       configPath: getGrokConfigPath(),
-      modelSlot: "swayrouter",
+      modelSlot: "suwokrouter",
     });
   } catch (error) {
     console.log("Error updating grok-build settings:", error);
@@ -143,7 +143,7 @@ export async function DELETE() {
     await fs.writeFile(configPath, resetGrokBuildConfig(toml));
     return NextResponse.json({
       success: true,
-      message: "Sway Router model slots removed from Grok Build",
+      message: "Suwok Router model slots removed from Grok Build",
     });
   } catch (error) {
     console.log("Error resetting grok-build settings:", error);

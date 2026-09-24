@@ -146,7 +146,7 @@ export type SettingsForm = {
 
 export function settingsToForm(s: AppSettings): SettingsForm {
   return {
-    profileName: s.profileName?.trim() || "Sway Router",
+    profileName: s.profileName?.trim() || "Suwok Router",
     profileAvatar: s.profileAvatar || "",
     currency: s.currency === "IDR" ? "IDR" : "USD",
     requireApiKey: !!s.requireApiKey,

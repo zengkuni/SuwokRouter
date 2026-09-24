@@ -71,30 +71,30 @@ const checkClaudeInstalled = async () => {
   }
 };
 
-const SWAY_ROUTER_MATCH_HOSTS = [
+const SUWOK_ROUTER_MATCH_HOSTS = [
   "127.0.0.1:1212",
   "localhost:1212",
   "localhost",
   "127.0.0.1",
 ];
-const SWAY_ROUTER_URL_HOST_RE = /^(?:127\.0\.0\.1|localhost)(?::1212)?$/;
+const SUWOK_ROUTER_URL_HOST_RE = /^(?:127\.0\.0\.1|localhost)(?::1212)?$/;
 
-function isSwayRouterBaseUrl(baseUrl) {
+function isSuwokRouterBaseUrl(baseUrl) {
   if (typeof baseUrl !== "string" || !baseUrl) return false;
   try {
     const u = new URL(baseUrl);
     return (
       u.pathname.endsWith("/v1") &&
-      (SWAY_ROUTER_URL_HOST_RE.test(u.host) ||
-        SWAY_ROUTER_MATCH_HOSTS.includes(u.host))
+      (SUWOK_ROUTER_URL_HOST_RE.test(u.host) ||
+        SUWOK_ROUTER_MATCH_HOSTS.includes(u.host))
     );
   } catch {
     return false;
   }
 }
 
-function hasSwayRouterFromSettings(settings) {
-  return isSwayRouterBaseUrl(settings?.env?.ANTHROPIC_BASE_URL);
+function hasSuwokRouterFromSettings(settings) {
+  return isSuwokRouterBaseUrl(settings?.env?.ANTHROPIC_BASE_URL);
 }
 
 const readSettings = async () => {
@@ -122,13 +122,13 @@ export async function GET() {
     }
 
     const settings = await readSettings();
-    const hasSwayRouter = hasSwayRouterFromSettings(settings);
+    const hasSuwokRouter = hasSuwokRouterFromSettings(settings);
     const claudeJson = await readClaudeJson();
 
     return NextResponse.json({
       installed: true,
       settings: settings,
-      hasSwayRouter,
+      hasSuwokRouter,
       exaMcpEnabled: !!claudeJson?.mcpServers?.exa,
       settingsPath: getClaudeSettingsPath(),
     });

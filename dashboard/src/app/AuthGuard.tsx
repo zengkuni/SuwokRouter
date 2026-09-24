@@ -52,7 +52,7 @@ export function AuthGuard() {
   if (!ready) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <TextShimmer className="text-sm">Loading Sway Router…</TextShimmer>
+        <TextShimmer className="text-sm">Loading Suwok Router…</TextShimmer>
       </div>
     );
   }
@@ -64,7 +64,7 @@ export function AuthGuard() {
           Backend unavailable
         </p>
         <p className="text-sm text-muted-foreground">
-          Cannot reach Sway Router backend. Please check the server and try
+          Cannot reach Suwok Router backend. Please check the server and try
           again.
         </p>
       </div>

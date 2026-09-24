@@ -48,12 +48,12 @@ function isNewerVersion(currentVersion, latestVersion) {
 }
 
 function registryUrl() {
-  return String(process.env.SWAYROUTER_NPM_REGISTRY || "https://registry.npmjs.org").replace(/\/+$/, "");
+  return String(process.env.SUWOKROUTER_NPM_REGISTRY || "https://registry.npmjs.org").replace(/\/+$/, "");
 }
 
 async function checkForUpdate(fetchImpl = globalThis.fetch) {
   const currentVersion = String(pkg.version || "0.0.0");
-  const packageName = process.env.SWAYROUTER_PACKAGE_NAME || pkg.name || "swayrouter";
+  const packageName = process.env.SUWOKROUTER_PACKAGE_NAME || pkg.name || "suwokrouter";
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   let latestVersion = null;
@@ -87,10 +87,10 @@ async function checkForUpdate(fetchImpl = globalThis.fetch) {
 }
 
 function packageManager() {
-  const customCommand = String(process.env.SWAYROUTER_PACKAGE_MANAGER_PATH || "").trim();
+  const customCommand = String(process.env.SUWOKROUTER_PACKAGE_MANAGER_PATH || "").trim();
   if (customCommand) return { command: customCommand, args: ["install", "--global"] };
 
-  const preferred = String(process.env.SWAYROUTER_PACKAGE_MANAGER || "").trim().toLowerCase();
+  const preferred = String(process.env.SUWOKROUTER_PACKAGE_MANAGER || "").trim().toLowerCase();
   if (preferred === "npm") return { command: "npm", args: ["install", "--global"] };
   return { command: "bun", args: ["install", "--global"] };
 }
@@ -100,8 +100,8 @@ function installPackageVersion(version) {
     return Promise.reject(new Error("Package updates are unavailable for this private checkout"));
   }
   const manager = packageManager();
-  const spec = `${process.env.SWAYROUTER_PACKAGE_NAME || pkg.name || "swayrouter"}@${version}`;
-  return withProgress(`Updating Sway Router to v${version}`, (progress) => new Promise((resolve, reject) => {
+  const spec = `${process.env.SUWOKROUTER_PACKAGE_NAME || pkg.name || "suwokrouter"}@${version}`;
+  return withProgress(`Updating Suwok Router to v${version}`, (progress) => new Promise((resolve, reject) => {
     progress.update(35, "Preparing update");
     let child;
     try {
@@ -119,7 +119,7 @@ function installPackageVersion(version) {
       if (code === 0) resolve({ manager: manager.command, version });
       else reject(new Error(`${manager.command} install failed with exit code ${code ?? "unknown"}`));
     });
-  }), { indeterminate: true, doneMessage: `Sway Router updated to v${version}` });
+  }), { indeterminate: true, doneMessage: `Suwok Router updated to v${version}` });
 }
 
 module.exports = {
