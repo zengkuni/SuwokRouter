@@ -199,7 +199,7 @@ export async function persistMetrics() {
       };
     }
     await db.run(
-      `INSERT INTO _meta(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+      `INSERT INTO _meta(key, value) VALUES($1, $2) ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
       [META_KEY, stringifyJson(snap)],
     );
   } catch (e) {
@@ -211,7 +211,7 @@ export async function persistMetrics() {
 export async function restoreMetrics() {
   try {
     const db = await getAdapter();
-    const row = await db.get(`SELECT value FROM _meta WHERE key = ?`, [META_KEY]);
+    const row = await db.get(`SELECT value FROM _meta WHERE key = $1`, [META_KEY]);
     if (!row?.value) return;
     const snap = parseJson(row.value, null);
     if (!snap?.metrics) return;

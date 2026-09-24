@@ -17,7 +17,7 @@ export default {
   async up(db) {
     for (const modelId of LEGACY_MODELS) {
       await db.run(
-        "DELETE FROM kv WHERE scope = 'customModels' AND key = ?",
+        "DELETE FROM kv WHERE scope = 'customModels' AND key = $1",
         [`codebuddy-intl|${modelId}|llm`],
       );
     }

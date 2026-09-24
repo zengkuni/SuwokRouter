@@ -13,7 +13,7 @@ export default {
     if (settings.fallbackStrategy !== "least-inflight") return;
     settings.fallbackStrategy = "fill-first";
     await db.run(
-      `INSERT INTO settings(id, data) VALUES(1, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`,
+      `INSERT INTO settings(id, data) VALUES(1, $1) ON CONFLICT(id) DO UPDATE SET data = excluded.data`,
       [stringifyJson(settings)],
     );
   },

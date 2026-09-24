@@ -384,7 +384,7 @@ export async function importDb(payload) {
       if (currentSettings?.password) settings.password = currentSettings.password;
       else delete settings.password;
       delete settings.upstreamUserAgent;
-      await db.run(`INSERT INTO settings(id, data) VALUES(1, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`, [stringifyJson(settings)]);
+      await db.run(`INSERT INTO settings(id, data) VALUES(1, $1) ON CONFLICT(id) DO UPDATE SET data = excluded.data`, [stringifyJson(settings)]);
     }
 
     for (const c of payload.providerConnections || []) {
@@ -395,62 +395,62 @@ export async function importDb(payload) {
         delete rest.providerSpecificData.userAgentProfile;
       }
       await db.run(
-        `INSERT OR REPLACE INTO providerConnections(id, provider, authType, name, email, priority, isActive, data, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO providerConnections(id, provider, authType, name, email, priority, isActive, data, createdAt, updatedAt) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ON CONFLICT(id) DO UPDATE SET provider = excluded.provider, authType = excluded.authType, name = excluded.name, email = excluded.email, priority = excluded.priority, isActive = excluded.isActive, data = excluded.data, createdAt = excluded.createdAt, updatedAt = excluded.updatedAt`,
         [id, provider, authType || "oauth", name || null, email || null, priority || null, isActive === false ? 0 : 1, stringifyJson(rest), createdAt || new Date().toISOString(), updatedAt || new Date().toISOString()]
       );
     }
     for (const n of payload.providerNodes || []) {
       const { id, type, name, createdAt, updatedAt, ...rest } = n;
       await db.run(
-        `INSERT OR REPLACE INTO providerNodes(id, type, name, data, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO providerNodes(id, type, name, data, createdAt, updatedAt) VALUES($1, $2, $3, $4, $5, $6) ON CONFLICT(id) DO UPDATE SET type = excluded.type, name = excluded.name, data = excluded.data, createdAt = excluded.createdAt, updatedAt = excluded.updatedAt`,
         [id, type || null, name || null, stringifyJson(rest), createdAt || new Date().toISOString(), updatedAt || new Date().toISOString()]
       );
     }
     for (const p of payload.proxyPools || []) {
       const { id, isActive, testStatus, createdAt, updatedAt, ...rest } = p;
       await db.run(
-        `INSERT OR REPLACE INTO proxyPools(id, isActive, testStatus, data, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO proxyPools(id, isActive, testStatus, data, createdAt, updatedAt) VALUES($1, $2, $3, $4, $5, $6) ON CONFLICT(id) DO UPDATE SET isActive = excluded.isActive, testStatus = excluded.testStatus, data = excluded.data, createdAt = excluded.createdAt, updatedAt = excluded.updatedAt`,
         [id, isActive === false ? 0 : 1, testStatus || "unknown", stringifyJson(rest), createdAt || new Date().toISOString(), updatedAt || new Date().toISOString()]
       );
     }
     if (!preserveApiKeys) {
       for (const k of apiKeys) {
         await db.run(
-          `INSERT OR REPLACE INTO apiKeys(id, key, name, machineId, isActive, isDefault, createdAt) VALUES(?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO apiKeys(id, key, name, machineId, isActive, isDefault, createdAt) VALUES($1, $2, $3, $4, $5, $6, $7) ON CONFLICT(id) DO UPDATE SET key = excluded.key, name = excluded.name, machineId = excluded.machineId, isActive = excluded.isActive, isDefault = excluded.isDefault, createdAt = excluded.createdAt`,
           [k.id, k.key.trim(), k.name || null, k.machineId || null, k.isActive === false ? 0 : 1, k.isDefault === true ? 1 : 0, k.createdAt || new Date().toISOString()]
         );
       }
     }
     for (const c of payload.combos || []) {
       await db.run(
-        `INSERT OR REPLACE INTO combos(id, name, kind, models, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO combos(id, name, kind, models, createdAt, updatedAt) VALUES($1, $2, $3, $4, $5, $6) ON CONFLICT(id) DO UPDATE SET name = excluded.name, kind = excluded.kind, models = excluded.models, createdAt = excluded.createdAt, updatedAt = excluded.updatedAt`,
         [c.id, c.name, c.kind || null, stringifyJson(c.models || []), c.createdAt || new Date().toISOString(), c.updatedAt || new Date().toISOString()]
       );
     }
     for (const m of payload.customModels || []) {
       const k = `${m.providerAlias}|${m.id}|${m.type || "llm"}`;
-      await db.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('customModels', ?, ?)`, [k, stringifyJson(m)]);
+      await db.run(`INSERT INTO kv(scope, key, value) VALUES('customModels', $1, $2) ON CONFLICT(scope, key) DO UPDATE SET value = excluded.value`, [k, stringifyJson(m)]);
     }
     for (const [provider, models] of Object.entries(payload.pricing || {})) {
-      await db.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('pricing', ?, ?)`, [provider, stringifyJson(models || {})]);
+      await db.run(`INSERT INTO kv(scope, key, value) VALUES('pricing', $1, $2) ON CONFLICT(scope, key) DO UPDATE SET value = excluded.value`, [provider, stringifyJson(models || {})]);
     }
 
     if (scope === "full") {
       for (const entry of payload.usageHistory) {
         await db.run(
-          `INSERT OR REPLACE INTO usageHistory(id, timestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, status, tokens, meta) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO usageHistory(id, timestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, status, tokens, meta) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) ON CONFLICT(id) DO UPDATE SET timestamp = excluded.timestamp, provider = excluded.provider, model = excluded.model, connectionId = excluded.connectionId, apiKey = excluded.apiKey, endpoint = excluded.endpoint, promptTokens = excluded.promptTokens, completionTokens = excluded.completionTokens, cost = excluded.cost, status = excluded.status, tokens = excluded.tokens, meta = excluded.meta`,
           [entry.id, entry.timestamp, entry.provider || null, entry.model || null, entry.connectionId || null, entry.apiKey || null, entry.endpoint || null, entry.promptTokens || 0, entry.completionTokens || 0, entry.cost || 0, entry.status || "ok", stringifyJson(entry.tokens || {}), stringifyJson(entry.meta || {})],
         );
       }
       for (const entry of payload.usageDaily) {
         await db.run(
-          `INSERT OR REPLACE INTO usageDaily(dateKey, data) VALUES(?, ?)`,
+          `INSERT INTO usageDaily(dateKey, data) VALUES($1, $2) ON CONFLICT(dateKey) DO UPDATE SET data = excluded.data`,
           [entry.dateKey, stringifyJson(entry.data)],
         );
       }
       for (const entry of payload.requestDetails) {
         await db.run(
-          `INSERT OR REPLACE INTO requestDetails(id, timestamp, provider, model, connectionId, status, data, trace_id, payload_capture) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO requestDetails(id, timestamp, provider, model, connectionId, status, data, trace_id, payload_capture) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT(id) DO UPDATE SET timestamp = excluded.timestamp, provider = excluded.provider, model = excluded.model, connectionId = excluded.connectionId, status = excluded.status, data = excluded.data, trace_id = excluded.trace_id, payload_capture = excluded.payload_capture`,
           [entry.id, entry.timestamp, entry.provider || null, entry.model || null, entry.connectionId || null, entry.status || null, stringifyJson(entry.data), entry.trace_id || null, entry.payload_capture || null],
         );
       }

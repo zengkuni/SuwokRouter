@@ -1,5 +1,5 @@
 import { loadEnv } from "../env.js";
-import { createPostgresAdapter, closePostgresPool } from "./adapters/postgresAdapter.js";
+import { createPostgresAdapter } from "./adapters/postgresAdapter.js";
 
 // Postgres is the only persistent driver. DB_URL is required; there is no
 // local file fallback (Swap B removed the SQLite adapters and schema).
@@ -46,6 +46,9 @@ export async function getAdapter() {
   return state.initPromise;
 }
 
+// Closes the ADAPTER STATE only. The pool is a process-lifetime singleton
+// shared by every adapter: ending it here would kill adapters other suites
+// still hold. Process shutdown calls closePostgresPool() (B6 graceful exit).
 export async function closeAdapter() {
   const adapter = state.instance || (await state.initPromise?.catch(() => null));
   resetAdapterState();
@@ -54,7 +57,6 @@ export async function closeAdapter() {
       await adapter.close();
     } catch {}
   }
-  await closePostgresPool();
 }
 
 export function getAdapterSync() {

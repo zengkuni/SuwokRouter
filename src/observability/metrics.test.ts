@@ -19,7 +19,7 @@ beforeEach(() => {
 afterAll(async () => {
   try {
     const db = await getAdapter();
-    db.run(`DELETE FROM _meta WHERE key = ?`, ["metrics.snapshot"]);
+    db.run(`DELETE FROM _meta WHERE key = $1`, ["metrics.snapshot"]);
   } catch {
 
   }

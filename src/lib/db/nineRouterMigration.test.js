@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { Database } from "bun:sqlite";
+import { getAdapter } from "./driver.js";
 import {
   buildNineRouterMigrationPlan,
   isNineRouterBackupPayload,
@@ -178,31 +178,27 @@ describe("9Router migration planning", () => {
     expect(result.plan.settings.providerStrategies["codebuddy-intl"]).toEqual({ strategy: "round-robin" });
   });
 
-  test("rolls back every inserted section when a write fails", () => {
-    const raw = new Database(":memory:");
-    raw.exec("CREATE TABLE providerNodes(id TEXT PRIMARY KEY, type TEXT, name TEXT, data TEXT, createdAt TEXT, updatedAt TEXT)");
-    raw.exec("CREATE TABLE providerConnections(id TEXT PRIMARY KEY, provider TEXT, authType TEXT, name TEXT, email TEXT, priority INTEGER, isActive INTEGER, data TEXT, createdAt TEXT, updatedAt TEXT)");
-    raw.exec("CREATE TABLE kv(scope TEXT, key TEXT, value TEXT, PRIMARY KEY(scope, key))");
-    raw.exec("CREATE TABLE combos(id TEXT PRIMARY KEY, name TEXT UNIQUE, kind TEXT, models TEXT, createdAt TEXT, updatedAt TEXT)");
-    raw.exec("CREATE TABLE settings(id INTEGER PRIMARY KEY, data TEXT)");
-    const db = {
-      run(sql, params = []) { return raw.prepare(sql).run(...params); },
-      transaction(fn) { return raw.transaction(fn)(); },
-    };
+  test("rolls back every inserted section when a write fails", async () => {
+    // Postgres is the only driver: run against the real adapter. The second
+    // combo violates combos.name UNIQUE, which ON CONFLICT(id) does not
+    // cover, so the whole transaction must roll back — including the node
+    // section inserted before the failure.
+    const db = await getAdapter();
+    const stamp = `9r-rollback-${Math.random().toString(36).slice(2, 8)}`;
     const plan = {
-      providerNodes: [{ id: "node-1", type: "openai-compatible", name: "Node", prefix: "node" }],
+      providerNodes: [{ id: `node-${stamp}`, type: "openai-compatible", name: "Node", prefix: "node" }],
       providerConnections: [],
       customModels: [],
       combos: [
-        { id: "combo-1", name: "Same", models: [] },
-        { id: "combo-2", name: "Same", models: [] },
+        { id: `combo-1-${stamp}`, name: stamp, models: [] },
+        { id: `combo-2-${stamp}`, name: stamp, models: [] },
       ],
       settings: {},
     };
-    expect(() => writeNineRouterMigrationPlan(db, plan, "2026-01-01T00:00:00.000Z"))
-      .toThrow();
-    expect(raw.query("SELECT COUNT(*) AS count FROM providerNodes").get().count).toBe(0);
-    expect(raw.query("SELECT COUNT(*) AS count FROM combos").get().count).toBe(0);
-    raw.close();
+    await expect(writeNineRouterMigrationPlan(db, plan, "2026-01-01T00:00:00.000Z")).rejects.toThrow();
+    const node = await db.get("SELECT id FROM providerNodes WHERE id = $1", [`node-${stamp}`]);
+    const combos = await db.all("SELECT id FROM combos WHERE name = $1", [stamp]);
+    expect(node).toBeNull();
+    expect(combos).toHaveLength(0);
   });
 });
