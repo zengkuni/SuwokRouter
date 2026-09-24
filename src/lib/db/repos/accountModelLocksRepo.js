@@ -11,7 +11,7 @@ export async function recordLock(connectionId, model, { tier, reason, expiresAt 
   const db = await getAdapter();
   const modelId = lockModelId(model);
   const now = new Date().toISOString();
-  db.run(
+  await db.run(
     `INSERT INTO account_model_locks(connectionId, modelId, tier, reason, expiresAt, createdAt, updatedAt)
      VALUES(?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(connectionId, modelId) DO UPDATE SET
@@ -24,14 +24,14 @@ export async function recordLock(connectionId, model, { tier, reason, expiresAt 
 export async function clearLock(connectionId, model) {
   if (!connectionId) return;
   const db = await getAdapter();
-  db.run(`DELETE FROM account_model_locks WHERE connectionId = ? AND modelId = ?`,
+  await db.run(`DELETE FROM account_model_locks WHERE connectionId = ? AND modelId = ?`,
     [connectionId, lockModelId(model)]);
 }
 
 export async function clearAllLocksForConnection(connectionId) {
   if (!connectionId) return;
   const db = await getAdapter();
-  db.run(`DELETE FROM account_model_locks WHERE connectionId = ?`, [connectionId]);
+  await db.run(`DELETE FROM account_model_locks WHERE connectionId = ?`, [connectionId]);
 }
 
 export async function getActiveLocks(filter = {}) {
@@ -41,7 +41,7 @@ export async function getActiveLocks(filter = {}) {
   const params = [now];
   if (filter.connectionId) { where.push("connectionId = ?"); params.push(filter.connectionId); }
   if (filter.model !== undefined) { where.push("modelId = ?"); params.push(lockModelId(filter.model)); }
-  const rows = db.all(
+  const rows = await db.all(
     `SELECT connectionId, modelId, tier, reason, expiresAt FROM account_model_locks WHERE ${where.join(" AND ")} ORDER BY expiresAt ASC`,
     params
   );
@@ -52,7 +52,7 @@ export async function isLocked(connectionId, model) {
   const db = await getAdapter();
   const now = new Date().toISOString();
 
-  const row = db.get(
+  const row = await db.get(
     `SELECT 1 FROM account_model_locks
      WHERE connectionId = ? AND modelId IN (?, ?) AND expiresAt > ? LIMIT 1`,
     [connectionId, lockModelId(model), LOCK_MODEL_ALL, now]
@@ -63,12 +63,12 @@ export async function isLocked(connectionId, model) {
 export async function countActiveLocks() {
   const db = await getAdapter();
   const now = new Date().toISOString();
-  const row = db.get(`SELECT COUNT(*) AS c FROM account_model_locks WHERE expiresAt > ?`, [now]);
+  const row = await db.get(`SELECT COUNT(*) AS c FROM account_model_locks WHERE expiresAt > ?`, [now]);
   return row?.c || 0;
 }
 
 export async function reapExpired() {
   const db = await getAdapter();
   const now = new Date().toISOString();
-  db.run(`DELETE FROM account_model_locks WHERE expiresAt <= ?`, [now]);
+  await db.run(`DELETE FROM account_model_locks WHERE expiresAt <= ?`, [now]);
 }

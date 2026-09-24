@@ -121,7 +121,7 @@ function createEmptyUsageDay() {
   };
 }
 
-function pruneUsageHistory(db) {
+async function pruneUsageHistory(db) {
   const now = Date.now();
   if (now - lastHistoryPruneAt < HISTORY_PRUNE_INTERVAL_MS) return 0;
 
@@ -130,27 +130,27 @@ function pruneUsageHistory(db) {
   const cutoff = new Date(now - retentionDays * 86400000).toISOString();
   let deleted = 0;
 
-  const oldRows = db.all(
+  const oldRows = await db.all(
     "SELECT id FROM usageHistory WHERE timestamp < ? ORDER BY id ASC LIMIT ?",
     [cutoff, HISTORY_PRUNE_BATCH_SIZE],
   );
   if (oldRows.length > 0) {
-    db.run(
+    await db.run(
       "DELETE FROM usageHistory WHERE id IN (SELECT id FROM usageHistory WHERE timestamp < ? ORDER BY id ASC LIMIT ?)",
       [cutoff, HISTORY_PRUNE_BATCH_SIZE],
     );
     deleted += oldRows.length;
   }
 
-  const count = Number(db.get("SELECT COUNT(*) AS count FROM usageHistory")?.count || 0);
+  const count = Number((await db.get("SELECT COUNT(*) AS count FROM usageHistory"))?.count || 0);
   if (count > maxRows) {
     const overflow = Math.min(count - maxRows, HISTORY_PRUNE_BATCH_SIZE);
-    const oldestRows = db.all(
+    const oldestRows = await db.all(
       "SELECT id FROM usageHistory ORDER BY id ASC LIMIT ?",
       [overflow],
     );
     if (oldestRows.length > 0) {
-      db.run(
+      await db.run(
         "DELETE FROM usageHistory WHERE id IN (SELECT id FROM usageHistory ORDER BY id ASC LIMIT ?)",
         [overflow],
       );
@@ -160,10 +160,10 @@ function pruneUsageHistory(db) {
 
   if (deleted > 0) {
     const previous = Number.parseInt(
-      db.get("SELECT value FROM _meta WHERE key = 'usageHistoryPrunedTotal'")?.value,
+      (await db.get("SELECT value FROM _meta WHERE key = 'usageHistoryPrunedTotal'"))?.value,
       10,
     ) || 0;
-    db.run(
+    await db.run(
       "INSERT INTO _meta(key, value) VALUES('usageHistoryPrunedTotal', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
       [String(previous + deleted)],
     );
@@ -172,16 +172,16 @@ function pruneUsageHistory(db) {
   return deleted;
 }
 
-function reconcileUsageAggregates(db) {
-  const historyCount = Number(db.get("SELECT COUNT(*) AS count FROM usageHistory")?.count || 0);
-  const dailyRows = db.all("SELECT dateKey, data FROM usageDaily");
+async function reconcileUsageAggregates(db) {
+  const historyCount = Number((await db.get("SELECT COUNT(*) AS count FROM usageHistory"))?.count || 0);
+  const dailyRows = await db.all("SELECT dateKey, data FROM usageDaily");
   const dailyCount = dailyRows.reduce((sum, row) => {
     const day = parseJson(row.data, {}) || {};
     return sum + Number(day.requests || 0);
   }, 0);
-  const lifetimeRaw = db.get("SELECT value FROM _meta WHERE key = 'totalRequestsLifetime'")?.value;
+  const lifetimeRaw = (await db.get("SELECT value FROM _meta WHERE key = 'totalRequestsLifetime'"))?.value;
   const lifetimeCount = Number.parseInt(lifetimeRaw, 10);
-  const prunedRaw = db.get("SELECT value FROM _meta WHERE key = 'usageHistoryPrunedTotal'")?.value;
+  const prunedRaw = (await db.get("SELECT value FROM _meta WHERE key = 'usageHistoryPrunedTotal'"))?.value;
   const prunedCount = Math.max(0, Number.parseInt(prunedRaw, 10) || 0);
   const expectedRetainedCount = Math.max(0, lifetimeCount - prunedCount);
 
@@ -196,7 +196,7 @@ function reconcileUsageAggregates(db) {
   }
 
   const dayMap = {};
-  const rows = db.all(
+  const rows = await db.all(
     "SELECT timestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, status, tokens, meta FROM usageHistory ORDER BY id ASC",
   );
   for (const row of rows) {
@@ -224,19 +224,19 @@ function reconcileUsageAggregates(db) {
     aggregateEntryToDay(dayMap[dateKey], entry);
   }
 
-  db.transaction(() => {
-    db.run("DELETE FROM usageDaily");
+  await db.transaction(async () => {
+    await db.run("DELETE FROM usageDaily");
     for (const [dateKey, day] of Object.entries(dayMap)) {
-      db.run(
+      await db.run(
         "INSERT INTO usageDaily(dateKey, data) VALUES(?, ?)",
         [dateKey, stringifyJson(day)],
       );
     }
-    db.run(
+    await db.run(
       "INSERT INTO _meta(key, value) VALUES('totalRequestsLifetime', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
       [String(historyCount)],
     );
-    db.run(
+    await db.run(
       "INSERT INTO _meta(key, value) VALUES('usageHistoryPrunedTotal', '0') ON CONFLICT(key) DO UPDATE SET value = excluded.value",
     );
   });
@@ -270,13 +270,13 @@ function periodStart(period) {
   return duration ? new Date(Date.now() - duration).toISOString() : null;
 }
 
-function enrichRecentLatencies(db, rows) {
+async function enrichRecentLatencies(db, rows) {
   const missing = rows.some((row) => row.latencyMs === undefined);
   if (!missing) return rows;
 
   let detailRows = [];
   try {
-    detailRows = db.all(
+    detailRows = await db.all(
       `SELECT timestamp, provider, model, connectionId, data FROM requestDetails ORDER BY timestamp DESC LIMIT 500`
     );
   } catch {
@@ -340,7 +340,7 @@ async function ensureRingInitialized() {
   recentRing.initialized = true;
   try {
     const db = await getAdapter();
-    const rows = db.all(`SELECT timestamp, provider, model, connectionId, apiKey, endpoint, cost, status, tokens FROM usageHistory ORDER BY id DESC LIMIT ?`, [RING_CAP]);
+    const rows = await db.all(`SELECT timestamp, provider, model, connectionId, apiKey, endpoint, cost, status, tokens FROM usageHistory ORDER BY id DESC LIMIT ?`, [RING_CAP]);
     recentRing.items = rows.reverse().map((r) => ({
       timestamp: r.timestamp, provider: r.provider, model: r.model, connectionId: r.connectionId,
       apiKey: r.apiKey, endpoint: r.endpoint, cost: r.cost, status: r.status,
@@ -485,7 +485,7 @@ async function flushUsageBatch(rows) {
   const timestamps = [...new Set(deduped.map((e) => e.timestamp))];
   const existingRows = [];
   for (const ts of timestamps.slice(0, 64)) {
-    existingRows.push(...db.all(
+    existingRows.push(...await db.all(
       `SELECT timestamp, provider, model, connectionId, apiKey, promptTokens, completionTokens, id, endpoint FROM usageHistory WHERE timestamp = ?`,
       [ts]
     ));
@@ -498,7 +498,7 @@ async function flushUsageBatch(rows) {
   const touchedDays = new Set();
   for (const e of deduped) touchedDays.add(getLocalDateKey(e.timestamp));
   for (const dateKey of touchedDays) {
-    const dayRow = db.get(`SELECT data FROM usageDaily WHERE dateKey = ?`, [dateKey]);
+    const dayRow = await db.get(`SELECT data FROM usageDaily WHERE dateKey = ?`, [dateKey]);
     dayMap[dateKey] = dayRow ? parseJson(dayRow.data, {}) : {
       requests: 0, promptTokens: 0, completionTokens: 0, cost: 0,
       byProvider: {}, byModel: {}, byAccount: {}, byApiKey: {}, byEndpoint: {},
@@ -507,7 +507,7 @@ async function flushUsageBatch(rows) {
 
   let insertedAny = false;
   let insertedCount = 0;
-  db.transaction(() => {
+  await db.transaction(async () => {
     for (const entry of deduped) {
       const tokens = entry.tokens || {};
       const promptTokens = tokens.prompt_tokens || tokens.input_tokens || 0;
@@ -519,7 +519,7 @@ async function flushUsageBatch(rows) {
         continue;
       }
 
-      db.run(
+      await db.run(
         `INSERT INTO usageHistory(timestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, status, tokens, meta) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           entry.timestamp, entry.provider || null, entry.model || null,
@@ -538,13 +538,13 @@ async function flushUsageBatch(rows) {
     }
 
     for (const dateKey of touchedDays) {
-      db.run(`INSERT INTO usageDaily(dateKey, data) VALUES(?, ?) ON CONFLICT(dateKey) DO UPDATE SET data = excluded.data`, [dateKey, stringifyJson(dayMap[dateKey])]);
+      await db.run(`INSERT INTO usageDaily(dateKey, data) VALUES(?, ?) ON CONFLICT(dateKey) DO UPDATE SET data = excluded.data`, [dateKey, stringifyJson(dayMap[dateKey])]);
     }
 
     if (insertedCount > 0) {
-      const cur = db.get(`SELECT value FROM _meta WHERE key = 'totalRequestsLifetime'`);
+      const cur = await db.get(`SELECT value FROM _meta WHERE key = 'totalRequestsLifetime'`);
       const next = (cur ? parseInt(cur.value, 10) : 0) + insertedCount;
-      db.run(`INSERT INTO _meta(key, value) VALUES('totalRequestsLifetime', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`, [String(next)]);
+      await db.run(`INSERT INTO _meta(key, value) VALUES('totalRequestsLifetime', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`, [String(next)]);
     }
 
     pruneUsageHistory(db);
@@ -572,23 +572,23 @@ export async function clearUsageHistory({ startDate, endDate } = {}) {
   let deletedUsage = 0;
   let deletedDaily = 0;
 
-  db.transaction(() => {
-    deletedUsage = Number(db.get(`SELECT COUNT(*) AS count FROM usageHistory ${where}`, params)?.count || 0);
+  await db.transaction(async () => {
+    deletedUsage = Number((await db.get(`SELECT COUNT(*) AS count FROM usageHistory ${where}`, params))?.count || 0);
     if (!partial) {
-      deletedDaily = Number(db.get(`SELECT COUNT(*) AS count FROM usageDaily`)?.count || 0);
-      db.run(`DELETE FROM usageHistory`);
-      db.run(`DELETE FROM usageDaily`);
-      db.run(`INSERT INTO _meta(key, value) VALUES('totalRequestsLifetime', '0') ON CONFLICT(key) DO UPDATE SET value = excluded.value`);
-      db.run(`INSERT INTO _meta(key, value) VALUES('usageHistoryPrunedTotal', '0') ON CONFLICT(key) DO UPDATE SET value = excluded.value`);
+      deletedDaily = Number((await db.get(`SELECT COUNT(*) AS count FROM usageDaily`))?.count || 0);
+      await db.run(`DELETE FROM usageHistory`);
+      await db.run(`DELETE FROM usageDaily`);
+      await db.run(`INSERT INTO _meta(key, value) VALUES('totalRequestsLifetime', '0') ON CONFLICT(key) DO UPDATE SET value = excluded.value`);
+      await db.run(`INSERT INTO _meta(key, value) VALUES('usageHistoryPrunedTotal', '0') ON CONFLICT(key) DO UPDATE SET value = excluded.value`);
       return;
     }
-    db.run(`DELETE FROM usageHistory ${where}`, params);
+    await db.run(`DELETE FROM usageHistory ${where}`, params);
   });
 
   if (partial && deletedUsage > 0) {
-    const beforeDaily = Number(db.get(`SELECT COUNT(*) AS count FROM usageDaily`)?.count || 0);
-    reconcileUsageAggregates(db);
-    const afterDaily = Number(db.get(`SELECT COUNT(*) AS count FROM usageDaily`)?.count || 0);
+    const beforeDaily = Number((await db.get(`SELECT COUNT(*) AS count FROM usageDaily`))?.count || 0);
+    await reconcileUsageAggregates(db);
+    const afterDaily = Number((await db.get(`SELECT COUNT(*) AS count FROM usageDaily`))?.count || 0);
     deletedDaily = Math.max(0, beforeDaily - afterDaily);
   }
 
@@ -639,7 +639,7 @@ export async function getUsageHistory(filter = {}) {
   const where = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
 
   const limit = Math.min(500, Math.max(1, Number(filter.limit) || 50));
-  const rows = db.all(
+  const rows = await db.all(
     `SELECT uh.id, uh.timestamp, uh.provider, uh.model, uh.connectionId,
             uh.apiKey, uh.endpoint, uh.cost, uh.status, uh.promptTokens,
             uh.completionTokens, uh.tokens, uh.meta, ak.id AS apiKeyId
@@ -692,19 +692,19 @@ export async function getUsageHistoryPage(filter = {}) {
   if (filter.startDate) { conds.push("timestamp >= ?"); params.push(new Date(filter.startDate).toISOString()); }
   if (filter.endDate) { conds.push("timestamp <= ?"); params.push(new Date(filter.endDate).toISOString()); }
   const where = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
-  const totalItems = Number(db.get(`SELECT COUNT(*) AS c FROM usageHistory ${where}`, params)?.c || 0);
+  const totalItems = Number((await db.get(`SELECT COUNT(*) AS c FROM usageHistory ${where}`, params))?.c || 0);
   const page = Math.max(1, Number(filter.page) || 1);
   const pageSize = Math.min(100, Math.max(1, Number(filter.pageSize) || 20));
   const totalPages = Math.ceil(totalItems / pageSize);
   const order = filter.sortDir === "asc" ? "ASC" : "DESC";
-  const rows = db.all(
+  const rows = await db.all(
     `SELECT id, timestamp, provider, model, connectionId, endpoint, cost, status, promptTokens, completionTokens, tokens, meta FROM usageHistory ${where} ORDER BY timestamp ${order}, id ${order} LIMIT ? OFFSET ?`,
     [...params, pageSize, (page - 1) * pageSize]
   );
   const connIds = rows.map((r) => r.connectionId).filter(Boolean);
   const connMap = new Map();
   if (connIds.length > 0) {
-    const connRows = db.all(
+    const connRows = await db.all(
       `SELECT id, name, email FROM providerConnections WHERE id IN (${connIds.map(() => "?").join(",")})`,
       connIds,
     );
@@ -726,14 +726,14 @@ export async function getUsageHistoryPage(filter = {}) {
   };
 }
 
-function loadDaysInRange(adapter, maxDays) {
+async function loadDaysInRange(adapter, maxDays) {
   if (maxDays == null) {
-    return adapter.all(`SELECT dateKey, data FROM usageDaily`);
+    return await adapter.all(`SELECT dateKey, data FROM usageDaily`);
   }
   const today = new Date();
   const cutoff = new Date(today.getFullYear(), today.getMonth(), today.getDate() - maxDays + 1);
   const cutoffKey = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, "0")}-${String(cutoff.getDate()).padStart(2, "0")}`;
-  return adapter.all(`SELECT dateKey, data FROM usageDaily WHERE dateKey >= ?`, [cutoffKey]);
+  return await adapter.all(`SELECT dateKey, data FROM usageDaily WHERE dateKey >= ?`, [cutoffKey]);
 }
 
 export async function getUsageStats(period = "all") {
@@ -764,7 +764,7 @@ export async function getUsageStats(period = "all") {
   for (const k of allApiKeys) apiKeyMap[k.key] = { name: k.name, id: k.id, createdAt: k.createdAt };
 
   const recentCutoff = periodStart(period);
-  const recentRows = db.all(
+  const recentRows = await db.all(
     `SELECT timestamp, provider, model, connectionId, tokens, meta, status
      FROM usageHistory
      ${recentCutoff ? "WHERE timestamp >= ?" : ""}
@@ -828,7 +828,7 @@ export async function getUsageStats(period = "all") {
     bucketMap[ts] = { requests: 0, promptTokens: 0, completionTokens: 0, cost: 0 };
     stats.last10Minutes.push(bucketMap[ts]);
   }
-  const recent10 = db.all(
+  const recent10 = await db.all(
     `SELECT timestamp, promptTokens, completionTokens, cost FROM usageHistory WHERE timestamp >= ? AND timestamp <= ?`,
     [tenMinutesAgo.toISOString(), now.toISOString()]
   );
@@ -852,7 +852,7 @@ export async function getUsageStats(period = "all") {
     ) + 1;
     const periodDays = { "7d": 7, "30d": 30, "60d": 60, "90d": 90, "365d": 365, year: daysInCurrentYear };
     const maxDays = periodDays[period] || null;
-    const dayRows = loadDaysInRange(db, maxDays);
+    const dayRows = await loadDaysInRange(db, maxDays);
 
     for (const dr of dayRows) {
       const dateKey = dr.dateKey;
@@ -942,7 +942,7 @@ export async function getUsageStats(period = "all") {
     }
 
     const overlayCutoff = maxDays ? Date.now() - maxDays * 86400000 : 0;
-    const histRows = db.all(
+    const histRows = await db.all(
       `SELECT timestamp, provider, model, connectionId, apiKey, endpoint FROM usageHistory WHERE timestamp >= ?`,
       [new Date(overlayCutoff).toISOString()]
     );
@@ -976,7 +976,7 @@ export async function getUsageStats(period = "all") {
     } else {
       cutoff = new Date(Date.now() - PERIOD_MS["24h"]).toISOString();
     }
-    const filtered = db.all(
+    const filtered = await db.all(
       `SELECT timestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, tokens FROM usageHistory WHERE timestamp >= ?`,
       [cutoff]
     );
@@ -1061,7 +1061,7 @@ export async function getUsageStats(period = "all") {
   return stats;
 }
 
-function getHourlyHeatmapData(db, days = 30) {
+async function getHourlyHeatmapData(db, days = 30) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -1085,7 +1085,7 @@ function getHourlyHeatmapData(db, days = 30) {
   });
 
   const byDate = new Map(heatmap.map((day) => [day.date, day]));
-  const rows = db.all(
+  const rows = await db.all(
     `SELECT timestamp, promptTokens, completionTokens, cost, status, tokens, meta
      FROM usageHistory
      WHERE timestamp >= ?`,
@@ -1135,7 +1135,7 @@ export async function getChartData(period = "7d", options = {}) {
     const labelFn = (ts) => new Date(ts).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
     const buckets = Array.from({ length: bucketCount }, (_, i) => ({ label: labelFn(startTime + i * bucketMs), tokens: 0, cost: 0, requests: 0 }));
 
-    const rows = db.all(
+    const rows = await db.all(
       `SELECT timestamp, promptTokens, completionTokens, cost FROM usageHistory WHERE timestamp >= ?`,
       [new Date(startTime).toISOString()]
     );
@@ -1159,7 +1159,7 @@ export async function getChartData(period = "7d", options = {}) {
     const startTime = now - bucketCount * bucketMs;
     const buckets = Array.from({ length: bucketCount }, (_, i) => ({ label: labelFn(startTime + i * bucketMs), tokens: 0, cost: 0, requests: 0 }));
 
-    const rows = db.all(
+    const rows = await db.all(
       `SELECT timestamp, promptTokens, completionTokens, cost FROM usageHistory WHERE timestamp >= ?`,
       [new Date(startTime).toISOString()]
     );
@@ -1185,8 +1185,8 @@ export async function getChartData(period = "7d", options = {}) {
   const calendarStartKey = `${calendarYear}-01-01`;
   const calendarEndKey = `${calendarYear}-12-31`;
   const dayRows = isCalendarYear
-    ? db.all(`SELECT dateKey, data FROM usageDaily WHERE dateKey >= ? AND dateKey <= ?`, [calendarStartKey, calendarEndKey])
-    : loadDaysInRange(db, bucketCount);
+    ? await db.all(`SELECT dateKey, data FROM usageDaily WHERE dateKey >= ? AND dateKey <= ?`, [calendarStartKey, calendarEndKey])
+    : await loadDaysInRange(db, bucketCount);
   const dayMap = {};
   for (const r of dayRows) dayMap[r.dateKey] = parseJson(r.data, {});
 
@@ -1194,11 +1194,11 @@ export async function getChartData(period = "7d", options = {}) {
   firstDay.setHours(0, 0, 0, 0);
   if (!isCalendarYear) firstDay.setDate(firstDay.getDate() - (bucketCount - 1));
   const errorRows = isCalendarYear
-    ? db.all(
+    ? await db.all(
         `SELECT timestamp, status FROM usageHistory WHERE timestamp >= ? AND timestamp < ?`,
         [firstDay.toISOString(), new Date(calendarYear + 1, 0, 1).toISOString()],
       )
-    : db.all(
+    : await db.all(
         `SELECT timestamp, status FROM usageHistory WHERE timestamp >= ?`,
         [firstDay.toISOString()],
       );
@@ -1243,7 +1243,7 @@ export async function getRecentLogs(limit = 200) {
   try {
     await flushUsageBuffer();
     const db = await getAdapter();
-    const rows = db.all(
+    const rows = await db.all(
       `SELECT timestamp, provider, model, connectionId, promptTokens, completionTokens, status, tokens FROM usageHistory ORDER BY id DESC LIMIT ?`,
       [limit],
     );
@@ -1305,13 +1305,13 @@ export async function searchLogs(opts = {}) {
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
-    const countRow = db.get(
+    const countRow = await db.get(
       `SELECT COUNT(*) AS cnt FROM usageHistory uh LEFT JOIN providerConnections pc ON uh.connectionId = pc.id ${where}`,
       params,
     );
     const total = countRow?.cnt ?? 0;
 
-    const rows = db.all(
+    const rows = await db.all(
       `SELECT uh.id, uh.timestamp, uh.provider, uh.model, uh.connectionId,
               uh.promptTokens, uh.completionTokens, uh.cost, uh.status, uh.tokens,
               pc.name AS connectionName, pc.email AS connectionEmail
