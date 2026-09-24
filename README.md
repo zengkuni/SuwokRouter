@@ -503,12 +503,12 @@ Suwok Router also has multi-account rotation, quota-aware selection, token savin
 retry, fallback, and provider token refresh; this section is intentionally about
 runtime weight, not a feature scoreboard.
 
-- **Suwok Router:** Bun + Hono + SQLite, with a React/Vite dashboard. One core
+- **Suwok Router:** Bun + Hono + PostgreSQL, with a React/Vite dashboard. One core
   server designed for local use and small VPS deployments.
 - **[9Router](https://github.com/decolua/9router):** Node + Next.js/React +
-  Express + SQLite. More framework layers and a separate CLI runtime.
+  Express + PostgreSQL/Redis. More framework layers and a separate CLI runtime.
 - **[OmniRoute](https://github.com/diegosouzapw/OmniRoute):** Node + Next.js/
-  React + SQLite/sql.js, with optional Redis, browser, desktop, and PWA layers.
+  React + PostgreSQL, with optional Redis, browser, desktop, and PWA layers.
 
 ### Which one is lighter?
 
@@ -523,7 +523,7 @@ optional services. Suwok Router's documented small-VPS starting point is 2 vCPU 
 
 ### Why choose Suwok Router?
 
-- **Smaller default footprint.** A Bun server and SQLite cover the core use
+- **Smaller default footprint.** A Bun server and PostgreSQL cover the core use
   case without requiring Redis, a hosted sync service, a desktop shell, or a
   browser pool.
 - **A dashboard built for daily use.** Providers, accounts, models, routing,
@@ -531,7 +531,7 @@ optional services. Suwok Router's documented small-VPS starting point is 2 vCPU 
 - **Built-in resource guardrails.** Suwok Router detects the host profile and keeps
   concurrency, queues, request bodies, retries, and background work bounded.
 - **Easy to ship and inspect.** Run it locally, on a small VPS, in Docker, or
-  as a standalone binary, with SQLite backup/import and an inspectable API.
+  as a standalone binary, with backup/import and an inspectable API.
 
 The Suwok Router figures and menu map come from the [provider registry](./src/providers/registry/index.js),
 [dashboard navigation](./dashboard/src/components/Sidebar.tsx),
