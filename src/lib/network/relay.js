@@ -46,7 +46,9 @@ export async function testRelayEndpoint(relayUrl, relayToken, timeoutMs = 15000)
     const response = await undiciFetch(relayUrl, {
       method: "GET",
       headers: {
-        ...(relayToken ? { "x-suwok-relay-token": relayToken } : {}),
+        // Transitional: also send the pre-rebrand header so relay workers still on
+    // the old name keep authenticating during rolling updates.
+    ...(relayToken ? { "x-suwok-relay-token": relayToken, "x-sway-relay-token": relayToken } : {}),
         "x-relay-target": "https://www.google.com",
         "x-relay-path": "/generate_204",
       },
