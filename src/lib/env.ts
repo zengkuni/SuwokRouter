@@ -37,8 +37,20 @@ export interface EnvConfig {
 
   usageHistoryRetentionDays: number;
   usageHistoryMaxRows: number;
-
   upstreamMaxAttempts: number;
+  // PostgreSQL is the only persistent driver. DB_URL is the canonical source;
+  // split POSTGRES_* / DB_* fields may override or stand alone.
+  dbUrl: string;
+  dbHost: string;
+  dbPort: number;
+  dbUser: string;
+  dbPassword: string;
+  dbName: string;
+  dbSsl: boolean;
+  // Valkey/Redis speed layer. When redisEnabled is false the process falls
+  // back to an in-memory implementation of the same abstraction.
+  redisUrl: string;
+  redisEnabled: boolean;
 }
 
 const DEFAULT_PASSWORD = "123456";
@@ -84,6 +96,66 @@ function parsePositiveInt(
   return Math.min(parsed, max);
 }
 
+interface ParsedDbUrl {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  name: string;
+  ssl: boolean;
+}
+
+// Parses a postgres:// URL. Returns null when the value is blank or does not
+// use the postgres scheme, so callers can fall back to split fields silently.
+function parseDbUrl(raw: string | undefined): ParsedDbUrl | null {
+  const value = raw?.trim() ?? "";
+  if (!value) return null;
+  if (!/^postgres(?:ql)?:\/\//i.test(value)) return null;
+  try {
+    const url = new URL(value);
+    const sslmode = (url.searchParams.get("sslmode") ?? "").toLowerCase();
+    return {
+      host: url.hostname,
+      port: url.port ? parsePort(url.port) : 5432,
+      user: decodeURIComponent(url.username),
+      password: decodeURIComponent(url.password),
+      name: decodeURIComponent(url.pathname.replace(/^\/+/, "")),
+      ssl: sslmode === "require" || sslmode === "verify-ca" || sslmode === "verify-full",
+    };
+  } catch {
+    return null;
+  }
+}
+
+function resolveDbConfig(
+  source: Record<string, string | undefined>,
+): Pick<EnvConfig, "dbUrl" | "dbHost" | "dbPort" | "dbUser" | "dbPassword" | "dbName" | "dbSsl"> {
+  const parsed = parseDbUrl(source.DB_URL);
+  const host = source.POSTGRES_HOST?.trim() || source.DB_HOST?.trim() || parsed?.host || "";
+  const user = source.POSTGRES_USER?.trim() || source.DB_USER?.trim() || parsed?.user || "";
+  const name = source.POSTGRES_DB?.trim() || source.DB_NAME?.trim() || parsed?.name || "";
+  const portSource =
+    source.POSTGRES_PORT?.trim() || source.DB_PORT?.trim() || (parsed ? String(parsed.port) : "");
+  return {
+    dbUrl: parsed ? (source.DB_URL as string).trim() : "",
+    dbHost: host,
+    dbPort: portSource ? parsePort(portSource) : 5432,
+    dbUser: user,
+    dbPassword: source.POSTGRES_PASSWORD ?? source.DB_PASSWORD ?? parsed?.password ?? "",
+    dbName: name,
+    dbSsl: parsed?.ssl ?? false,
+  };
+}
+
+function resolveRedisConfig(
+  source: Record<string, string | undefined>,
+): Pick<EnvConfig, "redisUrl" | "redisEnabled"> {
+  const redisUrl = source.REDIS_URL?.trim() ?? "";
+  const explicit = source.REDIS_ENABLED;
+  const redisEnabled = explicit !== undefined ? parseBoolean(explicit) : redisUrl.length > 0;
+  return { redisUrl, redisEnabled };
+}
+
 function parseNodeEnv(value: string): NodeEnv {
   if (value === "development" || value === "production" || value === "test")
     return value;
@@ -120,6 +192,8 @@ export function loadEnv(
       );
     }
   }
+  const db = resolveDbConfig(source);
+  const redis = resolveRedisConfig(source);
 
   const dataDir = source.DATA_DIR?.trim() || "";
   const baseUrl =
@@ -223,6 +297,8 @@ export function loadEnv(
       nodeEnv === "production" ? resource.upstreamMaxAttempts : 8,
       100,
     ),
+    ...db,
+    ...redis,
   });
 }
 
