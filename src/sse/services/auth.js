@@ -213,8 +213,11 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
           consecutiveUseCount: 1
         });
       }
-    } else if (strategy === "least-inflight") {
-
+    } else if (strategy === "least-inflight" || strategy === "fair-share") {
+      // Fair-share + jitter: fewest in-flight first, then fewest recent
+      // assignments inside the sliding window, then a randomized pick inside
+      // the near-tie cohort so a burst spreads across accounts instead of
+      // hammering the first one.
       connection = pickLeastInflightConnection(rankedConnections);
     } else {
 
@@ -223,7 +226,7 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
 
     let candidateConnections = preferredConnectionId && connection
       ? [connection]
-      : [connection, ...(strategy === "least-inflight" ? [] : rankedConnections)]
+      : [connection, ...(strategy === "least-inflight" || strategy === "fair-share" ? [] : rankedConnections)]
         .filter(Boolean)
         .filter((candidate, index, list) => list.findIndex((item) => item.id === candidate.id) === index);
     const candidateIds = availableConnections.map((candidate) => candidate.id);
@@ -232,7 +235,7 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
     let selectedConnection = null;
     let releaseAccountSlot = null;
     let sawStaleConnection = false;
-    let expandedLeastInflightFallback = strategy !== "least-inflight" || Boolean(preferredConnectionId);
+    let expandedLeastInflightFallback = (strategy !== "least-inflight" && strategy !== "fair-share") || Boolean(preferredConnectionId);
     let candidateIndex = 0;
     while (candidateIndex < candidateConnections.length) {
       const candidate = candidateConnections[candidateIndex];
