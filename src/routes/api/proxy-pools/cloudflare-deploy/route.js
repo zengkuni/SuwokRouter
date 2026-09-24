@@ -16,7 +16,8 @@ const RELAY_TOKEN = ${JSON.stringify(relayToken)};
 
 export default {
   async fetch(request, env, ctx) {
-    if (request.headers.get("x-suwok-relay-token") !== RELAY_TOKEN) {
+    const relayHeader = request.headers.get("x-suwok-relay-token") || request.headers.get("x-sway-relay-token");
+    if (relayHeader !== RELAY_TOKEN) {
       return new Response(JSON.stringify({ error: "Unauthorized relay request" }), {
         status: 401,
         headers: { "content-type": "application/json" },
@@ -55,6 +56,8 @@ export default {
     }
 
     newRequestInit.headers.delete("x-suwok-relay-token");
+    headers.delete("x-sway-relay-token");
+      newRequestInit.headers.delete("x-sway-relay-token");
     newRequestInit.headers.delete("x-relay-target");
     newRequestInit.headers.delete("x-relay-path");
     newRequestInit.headers.delete("host");

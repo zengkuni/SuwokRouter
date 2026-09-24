@@ -19,7 +19,8 @@ export const config = { runtime: "edge" };
 const RELAY_TOKEN = ${JSON.stringify(relayToken)};
 
 export default async function handler(req) {
-  if (req.headers.get("x-suwok-relay-token") !== RELAY_TOKEN) {
+  const relayHeader = req.headers.get("x-suwok-relay-token") || req.headers.get("x-sway-relay-token");
+  if (relayHeader !== RELAY_TOKEN) {
     return new Response(JSON.stringify({ error: "Unauthorized relay request" }), {
       status: 401,
       headers: { "content-type": "application/json" },
@@ -49,6 +50,7 @@ export default async function handler(req) {
 
   const headers = new Headers(req.headers);
   headers.delete("x-suwok-relay-token");
+    headers.delete("x-sway-relay-token");
   headers.delete("x-relay-target");
   headers.delete("x-relay-path");
   headers.delete("host");
