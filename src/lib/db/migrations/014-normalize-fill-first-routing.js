@@ -3,8 +3,8 @@ import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
 export default {
   version: 14,
   name: "normalize-fill-first-routing",
-  up(db) {
-    const row = db.get(`SELECT data FROM settings WHERE id = 1`);
+  async up(db) {
+    const row = await db.get(`SELECT data FROM settings WHERE id = 1`);
     if (!row) return;
 
     const settings = parseJson(row.data, {});
@@ -29,7 +29,7 @@ export default {
     }
 
     if (!changed) return;
-    db.run(
+    await db.run(
       `INSERT INTO settings(id, data) VALUES(1, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`,
       [stringifyJson(settings)],
     );

@@ -14,9 +14,9 @@ const LEGACY_MODELS = [
 export default {
   version: 16,
   name: "prune-legacy-codebuddy-intl-models",
-  up(db) {
+  async up(db) {
     for (const modelId of LEGACY_MODELS) {
-      db.run(
+      await db.run(
         "DELETE FROM kv WHERE scope = 'customModels' AND key = ?",
         [`codebuddy-intl|${modelId}|llm`],
       );

@@ -5,8 +5,8 @@ const UPSERT_SQL = `INSERT INTO kv(scope, key, value)
   VALUES(?, ?, ?)
   ON CONFLICT(scope, key) DO UPDATE SET value = excluded.value`;
 
-function saveValue(db, scope, key, value) {
-  db.run(UPSERT_SQL, [scope, key, stringifyJson(value)]);
+async function saveValue(db, scope, key, value) {
+  await db.run(UPSERT_SQL, [scope, key, stringifyJson(value)]);
 }
 
 export function makeKv(scope) {
@@ -15,34 +15,34 @@ export function makeKv(scope) {
   return {
     async get(key, fallback = null) {
       const db = await read();
-      const row = db.get(`SELECT value FROM kv WHERE scope = ? AND key = ?`, [scope, key]);
+      const row = await db.get(`SELECT value FROM kv WHERE scope = ? AND key = ?`, [scope, key]);
       return row ? parseJson(row.value, fallback) : fallback;
     },
     async getAll() {
       const db = await read();
-      const rows = db.all(`SELECT key, value FROM kv WHERE scope = ?`, [scope]);
+      const rows = await db.all(`SELECT key, value FROM kv WHERE scope = ?`, [scope]);
       const out = {};
       for (const r of rows) out[r.key] = parseJson(r.value);
       return out;
     },
     async set(key, value) {
-      saveValue(await read(), scope, key, value);
+      await saveValue(await read(), scope, key, value);
     },
     async setMany(obj) {
       const db = await read();
-      db.transaction(() => {
+      await db.transaction(async () => {
         for (const [k, v] of Object.entries(obj)) {
-          saveValue(db, scope, k, v);
+          await saveValue(db, scope, k, v);
         }
       });
     },
     async remove(key) {
       const db = await read();
-      db.run(`DELETE FROM kv WHERE scope = ? AND key = ?`, [scope, key]);
+      await db.run(`DELETE FROM kv WHERE scope = ? AND key = ?`, [scope, key]);
     },
     async clear() {
       const db = await read();
-      db.run(`DELETE FROM kv WHERE scope = ?`, [scope]);
+      await db.run(`DELETE FROM kv WHERE scope = ?`, [scope]);
     },
   };
 }
