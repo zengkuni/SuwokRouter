@@ -320,10 +320,18 @@ export async function readDetectedNineRouterDatabase() {
   }
 }
 
-function readCurrentSnapshot(db) {
+// Async snapshot of the current database. Every adapter call must be awaited
+// before .map()/.filter() — db.all(...).map(...) on a Promise is a TypeError
+// (the precedence class that hid this from the async conversion pass).
+async function readCurrentSnapshot(db) {
+  const settingsRow = await db.get("SELECT data FROM settings WHERE id = 1");
+  const connectionRows = await db.all("SELECT * FROM providerConnections");
+  const nodeRows = await db.all("SELECT * FROM providerNodes");
+  const comboRows = await db.all("SELECT * FROM combos");
+  const customModelRows = await db.all("SELECT value FROM kv WHERE scope = 'customModels'");
   return {
-    settings: parseJson(db.get("SELECT data FROM settings WHERE id = 1")?.data, {}),
-    providerConnections: db.all("SELECT * FROM providerConnections").map((row) => ({
+    settings: parseJson(settingsRow?.data, {}),
+    providerConnections: connectionRows.map((row) => ({
       ...parseJson(row.data, {}),
       id: row.id,
       provider: row.provider,
@@ -333,20 +341,19 @@ function readCurrentSnapshot(db) {
       priority: row.priority,
       isActive: row.isActive === 1,
     })),
-    providerNodes: db.all("SELECT * FROM providerNodes").map((row) => ({
+    providerNodes: nodeRows.map((row) => ({
       ...parseJson(row.data, {}),
       id: row.id,
       type: row.type,
       name: row.name,
     })),
-    combos: db.all("SELECT * FROM combos").map((row) => ({
+    combos: comboRows.map((row) => ({
       id: row.id,
       name: row.name,
       kind: row.kind,
       models: parseJson(row.models, []),
     })),
-    customModels: db
-      .all("SELECT value FROM kv WHERE scope = 'customModels'")
+    customModels: customModelRows
       .map((row) => parseJson(row.value, null))
       .filter(isPlainObject),
   };
@@ -721,7 +728,7 @@ export function buildNineRouterMigrationPlan(rawPayload, rawOptions, current = {
 
 export async function previewNineRouterMigration(payload, options) {
   const db = await getAdapter();
-  const result = buildNineRouterMigrationPlan(payload, options, readCurrentSnapshot(db));
+  const result = buildNineRouterMigrationPlan(payload, options, await readCurrentSnapshot(db));
   return { options: result.options, ...result.preview };
 }
 
@@ -764,7 +771,7 @@ export async function writeNineRouterMigrationPlan(db, plan, timestamp = new Dat
 
 export async function applyNineRouterMigration(payload, options) {
   const db = await getAdapter();
-  const current = readCurrentSnapshot(db);
+  const current = await readCurrentSnapshot(db);
   const result = buildNineRouterMigrationPlan(payload, options, current);
   if (result.preview.totalReady === 0) {
     throw migrationError("There is no new compatible data to migrate", "NOTHING_TO_MIGRATE");
