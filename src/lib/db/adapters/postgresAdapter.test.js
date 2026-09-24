@@ -23,7 +23,10 @@ maybe("postgresAdapter contract", () => {
       )
     `);
     const mod = await import("./postgresAdapter.js");
-    adapter = mod.createPostgresAdapter({ url: DB_URL });
+    // Own pool: other suites call closeAdapter(), which ends the shared
+    // global pool — this file must not depend on it.
+    const sql = postgres(DB_URL, { max: 2, onnotice: () => {} });
+    adapter = mod.createPostgresAdapter({ pool: sql });
   });
 
   afterAll(async () => {

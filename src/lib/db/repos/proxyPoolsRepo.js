@@ -31,7 +31,7 @@ async function upsert(db, p) {
   const r = poolToRow(p);
   await db.run(
     `INSERT INTO proxyPools(id, isActive, testStatus, data, createdAt, updatedAt)
-     VALUES(?, ?, ?, ?, ?, ?)
+     VALUES($1, $2, $3, $4, $5, $6)
      ON CONFLICT(id) DO UPDATE SET
        isActive=excluded.isActive, testStatus=excluded.testStatus,
        data=excluded.data, updatedAt=excluded.updatedAt`,
@@ -43,8 +43,8 @@ export async function getProxyPools(filter = {}) {
   const db = await getAdapter();
   const where = [];
   const params = [];
-  if (filter.isActive !== undefined) { where.push("isActive = ?"); params.push(filter.isActive ? 1 : 0); }
-  if (filter.testStatus) { where.push("testStatus = ?"); params.push(filter.testStatus); }
+  if (filter.isActive !== undefined) { where.push(`isActive = $${params.length + 1}`); params.push(filter.isActive ? 1 : 0); }
+  if (filter.testStatus) { where.push(`testStatus = $${params.length + 1}`); params.push(filter.testStatus); }
   const sql = `SELECT * FROM proxyPools${where.length ? ` WHERE ${where.join(" AND ")}` : ""}`;
   const list = (await db.all(sql, params)).map(rowToPool);
   list.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
@@ -53,7 +53,7 @@ export async function getProxyPools(filter = {}) {
 
 export async function getProxyPoolById(id) {
   const db = await getAdapter();
-  return rowToPool(await db.get(`SELECT * FROM proxyPools WHERE id = ?`, [id]));
+  return rowToPool(await db.get(`SELECT * FROM proxyPools WHERE id = $1`, [id]));
 }
 
 export async function createProxyPool(data) {
@@ -82,7 +82,7 @@ export async function updateProxyPool(id, data) {
   const db = await getAdapter();
   let result = null;
   await db.transaction(async () => {
-    const row = await db.get(`SELECT * FROM proxyPools WHERE id = ?`, [id]);
+    const row = await db.get(`SELECT * FROM proxyPools WHERE id = $1`, [id]);
     if (!row) return;
     const merged = { ...rowToPool(row), ...data, updatedAt: new Date().toISOString() };
     await upsert(db, merged);
@@ -95,10 +95,10 @@ export async function deleteProxyPool(id) {
   const db = await getAdapter();
   let removed = null;
   await db.transaction(async () => {
-    const row = await db.get(`SELECT * FROM proxyPools WHERE id = ?`, [id]);
+    const row = await db.get(`SELECT * FROM proxyPools WHERE id = $1`, [id]);
     if (!row) return;
     removed = rowToPool(row);
-    await db.run(`DELETE FROM proxyPools WHERE id = ?`, [id]);
+    await db.run(`DELETE FROM proxyPools WHERE id = $1`, [id]);
   });
   return removed;
 }

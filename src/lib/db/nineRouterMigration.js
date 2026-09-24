@@ -725,37 +725,37 @@ export async function previewNineRouterMigration(payload, options) {
   return { options: result.options, ...result.preview };
 }
 
-export function writeNineRouterMigrationPlan(db, plan, timestamp = new Date().toISOString(), currentSettings = {}) {
-  db.transaction(() => {
+export async function writeNineRouterMigrationPlan(db, plan, timestamp = new Date().toISOString(), currentSettings = {}) {
+  await db.transaction(async () => {
     for (const node of plan.providerNodes) {
       const { id, type, name, createdAt, updatedAt, ...data } = node;
-      db.run(
-        "INSERT INTO providerNodes(id, type, name, data, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?)",
+      await db.run(
+        `INSERT INTO providerNodes(id, type, name, data, createdAt, updatedAt) VALUES($1, $2, $3, $4, $5, $6) ON CONFLICT(id) DO UPDATE SET type = excluded.type, name = excluded.name, data = excluded.data, createdAt = excluded.createdAt, updatedAt = excluded.updatedAt`,
         [id, type, name, stringifyJson(data), createdAt || timestamp, updatedAt || timestamp],
       );
     }
     for (const connection of plan.providerConnections) {
       const { id, provider, authType, name, email, priority, isActive, createdAt, updatedAt, ...data } = connection;
-      db.run(
-        "INSERT INTO providerConnections(id, provider, authType, name, email, priority, isActive, data, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      await db.run(
+        `INSERT INTO providerConnections(id, provider, authType, name, email, priority, isActive, data, createdAt, updatedAt) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ON CONFLICT(id) DO UPDATE SET provider = excluded.provider, authType = excluded.authType, name = excluded.name, email = excluded.email, priority = excluded.priority, isActive = excluded.isActive, data = excluded.data, createdAt = excluded.createdAt, updatedAt = excluded.updatedAt`,
         [id, provider, authType, name, email, priority, isActive ? 1 : 0, stringifyJson(data), createdAt || timestamp, updatedAt || timestamp],
       );
     }
     for (const model of plan.customModels) {
       const type = model.type || "llm";
       const key = `${model.providerAlias}|${model.id}|${type}`;
-      db.run("INSERT INTO kv(scope, key, value) VALUES('customModels', ?, ?)", [key, stringifyJson(model)]);
+      await db.run("INSERT INTO kv(scope, key, value) VALUES('customModels', $1, $2) ON CONFLICT(scope, key) DO UPDATE SET value = excluded.value", [key, stringifyJson(model)]);
     }
     for (const combo of plan.combos) {
-      db.run(
-        "INSERT INTO combos(id, name, kind, models, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?)",
+      await db.run(
+        `INSERT INTO combos(id, name, kind, models, createdAt, updatedAt) VALUES($1, $2, $3, $4, $5, $6) ON CONFLICT(id) DO UPDATE SET name = excluded.name, kind = excluded.kind, models = excluded.models, createdAt = excluded.createdAt, updatedAt = excluded.updatedAt`,
         [combo.id, combo.name, combo.kind, stringifyJson(combo.models), combo.createdAt || timestamp, combo.updatedAt || timestamp],
       );
     }
     if (Object.keys(plan.settings).length > 0) {
       const settings = { ...currentSettings, ...plan.settings };
-      db.run(
-        "INSERT INTO settings(id, data) VALUES(1, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data",
+      await db.run(
+        "INSERT INTO settings(id, data) VALUES(1, $1) ON CONFLICT(id) DO UPDATE SET data = excluded.data",
         [stringifyJson(settings)],
       );
     }
@@ -771,8 +771,10 @@ export async function applyNineRouterMigration(payload, options) {
   }
 
   const backupDir = makeBackupDir("before-9router-migration");
-  backupDbLite(db, backupDir);
-  writeNineRouterMigrationPlan(db, result.plan, new Date().toISOString(), current.settings);
+  // The SQLite backup path is gone with Swap B; failures here must not abort
+  // the migration (pg_dump backup lands with the backup redesign).
+  try { await backupDbLite(db, backupDir); } catch (e) { console.warn(`[9router] pre-migration backup failed: ${e.message}`); }
+  await writeNineRouterMigrationPlan(db, result.plan, new Date().toISOString(), current.settings);
 
   await bumpConfigCacheVersion().catch(() => {});
   pruneOldBackups();

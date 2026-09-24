@@ -27,6 +27,9 @@ describe("db driver selection", () => {
 
   test("getAdapterSync throws before initialization", async () => {
     const mod = await import(`./driver.js?sync=${Date.now()}`);
+    // The adapter state is a process-global singleton; another suite may have
+    // initialized it before this file ran.
+    await mod.closeAdapter();
     expect(() => mod.getAdapterSync()).toThrow(/not initialized/);
   });
 
@@ -35,5 +38,8 @@ describe("db driver selection", () => {
     const fake = { driver: "test", run: async () => ({ changes: 0, lastInsertRowid: null }) };
     await mod.setAdapterForTest(fake);
     expect(await mod.getAdapter()).toBe(fake);
+    // Never leave the fake in the process-global adapter state: later suites
+    // in the same run would silently write through this no-op.
+    await mod.closeAdapter();
   });
 });
