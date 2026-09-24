@@ -1,8 +1,15 @@
-import { getAdapter } from "../db/driver.js";
+import { ttlGetRaw, ttlSetRaw, getTtlStore } from "./ttlStore.js";
 
 const DEFAULT_TTL_MS = 5000;
 const DEFAULT_MAX_ENTRIES = 64;
-const VERSION_META_KEY = "configCacheVersion";
+
+// Cache version lives in the shared store (Valkey when configured, memory
+// otherwise) instead of a _meta row: a bump on one process invalidates every
+// other process's entries on its next read, without a database round-trip
+// per cache hit.
+function versionKey(name) {
+  return `cache:version:${name}`;
+}
 
 if (!global._suwokTtlCache) {
   global._suwokTtlCache = {
@@ -27,28 +34,20 @@ export function createTtlCache(opts) {
 
   async function currentVersionAsync() {
     try {
-      const db = await getAdapter();
-      const row = await db.get(`SELECT value FROM _meta WHERE key = $1`, [VERSION_META_KEY]);
-      return row ? parseInt(row.value, 10) || 0 : 0;
+      const text = await ttlGetRaw(versionKey(name));
+      return text ? parseInt(text, 10) || 0 : 0;
     } catch {
       return 0;
     }
   }
 
   async function bumpVersion() {
-    const db = await getAdapter();
-
-    let next = 0;
-    await db.transaction(async () => {
-      const row = await db.get(`SELECT value FROM _meta WHERE key = $1`, [VERSION_META_KEY]);
-      const cur = row ? parseInt(row.value, 10) || 0 : 0;
-      next = cur + 1;
-      await db.run(
-        `INSERT INTO _meta(key, value) VALUES($1, $2) ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
-        [VERSION_META_KEY, String(next)],
-      );
-    });
-
+    const store = getTtlStore();
+    const cur = await currentVersionAsync();
+    const next = cur + 1;
+    try {
+      await store.set(versionKey(name), String(next), 0);
+    } catch {}
     invalidateAll();
     return next;
   }

@@ -77,6 +77,23 @@ describe("ttlCache: invalidate + version bump", () => {
     expect(lb, `b reload`).toBe(1);
   });
 
+  test("bumped version invalidates entries and survives a fresh instance", async () => {
+    // Entries live per-process (global STATE by name); the VERSION lives in
+    // the shared store. A fresh instance — the stand-in for another process
+    // that never saw the bump — must observe the new version and reload.
+    let loads = 0;
+    const loader = async () => (loads++, `v${loads}`);
+    const a = createTtlCache({ name: "versioned", ttlMs: 60_000 });
+    expect(await a.get("k", loader)).toBe("v1");
+    expect(await a.get("k", loader)).toBe("v1"); // hit
+    await a.bumpVersion();
+    // invalidateAll cleared this process's entries; the next get reloads and
+    // stamps the new version.
+    expect(await a.get("k", loader)).toBe("v2");
+    const fresh = createTtlCache({ name: "versioned", ttlMs: 60_000 });
+    expect(await fresh.currentVersionAsync()).toBeGreaterThan(0);
+  });
+
   test("bumpConfigCacheVersion (shared) → miss semua named cache", async () => {
 
     expect(typeof bumpConfigCacheVersion, `export function`).toBe("function");
