@@ -5,11 +5,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bolone-sengkuni/SwayRouter.git"
+    "url": "git+https://github.com/bolone-sengkuni/suwokrouter.git"
   },
-  "homepage": "https://github.com/bolone-sengkuni/SwayRouter#readme",
+  "homepage": "https://github.com/bolone-sengkuni/suwokrouter#readme",
   "bugs": {
-    "url": "https://github.com/bolone-sengkuni/SwayRouter/issues"
+    "url": "https://github.com/bolone-sengkuni/suwokrouter/issues"
   },
   "keywords": [
     "ai",
