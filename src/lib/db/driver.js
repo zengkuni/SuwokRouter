@@ -1,4 +1,8 @@
-import { ensureDirs, DATA_FILE } from "./paths.js";
+import { loadEnv } from "../env.js";
+import { createPostgresAdapter, closePostgresPool } from "./adapters/postgresAdapter.js";
+
+// Postgres is the only persistent driver. DB_URL is required; there is no
+// local file fallback (Swap B removed the SQLite adapters and schema).
 
 if (!global._dbAdapter) global._dbAdapter = { instance: null, initPromise: null, logged: false };
 const state = global._dbAdapter;
@@ -13,73 +17,21 @@ function resetAdapterState() {
   state.initPromise = null;
 }
 
-function displayDatabasePath(file) {
-  const normalized = String(file ?? "").replaceAll("/", "\\");
-  const marker = "\\.suwokrouter\\";
-  const markerIndex = normalized.toLowerCase().lastIndexOf(marker);
-  if (markerIndex >= 0) return normalized.slice(markerIndex + 1);
-  return normalized.split("\\").at(-1) || "data.sqlite";
-}
-
-async function tryBunSqlite() {
-
-  if (!process.versions.bun) return null;
-  try {
-    const { createBunSqliteAdapter } = await import("./adapters/bunSqliteAdapter.js");
-    return await createBunSqliteAdapter(DATA_FILE);
-  } catch (e) {
-    console.warn(`[DB] bun:sqlite unavailable: ${e.message}`);
-    return null;
+export async function initAdapter() {
+  // Read env lazily: the module-level singleton would freeze DB_URL at first
+  // import, which breaks tests that manipulate process.env.
+  const env = loadEnv();
+  if (!env.dbUrl) {
+    throw new Error(
+      "[DB] DB_URL is required — Postgres is the only driver. Example: postgres://user:pass@127.0.0.1:5432/suwokrouter"
+    );
   }
-}
 
-async function tryBetterSqlite() {
-
-  if (process.versions.bun) return null;
-  try {
-    const { createBetterSqliteAdapter } = await import("./adapters/betterSqliteAdapter.js");
-    return createBetterSqliteAdapter(DATA_FILE);
-  } catch (e) {
-    console.warn(`[DB] better-sqlite3 unavailable: ${e.message}`);
-    return null;
-  }
-}
-
-async function tryNodeSqlite() {
-
-  if (process.versions.bun) return null;
-  const [maj, min] = process.versions.node.split(".").map(Number);
-  if (maj < 22 || (maj === 22 && min < 5)) return null;
-  try {
-    const { createNodeSqliteAdapter } = await import("./adapters/nodeSqliteAdapter.js");
-    return await createNodeSqliteAdapter(DATA_FILE);
-  } catch (e) {
-    console.warn(`[DB] node:sqlite unavailable: ${e.message}`);
-    return null;
-  }
-}
-
-async function trySqlJs() {
-  try {
-    const { createSqlJsAdapter } = await import("./adapters/sqljsAdapter.js");
-    return await createSqlJsAdapter(DATA_FILE);
-  } catch (e) {
-    console.warn(`[DB] sql.js unavailable: ${e.message}`);
-    return null;
-  }
-}
-
-async function initAdapter() {
-  ensureDirs();
-
-  let adapter = await tryBunSqlite();
-  if (!adapter) adapter = await tryBetterSqlite();
-  if (!adapter) adapter = await tryNodeSqlite();
-  if (!adapter) adapter = await trySqlJs();
-  if (!adapter) throw new Error("[DB] No SQLite driver available (bun/better/node/sql.js all failed)");
+  const adapter = createPostgresAdapter({ url: env.dbUrl });
 
   if (!state.logged) {
-    console.log(`[DB] Driver: ${adapter.driver} | file: ${displayDatabasePath(DATA_FILE)}`);
+    const redacted = env.dbUrl.replace(/\/\/([^:]+):[^@]+@/, "//$1:***@");
+    console.log(`[DB] Driver: postgres | url: ${redacted}`);
     state.logged = true;
   }
 
@@ -95,13 +47,14 @@ export async function getAdapter() {
 }
 
 export async function closeAdapter() {
-  const adapter = state.instance || await state.initPromise?.catch(() => null);
-  if (!adapter) return;
-  try {
-    adapter.close?.();
-  } finally {
-    resetAdapterState();
+  const adapter = state.instance || (await state.initPromise?.catch(() => null));
+  resetAdapterState();
+  if (adapter?.close) {
+    try {
+      await adapter.close();
+    } catch {}
   }
+  await closePostgresPool();
 }
 
 export function getAdapterSync() {
@@ -110,7 +63,7 @@ export function getAdapterSync() {
 }
 
 // Test-only: inject a prebuilt adapter so suites run against an isolated
-// database without touching the real data file.
+// database without touching the real one.
 export async function setAdapterForTest(adapter) {
   state.instance = adapter;
   state.initPromise = Promise.resolve(adapter);
