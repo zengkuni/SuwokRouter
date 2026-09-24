@@ -578,34 +578,39 @@ default, bind ke host lain, atau mengelola secret dari luar:
 ```dotenv
 PORT=1212
 HOSTNAME=127.0.0.1
-DATA_DIR=/var/lib/suwokrouter
 NODE_ENV=production
+# Wajib: PostgreSQL adalah satu-satunya driver database.
+DB_URL=postgres://suwok:suwok@127.0.0.1:5432/suwokrouter
+# Opsional: layer cache Valkey/Redis. Tidak di-set = backend in-memory.
+REDIS_URL=redis://127.0.0.1:6379
 JWT_SECRET=replace-with-a-random-secret-at-least-32-characters
 API_KEY_SECRET=replace-with-a-random-secret-at-least-32-characters
 MACHINE_ID_SALT=replace-with-a-random-private-salt
 ```
 
-Jangan arahkan beberapa instance Suwok Router yang berbeda ke SQLite data directory
-yang sama. Kalau secret diberikan oleh supervisor, nilainya harus tetap sama
-setelah restart agar session dashboard dan identitas instance tetap stabil.
+Nyalakan stack database yang disertakan, lalu arahkan `DB_URL` ke sana:
 
-Lokasi database default:
-
-```text
-Linux/macOS: ~/.suwokrouter/db/data.sqlite
-Windows:     %APPDATA%\\.suwokrouter\\db\\data.sqlite
-Docker:      /app/data/db/data.sqlite
+```bash
+docker compose up -d postgres valkey
 ```
 
-Pastikan data directory tetap persistent. Isinya credential provider, config,
-dan data usage. Jangan commit `.env`, file database, backup, OAuth token,
-cookie, atau log.
+`DB_URL` wajib: tanpa itu server menolak start. `REDIS_URL` opsional; kalau
+tidak di-set, cooldown, refresh lock, dan invalidasi cache memakai backend
+in-process seperti sebelumnya.
 
-## Kenapa SQLite?
+Migrasi install SQLite yang sudah ada:
 
-SQLite bikin satu instance Suwok Router private tetap kecil, portable, dan gampang
-dibackup. PostgreSQL dan Redis lebih cocok untuk aplikasi komersial terpisah
-dengan user terdistribusi, billing, background job, atau banyak instance Suwok Router.
+```bash
+bun scripts/seed-from-sqlite.mjs            # default ~/.suwokrouter/db/data.sqlite
+bun scripts/seed-from-sqlite.mjs --dry-run  # laporan saja
+```
+
+Seed idempoten (upsert), menyalin semua tabel, dan memajukan sequence
+`usageHistory` melewati id yang diimpor.
+
+Jaga volume Postgres tetap persistensi. Di dalamnya ada kredensial provider,
+konfigurasi, dan data usage. Jangan pernah commit `.env`, kredensial, backup,
+token OAuth, cookie, atau log.
 
 ## Development checks
 
