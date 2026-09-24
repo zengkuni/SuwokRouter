@@ -5,11 +5,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bolone-sengkuni/SuwokRouter.git"
+    "url": "git+https://github.com/zengkuni/SuwokRouter.git"
   },
-  "homepage": "https://github.com/bolone-sengkuni/SuwokRouter#readme",
+  "homepage": "https://github.com/zengkuni/SuwokRouter#readme",
   "bugs": {
-    "url": "https://github.com/bolone-sengkuni/SuwokRouter/issues"
+    "url": "https://github.com/zengkuni/SuwokRouter/issues"
   },
   "keywords": [
     "ai",
