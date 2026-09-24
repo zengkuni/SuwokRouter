@@ -75,9 +75,9 @@ function connToRow(c) {
   };
 }
 
-function upsert(db, c) {
+async function upsert(db, c) {
   const r = connToRow(c);
-  db.run(
+  await db.run(
     `INSERT INTO providerConnections(id, provider, authType, name, email, priority, isActive, data, createdAt, updatedAt)
      VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
@@ -170,7 +170,7 @@ export async function getProviderConnections(filter = {}) {
     params.push(...idList);
   }
   const sql = `SELECT * FROM providerConnections WHERE ${where.join(" AND ")}`;
-  const rows = db.all(sql, params);
+  const rows = await db.all(sql, params);
   const list = rows.map(rowToConn);
   list.sort((a, b) => (a.priority || 999) - (b.priority || 999));
   return list;
@@ -184,7 +184,7 @@ export async function getProviderConnectionsForRouting(filter = {}) {
   if (filter.isActive !== undefined) { where.push("isActive = ?"); params.push(filter.isActive ? 1 : 0); }
   if (filter.authType) { where.push("authType = ?"); params.push(filter.authType); }
 
-  const rows = db.all(
+  const rows = await db.all(
     `SELECT id, provider, authType, name, email, priority, isActive, data
      FROM providerConnections WHERE ${where.join(" AND ")}
      ORDER BY COALESCE(priority, 999), id`,
@@ -195,7 +195,7 @@ export async function getProviderConnectionsForRouting(filter = {}) {
 
 export async function getActiveProviderRows() {
   const db = await getAdapter();
-  const rows = db.all(
+  const rows = await db.all(
     `SELECT * FROM (
        SELECT *, ROW_NUMBER() OVER (
          PARTITION BY provider
@@ -210,7 +210,7 @@ export async function getActiveProviderRows() {
 
 export async function getProviderConnectionById(id) {
   const db = await getAdapter();
-  const row = db.get(`SELECT * FROM providerConnections WHERE id = ?`, [id]);
+  const row = await db.get(`SELECT * FROM providerConnections WHERE id = ?`, [id]);
   return rowToConn(row);
 }
 
@@ -228,16 +228,16 @@ function gapPriorityBelow(existingRows, prevPriority) {
   return p;
 }
 
-function normalizePriorities(db, providerId) {
-  const list = db.all(`SELECT * FROM providerConnections WHERE provider = ?`, [providerId]).map(rowToConn);
+async function normalizePriorities(db, providerId) {
+  const list = (await db.all(`SELECT * FROM providerConnections WHERE provider = ?`, [providerId])).map(rowToConn);
   list.sort((a, b) => {
     const pDiff = (a.priority || 0) - (b.priority || 0);
     if (pDiff !== 0) return pDiff;
     return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
   });
-  list.forEach((c, i) => {
-    db.run(`UPDATE providerConnections SET priority = ? WHERE id = ?`, [i + 1, c.id]);
-  });
+  for (const [i, c] of list.entries()) {
+    await db.run(`UPDATE providerConnections SET priority = ? WHERE id = ?`, [i + 1, c.id]);
+  }
 }
 
 export async function createProviderConnection(data) {
@@ -245,8 +245,8 @@ export async function createProviderConnection(data) {
   const now = new Date().toISOString();
   let result;
 
-  db.transaction(() => {
-    const all = db.all(`SELECT * FROM providerConnections WHERE provider = ?`, [data.provider]).map(rowToConn);
+  await db.transaction(async () => {
+    const all = (await db.all(`SELECT * FROM providerConnections WHERE provider = ?`, [data.provider])).map(rowToConn);
 
     const incomingApiKey = normalizeApiKey(data.apiKey);
     if (data.authType === "apikey" && incomingApiKey) {
@@ -286,7 +286,7 @@ export async function createProviderConnection(data) {
 
     if (existing) {
       const merged = { ...existing, ...data, updatedAt: now };
-      upsert(db, merged);
+      await upsert(db, merged);
       result = merged;
       return;
     }
@@ -338,7 +338,7 @@ export async function createProviderConnection(data) {
     }
     if (data.email !== undefined) conn.email = data.email;
 
-    upsert(db, conn);
+    await upsert(db, conn);
     result = conn;
   });
 
@@ -348,12 +348,12 @@ export async function createProviderConnection(data) {
 export async function updateProviderConnection(id, data) {
   const db = await getAdapter();
   let result;
-  db.transaction(() => {
-    const row = db.get(`SELECT * FROM providerConnections WHERE id = ?`, [id]);
+  await db.transaction(async () => {
+    const row = await db.get(`SELECT * FROM providerConnections WHERE id = ?`, [id]);
     if (!row) { result = null; return; }
     const existing = rowToConn(row);
-    const providerRows = db
-      .all(`SELECT * FROM providerConnections WHERE provider = ?`, [existing.provider])
+    const providerRows = (await db
+      .all(`SELECT * FROM providerConnections WHERE provider = ?`, [existing.provider]))
       .map(rowToConn);
     const normalizedUpdate = { ...data };
 
@@ -389,10 +389,10 @@ export async function updateProviderConnection(id, data) {
 export async function deleteProviderConnection(id) {
   const db = await getAdapter();
   let ok = false;
-  db.transaction(() => {
-    const row = db.get(`SELECT provider FROM providerConnections WHERE id = ?`, [id]);
+  await db.transaction(async () => {
+    const row = await db.get(`SELECT provider FROM providerConnections WHERE id = ?`, [id]);
     if (!row) return;
-    db.run(`DELETE FROM providerConnections WHERE id = ?`, [id]);
+    await db.run(`DELETE FROM providerConnections WHERE id = ?`, [id]);
     ok = true;
   });
   return ok;
@@ -400,14 +400,14 @@ export async function deleteProviderConnection(id) {
 
 export async function deleteProviderConnectionsByProvider(providerId) {
   const db = await getAdapter();
-  const before = db.get(`SELECT COUNT(*) AS n FROM providerConnections WHERE provider = ?`, [providerId]);
-  db.run(`DELETE FROM providerConnections WHERE provider = ?`, [providerId]);
+  const before = await db.get(`SELECT COUNT(*) AS n FROM providerConnections WHERE provider = ?`, [providerId]);
+  await db.run(`DELETE FROM providerConnections WHERE provider = ?`, [providerId]);
   return before?.n || 0;
 }
 
 export async function reorderProviderConnections(providerId) {
   const db = await getAdapter();
-  db.transaction(() => normalizePriorities(db, providerId));
+  await db.transaction(async () => { await normalizePriorities(db, providerId); });
 }
 
 export async function getProviderConnectionsPaged(filter = {}) {
@@ -433,7 +433,7 @@ export async function getProviderConnectionsPaged(filter = {}) {
 
   const whereClause = where.length ? ` WHERE ${where.join(" AND ")}` : "";
 
-  const countRow = db.get(`SELECT COUNT(*) AS total FROM providerConnections${whereClause}`, params);
+  const countRow = await db.get(`SELECT COUNT(*) AS total FROM providerConnections${whereClause}`, params);
   const total = countRow?.total || 0;
 
   const page = Math.max(1, Number(filter.page) || 1);
@@ -446,7 +446,7 @@ export async function getProviderConnectionsPaged(filter = {}) {
   const cappedSize = cap === null ? pageSize : Math.max(0, Math.min(pageSize, cap - offset));
   const pageSizeApplied = cappedSize > 0 ? cappedSize : 0;
 
-  const rows = pageSizeApplied > 0 ? db.all(
+  const rows = pageSizeApplied > 0 ? await db.all(
     `SELECT * FROM providerConnections${whereClause} ORDER BY COALESCE(priority, 999), id LIMIT ? OFFSET ?`,
     [...params, pageSizeApplied, offset]
   ) : [];
@@ -457,7 +457,7 @@ export async function getProviderConnectionsPaged(filter = {}) {
 
 export async function countProviderConnections() {
   const db = await getAdapter();
-  const rows = db.all(
+  const rows = await db.all(
     `SELECT provider,
             COUNT(*) AS total,
             SUM(CASE WHEN isActive = 1 THEN 1 ELSE 0 END) AS active,
@@ -475,7 +475,7 @@ export async function countProviderConnections() {
 
 export async function countConnectionsByProxyPool() {
   const db = await getAdapter();
-  const rows = db.all(`
+  const rows = await db.all(`
     SELECT COALESCE(
       json_extract(data, '$.providerSpecificData.proxyPoolId'),
       json_extract(data, '$.proxyPoolId')
@@ -500,8 +500,8 @@ export async function cleanupProviderConnections() {
     "consecutiveUseCount",
   ];
   let cleaned = 0;
-  db.transaction(() => {
-    const rows = db.all(`SELECT * FROM providerConnections`);
+  await db.transaction(async () => {
+    const rows = await db.all(`SELECT * FROM providerConnections`);
     for (const row of rows) {
       const conn = rowToConn(row);
       let dirty = false;
@@ -515,7 +515,7 @@ export async function cleanupProviderConnections() {
         cleaned++;
         dirty = true;
       }
-      if (dirty) upsert(db, conn);
+      if (dirty) await upsert(db, conn);
     }
   });
   return cleaned;
