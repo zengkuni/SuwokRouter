@@ -74,9 +74,14 @@ export function createTtlStore(redis) {
 let defaultStore = null;
 
 export function getTtlStore() {
-  if (!defaultStore) {
-    const redis = getRedis();
-    defaultStore = createTtlStore(redis);
+  // getRedis() first: it lazily creates the client. Checking availability
+  // before that would see a null client and pin the process to memory.
+  const redis = getRedis();
+  const wantValkey = isRedisAvailable();
+  // Re-pick when availability flips: an outage degrades to memory and a
+  // reconnect promotes back to valkey.
+  if (!defaultStore || (defaultStore.kind === "valkey") !== wantValkey) {
+    defaultStore = createTtlStore(wantValkey ? redis : null);
   }
   return defaultStore;
 }
