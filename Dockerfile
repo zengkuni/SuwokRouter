@@ -17,7 +17,7 @@ FROM base AS runner
 WORKDIR /app
 
 LABEL org.opencontainers.image.title="Suwok Router"
-LABEL org.opencontainers.image.source="https://github.com/bolone-sengkuni/suwokrouter"
+LABEL org.opencontainers.image.source="https://github.com/bolone-sengkuni/SuwokRouter"
 LABEL org.opencontainers.image.licenses="MIT"
 
 ENV NODE_ENV=production
