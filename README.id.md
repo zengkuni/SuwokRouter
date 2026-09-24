@@ -19,7 +19,7 @@
   <a href="https://bun.sh"><img src="https://img.shields.io/badge/runtime-Bun-black?logo=bun" alt="Bun" /></a>
   <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/code-TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript" /></a>
   <a href="https://react.dev"><img src="https://img.shields.io/badge/dashboard-React-61DAFB?logo=react&logoColor=111827" alt="React" /></a>
-  <a href="https://sqlite.org"><img src="https://img.shields.io/badge/storage-SQLite-003B57?logo=sqlite&logoColor=white" alt="SQLite" /></a>
+  <a href="https://sqlite.org"><img src="https://img.shields.io/badge/storage-PostgreSQL-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL" /></a>
 </p>
 
 <p align="center">
@@ -507,12 +507,12 @@ Suwok Router juga punya rotasi multi-account, pemilihan berbasis kuota, token sa
 retry, fallback, dan refresh token provider. Bagian ini sengaja fokus ke berat
 runtime, bukan adu daftar fitur.
 
-- **Suwok Router:** Bun + Hono + SQLite, dengan dashboard React/Vite. Satu
+- **Suwok Router:** Bun + Hono + PostgreSQL, dengan dashboard React/Vite. Satu
   core server yang dirancang untuk penggunaan lokal dan VPS kecil.
 - **[9Router](https://github.com/decolua/9router):** Node + Next.js/React +
-  Express + SQLite. Layer framework lebih banyak dan runtime CLI terpisah.
+  Express + PostgreSQL/Redis. Layer framework lebih banyak dan runtime CLI terpisah.
 - **[OmniRoute](https://github.com/diegosouzapw/OmniRoute):** Node + Next.js/
-  React + SQLite/sql.js, dengan layer Redis, browser, desktop, dan PWA opsional.
+  React + PostgreSQL, dengan layer Redis, browser, desktop, dan PWA opsional.
 
 ### Mana yang lebih ringan?
 
@@ -529,7 +529,7 @@ dibatasi.
 
 ### Kenapa pilih Suwok Router?
 
-- **Footprint default lebih kecil.** Core cukup dengan server Bun dan SQLite,
+- **Footprint default lebih kecil.** Core cukup dengan server Bun dan PostgreSQL,
   tanpa Redis, hosted sync service, desktop shell, atau browser pool.
 - **Dashboard yang enak dipakai harian.** Provider, account, model, routing,
   usage, quota, proxy, log, dan settings ada dalam satu control room yang clean.
@@ -537,7 +537,7 @@ dibatasi.
   menjaga concurrency, queue, request body, retry, serta background work tetap
   terbatas.
 - **Gampang dikirim dan diperiksa.** Bisa dijalankan lokal, di VPS kecil, Docker,
-  atau standalone binary, dengan backup/import SQLite dan API yang mudah
+  atau standalone binary, dengan backup/import dan API yang mudah
   diinspeksi.
 
 Angka dan peta menu Suwok Router diambil dari [provider registry](./src/providers/registry/index.js),
@@ -552,7 +552,7 @@ Angka dan peta menu Suwok Router diambil dari [provider registry](./src/provider
 - Default binding ke localhost dan credential provider tetap di server.
 - Secret dari environment variable dan perlindungan SSRF.
 - Health, readiness, version, runtime status, dan Prometheus-style metrics.
-- SQLite WAL mode, migration, index, backup, export, dan import.
+- PostgreSQL: migrasi berversi, index partial, backup JSON + restore, export, dan import.
 - Docker/Compose, native source run, Bun CLI, dan standalone binary.
 
 Suwok Router menjaga process dan account pool-nya sendiri, tapi tidak membuat kuota
@@ -564,7 +564,7 @@ provider, jumlah akun, latency jaringan, ukuran prompt, dan durasi stream.
 - **Runtime:** Bun, dengan fallback yang kompatibel dengan Node jika diperlukan
 - **Gateway:** TypeScript, Hono, native HTTP, dan SSE
 - **Dashboard:** React, Vite, Tailwind CSS, React Router, dan TanStack Query
-- **Storage:** SQLite dengan WAL mode, migration, backup, dan fallback `sql.js`
+- **Storage:** PostgreSQL 17, dengan migrasi berversi, backup, dan restore
 - **Auth:** JWT, bcrypt, OAuth/PKCE, dan refresh token khusus provider
 - **Shipping:** Bun CLI, Docker, standalone binary, dan GitHub Actions
 

@@ -545,7 +545,7 @@ The Suwok Router figures and menu map come from the [provider registry](./src/pr
 - Localhost-first defaults and server-side provider credentials.
 - Environment-based secrets and SSRF protection.
 - Health, readiness, version, runtime status, and Prometheus-style metrics.
-- SQLite WAL mode, migrations, indexes, backups, export, and import.
+- PostgreSQL versioned migrations, partial indexes, JSON backups with restore, export, and import.
 - Docker/Compose, native source runs, Bun CLI, and standalone binaries.
 
 Suwok Router protects its own process and account pools, but it does not create
@@ -579,7 +579,9 @@ API_KEY_SECRET=replace-with-a-random-secret-at-least-32-characters
 MACHINE_ID_SALT=replace-with-a-random-private-salt
 ```
 
-Never point multiple independent Suwok Router instances at the same SQLite data
+Multiple Suwok Router instances may share one Postgres database
+directory. If a supervisor injects secrets, keep their values stable across
+restarts so dashboard sessions and the instance identity remain stable.
 directory. If a supervisor injects secrets, keep their values stable across
 restarts so dashboard sessions and the instance identity remain stable.
 
@@ -595,11 +597,12 @@ Keep the data directory persistent. It contains provider credentials,
 configuration, and usage data. Never commit `.env`, database files, backups,
 OAuth tokens, cookies, or logs.
 
-## Why SQLite?
+## Why PostgreSQL?
 
-SQLite keeps one private Suwok Router instance small, portable, and easy to back up.
-PostgreSQL and Redis make more sense for a separate commercial app with
-distributed users, billing, background jobs, or multiple Suwok Router instances.
+PostgreSQL gives one Suwok Router instance real concurrency, transactional
+migrations, `pg_dump` backups, and a foundation for multiple instances sharing
+one database. Valkey adds distributed cooldowns and refresh locks on top, with
+an in-memory fallback when it is not configured.
 
 ## Development checks
 
