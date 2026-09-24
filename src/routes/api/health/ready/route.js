@@ -11,7 +11,7 @@ export async function GET() {
   }
   try {
     const db = await getAdapter();
-    db.get("SELECT 1 AS ok");
+    await db.get("SELECT 1 AS ok");
     return NextResponse.json({ ok: true, status: "ready" }, { headers: HEADERS });
   } catch {
     return NextResponse.json({ ok: false, status: "not_ready" }, { status: 503, headers: HEADERS });

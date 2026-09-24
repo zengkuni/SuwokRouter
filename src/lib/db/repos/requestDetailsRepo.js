@@ -139,7 +139,7 @@ async function flushToDatabase() {
 
         const policy = await getCapturePolicy().catch(() => ({ mode: "none", sampleRate: 0.01 }));
 
-        db.transaction(() => {
+        await db.transaction(async () => {
           for (const item of items) {
             if (!item.id) item.id = generateDetailId(item.model);
             if (!item.timestamp) item.timestamp = new Date().toISOString();
@@ -167,15 +167,15 @@ async function flushToDatabase() {
 
             record.payload_capture = `${policy.mode}:${decision}`;
 
-            db.run(
+            await db.run(
               `INSERT INTO requestDetails(id, timestamp, provider, model, connectionId, status, data, trace_id, payload_capture) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET timestamp = excluded.timestamp, provider = excluded.provider, model = excluded.model, connectionId = excluded.connectionId, status = excluded.status, data = excluded.data, trace_id = excluded.trace_id, payload_capture = excluded.payload_capture`,
               [record.id, record.timestamp, record.provider, record.model, record.connectionId, record.status, stringifyJson(record), trace_id, record.payload_capture]
             );
           }
 
-          const cnt = db.get(`SELECT COUNT(*) as c FROM requestDetails`);
+          const cnt = await db.get(`SELECT COUNT(*) as c FROM requestDetails`);
           if (cnt && cnt.c > config.maxRecords) {
-            db.run(
+            await db.run(
               `DELETE FROM requestDetails WHERE id IN (SELECT id FROM requestDetails ORDER BY timestamp ASC LIMIT ?)`,
               [cnt.c - config.maxRecords]
             );
@@ -211,8 +211,8 @@ export async function clearRequestDetails({ startDate, endDate } = {}) {
     params.push(new Date(endDate).toISOString());
   }
   const where = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
-  const row = db.get(`SELECT COUNT(*) AS count FROM requestDetails ${where}`, params);
-  db.run(`DELETE FROM requestDetails ${where}`, params);
+  const row = await db.get(`SELECT COUNT(*) AS count FROM requestDetails ${where}`, params);
+  await db.run(`DELETE FROM requestDetails ${where}`, params);
   return Number(row?.count || 0);
 }
 
@@ -244,7 +244,7 @@ export async function saveRequestDetail(detail) {
 async function enrichDetailsWithUsage(db, details) {
   if (!details.length) return details;
 
-  const usageRows = db.all(`
+  const usageRows = await db.all(`
     SELECT timestamp, provider, model, connectionId, promptTokens,
            completionTokens, tokens
     FROM usageHistory
@@ -304,7 +304,7 @@ export async function getRequestDetails(filter = {}) {
   if (filter.endDate) { conds.push("timestamp <= ?"); params.push(new Date(filter.endDate).toISOString()); }
 
   const where = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
-  const cntRow = db.get(`SELECT COUNT(*) as c FROM requestDetails ${where}`, params);
+  const cntRow = await db.get(`SELECT COUNT(*) as c FROM requestDetails ${where}`, params);
   const totalItems = cntRow ? cntRow.c : 0;
 
   const page = filter.page || 1;
@@ -313,7 +313,7 @@ export async function getRequestDetails(filter = {}) {
   const offset = (page - 1) * pageSize;
 
   const order = filter.sortDir === "asc" ? "ASC" : "DESC";
-  const rows = db.all(
+  const rows = await db.all(
     `SELECT data FROM requestDetails ${where} ORDER BY timestamp ${order}, id ${order} LIMIT ? OFFSET ?`,
     [...params, pageSize, offset]
   );
@@ -328,14 +328,14 @@ export async function getRequestDetails(filter = {}) {
 export async function getDistinctProviders() {
   await flushToDatabase();
   const db = await getAdapter();
-  const rows = db.all(`SELECT DISTINCT provider FROM requestDetails WHERE provider IS NOT NULL ORDER BY provider ASC`);
+  const rows = await db.all(`SELECT DISTINCT provider FROM requestDetails WHERE provider IS NOT NULL ORDER BY provider ASC`);
   return rows.map((r) => r.provider);
 }
 
 export async function getRequestDetailById(id) {
   await flushToDatabase();
   const db = await getAdapter();
-  const row = db.get(`SELECT data FROM requestDetails WHERE id = ?`, [id]);
+  const row = await db.get(`SELECT data FROM requestDetails WHERE id = ?`, [id]);
   return row ? parseJson(row.data, null) : null;
 }
 
