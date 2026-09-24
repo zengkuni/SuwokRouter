@@ -1,3 +1,4 @@
+import { createAsyncTransaction } from "./sqliteAsyncShim.js";
 import fs from "node:fs";
 import initSqlJs from "sql.js";
 import { PRAGMA_SQL } from "../schema.js";
@@ -51,8 +52,7 @@ export async function createSqlJsAdapter(filePath) {
       stmt.free();
     }
   }
-
-  function run(sql, params = []) {
+  async function run(sql, params = []) {
     return useStatement(sql, params, (stmt) => {
       stmt.step();
       const changes = db.getRowsModified();
@@ -62,11 +62,11 @@ export async function createSqlJsAdapter(filePath) {
     });
   }
 
-  function get(sql, params = []) {
+  async function get(sql, params = []) {
     return useStatement(sql, params, (stmt) => stmt.step() ? stmt.getAsObject() : undefined);
   }
 
-  function all(sql, params = []) {
+  async function all(sql, params = []) {
     return useStatement(sql, params, (stmt) => {
       const rows = [];
       while (stmt.step()) rows.push(stmt.getAsObject());
@@ -74,24 +74,12 @@ export async function createSqlJsAdapter(filePath) {
     });
   }
 
-  function exec(sql) {
+  async function exec(sql) {
     db.exec(sql);
     scheduleSave();
   }
 
-  function transaction(fn) {
-    const sp = `sp_${Math.random().toString(36).slice(2)}`;
-    db.exec(`SAVEPOINT ${sp}`);
-    try {
-      const result = fn();
-      db.exec(`RELEASE ${sp}`);
-      scheduleSave();
-      return result;
-    } catch (e) {
-      try { db.exec(`ROLLBACK TO ${sp}`); db.exec(`RELEASE ${sp}`); } catch {}
-      throw e;
-    }
-  }
+  const transaction = createAsyncTransaction(db);
 
   function close() {
     if (saveTimer) clearTimeout(saveTimer);
