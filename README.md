@@ -19,7 +19,7 @@
   <a href="https://bun.sh"><img src="https://img.shields.io/badge/runtime-Bun-black?logo=bun" alt="Bun" /></a>
   <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/code-TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript" /></a>
   <a href="https://react.dev"><img src="https://img.shields.io/badge/dashboard-React-61DAFB?logo=react&logoColor=111827" alt="React" /></a>
-  <a href="https://sqlite.org"><img src="https://img.shields.io/badge/storage-SQLite-003B57?logo=sqlite&logoColor=white" alt="SQLite" /></a>
+  <a href="https://sqlite.org"><img src="https://img.shields.io/badge/storage-PostgreSQL-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL" /></a>
 </p>
 
 <p align="center">
@@ -558,7 +558,7 @@ duration.
 - **Runtime:** Bun, with Node-compatible fallbacks where practical
 - **Gateway:** TypeScript, Hono, native HTTP, and SSE
 - **Dashboard:** React, Vite, Tailwind CSS, React Router, and TanStack Query
-- **Storage:** SQLite with WAL mode, migrations, backups, and `sql.js` fallback
+- **Storage:** PostgreSQL 17, with versioned migrations, backups, and restore
 - **Auth:** JWT, bcrypt, OAuth/PKCE, provider-specific token refresh
 - **Shipping:** Bun CLI, Docker, standalone binaries, GitHub Actions
 
