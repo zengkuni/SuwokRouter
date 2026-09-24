@@ -45,11 +45,11 @@ export default function Setup() {
       <Card className="w-full max-w-sm border-border bg-card">
         <CardHeader className="text-center">
           <img
-            src="/logo/sway.svg"
-            alt="Sway Router"
+            src="/logo/suwok.svg"
+            alt="Suwok Router"
             className="mx-auto mb-2 h-12 w-12 rounded-xl object-contain"
           />
-          <CardTitle className="text-xl">Welcome to Sway Router</CardTitle>
+          <CardTitle className="text-xl">Welcome to Suwok Router</CardTitle>
           <p className="text-sm text-muted-foreground">
             Set your dashboard password
           </p>

@@ -83,7 +83,7 @@ describe("OAuth callback transport", () => {
     });
     expect(
       parseOAuthCallbackMessage({
-        source: "sway-oauth",
+        source: "suwok-oauth",
         type: "oauth_callback",
         data: { code: "nested-code", state: "state-2" },
       }),

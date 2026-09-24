@@ -198,20 +198,20 @@ export function loadEnv(
   const dataDir = source.DATA_DIR?.trim() || "";
   const baseUrl =
     source.BASE_URL?.trim() || source.NEXT_PUBLIC_BASE_URL?.trim() || "";
-  const metricsToken = source.SWAY_METRICS_TOKEN?.trim() || "";
+  const metricsToken = source.SUWOK_METRICS_TOKEN?.trim() || "";
   const resource = deriveResourceProfile(
     undefined,
-    source.SWAY_PERFORMANCE_PROFILE,
+    source.SUWOK_PERFORMANCE_PROFILE,
   );
   const routerMaxConcurrent = parsePositiveInt(
-    source.SWAY_ROUTER_MAX_CONCURRENT,
+    source.SUWOK_ROUTER_MAX_CONCURRENT,
     resource.maxConcurrent,
     100_000,
   );
   const routerInitialConcurrent = Math.min(
     routerMaxConcurrent,
     parsePositiveInt(
-      source.SWAY_ROUTER_INITIAL_CONCURRENT,
+      source.SUWOK_ROUTER_INITIAL_CONCURRENT,
       resource.initialConcurrent,
       100_000,
     ),
@@ -219,25 +219,25 @@ export function loadEnv(
   const routerMinConcurrent = Math.min(
     routerInitialConcurrent,
     parsePositiveInt(
-      source.SWAY_ROUTER_MIN_CONCURRENT,
+      source.SUWOK_ROUTER_MIN_CONCURRENT,
       resource.minConcurrent,
       100_000,
     ),
   );
   const routerBodyBudgetBytes =
     parsePositiveInt(
-      source.SWAY_ROUTER_BODY_BUDGET_MB,
+      source.SUWOK_ROUTER_BODY_BUDGET_MB,
       resource.bodyBudgetMb,
       16 * 1024,
     ) *
     1024 *
     1024;
   const routerMemoryHighWaterBytes =
-    parsePositiveInt(source.SWAY_ROUTER_MEMORY_HIGH_WATER_MB, 0, 1024 * 1024) *
+    parsePositiveInt(source.SUWOK_ROUTER_MEMORY_HIGH_WATER_MB, 0, 1024 * 1024) *
     1024 *
     1024;
   const routerMemoryCriticalWaterBytes =
-    parsePositiveInt(source.SWAY_ROUTER_MEMORY_CRITICAL_MB, 0, 1024 * 1024) *
+    parsePositiveInt(source.SUWOK_ROUTER_MEMORY_CRITICAL_MB, 0, 1024 * 1024) *
     1024 *
     1024;
 
@@ -257,7 +257,7 @@ export function loadEnv(
     translatorEnabled: parseBoolean(source.ENABLE_TRANSLATOR ?? "false"),
     authCookieSecure: parseBoolean(source.AUTH_COOKIE_SECURE ?? "false"),
     metricsToken,
-    metricsLocal: source.SWAY_METRICS_LOCAL !== "0",
+    metricsLocal: source.SUWOK_METRICS_LOCAL !== "0",
     resourceProfile: resource.name,
     resourceMemoryBytes: resource.memoryBytes,
     resourceCpuCount: resource.cpuCount,
@@ -265,35 +265,35 @@ export function loadEnv(
     routerInitialConcurrent,
     routerMinConcurrent,
     routerMaxQueue: parsePositiveInt(
-      source.SWAY_ROUTER_MAX_QUEUE,
+      source.SUWOK_ROUTER_MAX_QUEUE,
       resource.maxQueue,
       1_000_000,
     ),
     routerQueueWaitMs: parsePositiveInt(
-      source.SWAY_ROUTER_QUEUE_WAIT_MS,
+      source.SUWOK_ROUTER_QUEUE_WAIT_MS,
       resource.queueWaitMs,
       10 * 60 * 1000,
     ),
     routerBodyBudgetBytes,
     routerBodyReadTimeoutMs: parsePositiveInt(
-      source.SWAY_ROUTER_BODY_TIMEOUT_MS,
+      source.SUWOK_ROUTER_BODY_TIMEOUT_MS,
       30_000,
       10 * 60 * 1000,
     ),
     routerMemoryHighWaterBytes,
     routerMemoryCriticalWaterBytes,
     usageHistoryRetentionDays: parsePositiveInt(
-      source.SWAY_USAGE_RETENTION_DAYS,
+      source.SUWOK_USAGE_RETENTION_DAYS,
       7,
       3650,
     ),
     usageHistoryMaxRows: parsePositiveInt(
-      source.SWAY_USAGE_HISTORY_MAX_ROWS,
+      source.SUWOK_USAGE_HISTORY_MAX_ROWS,
       500_000,
       100_000_000,
     ),
     upstreamMaxAttempts: parsePositiveInt(
-      source.SWAY_UPSTREAM_MAX_ATTEMPTS,
+      source.SUWOK_UPSTREAM_MAX_ATTEMPTS,
       nodeEnv === "production" ? resource.upstreamMaxAttempts : 8,
       100,
     ),

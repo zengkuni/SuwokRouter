@@ -3,7 +3,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 
-const INSTALL_MANIFEST = ".swayrouter-install.json";
+const INSTALL_MANIFEST = ".suwokrouter-install.json";
 const REGISTRATION_FILE = "install.json";
 const LEGACY_BUNDLED_ERROR =
   "This bundled npm installation is no longer supported. Reinstall from a source checkout or prepare it with Docker.";
@@ -18,24 +18,24 @@ function defaultDataDir() {
   return process.platform === "win32"
     ? path.join(
         process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"),
-        ".swayrouter",
+        ".suwokrouter",
       )
-    : path.join(os.homedir(), ".swayrouter");
+    : path.join(os.homedir(), ".suwokrouter");
 }
 
 function candidateInstallDirs() {
   const dirs = [];
-  if (process.env.SWAY_ROUTER_DIR) dirs.push(process.env.SWAY_ROUTER_DIR);
+  if (process.env.SUWOK_ROUTER_DIR) dirs.push(process.env.SUWOK_ROUTER_DIR);
   if (process.platform === "win32") {
     dirs.push(
       path.join(
         process.env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local"),
-        "SwayRouter",
+        "SuwokRouter",
       ),
     );
   } else {
-    dirs.push(path.join(os.homedir(), ".local", "share", "swayrouter"));
-    dirs.push("/opt/swayrouter");
+    dirs.push(path.join(os.homedir(), ".local", "share", "suwokrouter"));
+    dirs.push("/opt/suwokrouter");
   }
   return dirs;
 }
@@ -110,7 +110,7 @@ function inspectDirectory(dir, manifest = null) {
     ? path.join(resolved, "src", "server.ts")
     : null;
   const binaryNames =
-    process.platform === "win32" ? ["swayrouter.exe"] : ["swayrouter"];
+    process.platform === "win32" ? ["suwokrouter.exe"] : ["suwokrouter"];
   const binaryFile =
     binaryNames.map((name) => path.join(resolved, name)).find(fileExists) ||
     null;
@@ -165,7 +165,7 @@ function findCommand(command) {
 }
 
 function discoverInstall({ dir, cliDirectory } = {}) {
-  const explicit = dir || process.env.SWAY_ROUTER_DIR;
+  const explicit = dir || process.env.SUWOK_ROUTER_DIR;
   if (explicit) return inspectDirectory(explicit);
 
   const registered = loadRegisteredInstallation();
@@ -178,7 +178,7 @@ function discoverInstall({ dir, cliDirectory } = {}) {
   if (local) return local;
 
   const binaryNames =
-    process.platform === "win32" ? ["swayrouter.exe"] : ["swayrouter"];
+    process.platform === "win32" ? ["suwokrouter.exe"] : ["suwokrouter"];
   const siblingCandidates = [
     ...binaryNames.map((name) =>
       path.join(cliDirectory || path.join(__dirname, "..", "..", ".."), name),

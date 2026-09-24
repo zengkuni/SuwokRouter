@@ -15,7 +15,7 @@ export function isBuiltinProvider(providerId?: string | null): boolean {
   return KATALOG_KNOWN.has(canonical) || KATALOG_KNOWN.has(normalized);
 }
 
-export const CUSTOM_PROVIDER_FALLBACK_ICON = "/providers/SwayCustom.svg";
+export const CUSTOM_PROVIDER_FALLBACK_ICON = "/providers/SuwokCustom.svg";
 
 export function resolveCustomProviderIcon(iconUrl?: string | null): string {
   const trimmed = iconUrl?.trim();

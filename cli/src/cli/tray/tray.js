@@ -42,7 +42,7 @@ function initTray(options) {
 
 function buildMenuItems(port, autostartEnabled) {
   return [
-    { title: `Sway Router (Port ${port})`, tooltip: "Server is running", enabled: false },
+    { title: `Suwok Router (Port ${port})`, tooltip: "Server is running", enabled: false },
     { title: "Open Dashboard", tooltip: "Open in browser", enabled: true },
     buildAutostartMenuItem(autostartEnabled),
     { title: "Quit", tooltip: "Stop server and exit", enabled: true }
@@ -102,7 +102,7 @@ function initWindowsTray(options) {
 
     trayInstance = initWinTray({
       iconPath,
-      tooltip: `Sway Router - Port ${port}`,
+      tooltip: `Suwok Router - Port ${port}`,
       items,
       onClick: (index) => {
         handleClick(index, options, (newEnabled) => {
@@ -157,7 +157,7 @@ function initUnixTray(options) {
 
       isTemplateIcon: false,
       title: "",
-      tooltip: `Sway Router - Port ${port}`,
+      tooltip: `Suwok Router - Port ${port}`,
       items
     };
 
@@ -178,7 +178,7 @@ function initUnixTray(options) {
     if (isV2) {
 
       trayInstance.ready().catch((err) => {
-        process.stderr.write(`[swayrouter] tray failed to start: ${err && err.message ? err.message : err}\n`);
+        process.stderr.write(`[suwokrouter] tray failed to start: ${err && err.message ? err.message : err}\n`);
       });
     } else {
       trayInstance.onReady(() => {});
@@ -187,7 +187,7 @@ function initUnixTray(options) {
 
     return trayInstance;
   } catch (err) {
-    process.stderr.write(`[swayrouter] tray init error: ${err.message}\n`);
+    process.stderr.write(`[suwokrouter] tray init error: ${err.message}\n`);
     return null;
   }
 }

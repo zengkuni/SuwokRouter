@@ -3,7 +3,7 @@ import { api } from "@/lib/api";
 export type BackupScope = "configuration" | "full";
 
 export type DatabaseBackup = {
-  product?: "swayrouter";
+  product?: "suwokrouter";
   formatVersion?: number;
   backupScope?: BackupScope;
   providerCredentialsIncluded?: boolean;
@@ -44,7 +44,7 @@ function requireBackupPayload(value: unknown): DatabaseBackup {
 
   const payload = value as DatabaseBackup;
   if (
-    payload.product !== "swayrouter" &&
+    payload.product !== "suwokrouter" &&
     ("modelAliases" in payload || "mitmAlias" in payload || (
       payload.formatVersion === undefined &&
       payload.backupScope === undefined &&
@@ -79,7 +79,7 @@ function requireBackupPayload(value: unknown): DatabaseBackup {
 
 export async function downloadBackup(password: string, scope: BackupScope = "configuration"): Promise<void> {
   const { data } = await api.get<DatabaseBackup>("/settings/database", {
-    headers: { "x-swayrouter-password": password },
+    headers: { "x-suwokrouter-password": password },
     params: { scope },
   });
   const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -89,7 +89,7 @@ export async function downloadBackup(password: string, scope: BackupScope = "con
   const anchor = document.createElement("a");
   const date = new Date().toISOString().replace(/[:.]/g, "-");
   anchor.href = href;
-  anchor.download = `sway-router-${scope === "full" ? "full-data" : "configuration"}-backup-${date}.json`;
+  anchor.download = `suwok-router-${scope === "full" ? "full-data" : "configuration"}-backup-${date}.json`;
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();

@@ -9,7 +9,7 @@ import { env } from "@/lib/env";
 import { loadState } from "@/lib/tunnel/shared/state.js";
 import { isTunnelHost } from "@/lib/tunnel/cloudflare/publicUrl.js";
 
-const RESET_HINT = "Forgot password? Reset to default via Sway Router CLI → Settings → Reset Password to Default.";
+const RESET_HINT = "Forgot password? Reset to default via Suwok Router CLI → Settings → Reset Password to Default.";
 const NO_STORE_HEADERS = { "Cache-Control": "no-store" };
 
 function isTunnelRequest(request, settings) {

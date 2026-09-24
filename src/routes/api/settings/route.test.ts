@@ -5,7 +5,7 @@ describe("settings response serialization", () => {
   test("omits server-owned database paths and secrets", () => {
     const result = __test__.sanitizeSettingsForResponse({
       requireLogin: true,
-      dbPath: "/srv/swayrouter/db/data.sqlite",
+      dbPath: "/srv/suwokrouter/db/data.sqlite",
       password: "$2b$10$stored-hash",
       accentColor: "#ffffff",
       outboundProxyEnabled: true,

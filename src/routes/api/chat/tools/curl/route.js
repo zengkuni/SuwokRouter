@@ -77,7 +77,7 @@ export async function POST(request) {
       method,
       redirect: "manual",
       cache: "no-store",
-      headers: { Accept: "application/json, text/plain, text/html, */*", "User-Agent": "SwayRouter Agent/1.0" },
+      headers: { Accept: "application/json, text/plain, text/html, */*", "User-Agent": "SuwokRouter Agent/1.0" },
       signal: controller.signal,
     }, { maxRedirects: 0 });
     const bounded = method === "HEAD" ? { text: "", truncated: false } : await readBoundedBody(response);

@@ -15,7 +15,7 @@ function resetAdapterState() {
 
 function displayDatabasePath(file) {
   const normalized = String(file ?? "").replaceAll("/", "\\");
-  const marker = "\\.swayrouter\\";
+  const marker = "\\.suwokrouter\\";
   const markerIndex = normalized.toLowerCase().lastIndexOf(marker);
   if (markerIndex >= 0) return normalized.slice(markerIndex + 1);
   return normalized.split("\\").at(-1) || "data.sqlite";

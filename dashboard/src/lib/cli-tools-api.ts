@@ -149,7 +149,7 @@ export async function fetchCliTools(): Promise<CliToolsResponse> {
       return { id, name: meta.name, tier: meta.tier, installed: false, connected: false, available: false, detail: "Status unavailable" };
     }
     const installed = raw.installed !== false;
-    const connected = boolStatus(raw, "hasSwayRouter", "connected");
+    const connected = boolStatus(raw, "hasSuwokRouter", "connected");
     return {
       id,
       name: meta.name,

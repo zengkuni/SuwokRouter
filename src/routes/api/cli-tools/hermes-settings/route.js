@@ -9,7 +9,7 @@ import os from "os";
 
 const execAsync = promisify(exec);
 
-const PROVIDER_NAME = "swayrouter";
+const PROVIDER_NAME = "suwokrouter";
 const API_KEY_ENV = "OPENAI_API_KEY";
 
 const getHermesDir = () => path.join(os.homedir(), ".hermes");
@@ -89,7 +89,7 @@ const readEnvFile = async () => {
   }
 };
 
-const hasSwayRouterConfig = (modelCfg) => {
+const hasSuwokRouterConfig = (modelCfg) => {
   if (!modelCfg?.base_url) return false;
   return modelCfg.provider === "custom" && /localhost|127\.0\.0\.1|0\.0\.0\.0/.test(modelCfg.base_url);
 };
@@ -105,7 +105,7 @@ export async function GET() {
     return NextResponse.json({
       installed: true,
       settings: { model },
-      hasSwayRouter: hasSwayRouterConfig(model),
+      hasSuwokRouter: hasSuwokRouterConfig(model),
       configPath: getHermesConfigPath(),
     });
   } catch (error) {

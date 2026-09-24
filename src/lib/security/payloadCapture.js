@@ -5,7 +5,7 @@ const DEFAULT_MODE = "none";
 const DEFAULT_SAMPLE_RATE = 0.01;
 
 function resolveMode(settings) {
-  const envMode = (process.env.SWAY_PAYLOAD_CAPTURE || "").toLowerCase();
+  const envMode = (process.env.SUWOK_PAYLOAD_CAPTURE || "").toLowerCase();
   if (CAPTURE_MODES.includes(envMode)) return envMode;
 
   if (process.env.NODE_ENV === "production") {
@@ -30,7 +30,7 @@ export async function getCapturePolicy() {
     mode = resolveMode(s);
     const sr = Number(s.payloadSampleRate);
     if (Number.isFinite(sr) && sr >= 0 && sr <= 1) sampleRate = sr;
-    const envRate = parseFloat(process.env.SWAY_PAYLOAD_SAMPLE_RATE || "");
+    const envRate = parseFloat(process.env.SUWOK_PAYLOAD_SAMPLE_RATE || "");
     if (Number.isFinite(envRate) && envRate >= 0 && envRate <= 1) sampleRate = envRate;
   } catch {
 

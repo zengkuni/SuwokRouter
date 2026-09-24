@@ -243,7 +243,7 @@ async function searchDuckDuckGo(query, limit) {
   url.searchParams.set("no_redirect", "1");
   url.searchParams.set("skip_disambig", "1");
   const payload = await requestJson(url, {
-    headers: { Accept: "application/json", "User-Agent": "SwayRouter SwayChat/1.0" },
+    headers: { Accept: "application/json", "User-Agent": "SuwokRouter SuwokChat/1.0" },
   });
   const candidates = [];
   if (payload?.AbstractURL || payload?.AbstractText) {
@@ -280,7 +280,7 @@ async function searchBing(query, limit) {
     headers: {
       Accept: "text/html,application/xhtml+xml",
       "Accept-Language": "en-US,en;q=0.8",
-      "User-Agent": "SwayRouter SwayChat/1.0",
+      "User-Agent": "SuwokRouter SuwokChat/1.0",
     },
   });
   const items = html.match(/<li\b[^>]*class=(['"])[^'"]*\bb_algo\b[^'"]*\1[^>]*>[\s\S]*?<\/li>/gi) || [];
@@ -305,7 +305,7 @@ async function searchWikipedia(query, limit) {
   url.searchParams.set("format", "json");
   url.searchParams.set("formatversion", "2");
   const payload = await requestJson(url, {
-    headers: { Accept: "application/json", "User-Agent": "SwayRouter SwayChat/1.0" },
+    headers: { Accept: "application/json", "User-Agent": "SuwokRouter SuwokChat/1.0" },
   });
   const results = uniqueResults(
     (Array.isArray(payload?.query?.search) ? payload.query.search : [])

@@ -144,7 +144,7 @@ export function buildKimiHeaders(deviceId) {
     : `kimi-${Date.now()}`;
 
   return {
-    "X-Msh-Platform": "swayrouter",
+    "X-Msh-Platform": "suwokrouter",
     "X-Msh-Version": getAppPackageVersion(),
     "X-Msh-Device-Name": deviceName,
     "X-Msh-Device-Model": deviceModel,

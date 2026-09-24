@@ -120,9 +120,9 @@ function nextGeneratedConnectionName(existingRows, preferredName = "") {
       .filter(Boolean)
   );
   const match = normalizeConnectionName(preferredName).match(
-    /^(swayrouter-account|sway-account)(\d*)$/i
+    /^(suwokrouter-account|sway-account)(\d*)$/i
   );
-  const base = match?.[1] || "swayrouter-account";
+  const base = match?.[1] || "suwokrouter-account";
   let suffix = match?.[2] ? Number(match[2]) : 0;
 
   while (true) {

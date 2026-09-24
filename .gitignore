@@ -1,4 +1,4 @@
-# Sway Router root ignore
+# Suwok Router root ignore
 node_modules/
 .claude/
 
@@ -17,7 +17,7 @@ test-results/
 .env
 .env.*
 !.env.example
-.swayrouter/
+.suwokrouter/
 data/
 backups/
 *.sqlite

@@ -129,7 +129,7 @@ function buildBuiltinMaps() {
 const BUILTIN = buildBuiltinMaps();
 
 export function isNineRouterBackupPayload(payload) {
-  if (!isPlainObject(payload) || payload.product === "swayrouter") return false;
+  if (!isPlainObject(payload) || payload.product === "suwokrouter") return false;
   if (Object.prototype.hasOwnProperty.call(payload, "modelAliases")) return true;
   if (Object.prototype.hasOwnProperty.call(payload, "mitmAlias")) return true;
   return Array.isArray(payload.providerConnections)
@@ -572,7 +572,7 @@ export function buildNineRouterMigrationPlan(rawPayload, rawOptions, current = {
     const provider = providerMap.get(oldProvider) || mapBuiltinProvider(oldProvider);
     if (!provider) {
       sections.providerAccounts.skipped += 1;
-      warning.add("UNSUPPORTED_ACCOUNT_PROVIDER", "Accounts for providers unavailable in Sway Router will be skipped.");
+      warning.add("UNSUPPORTED_ACCOUNT_PROVIDER", "Accounts for providers unavailable in Suwok Router will be skipped.");
       continue;
     }
     const clean = stripTransientConnectionFields(sourceConnection);

@@ -68,9 +68,9 @@ const readConfig = async () => {
   }
 };
 
-const hasSwayRouterConfig = (config) => {
+const hasSuwokRouterConfig = (config) => {
   if (!config) return false;
-  return config.includes("model_provider = \"swayrouter\"") || config.includes("[model_providers.swayrouter]");
+  return config.includes("model_provider = \"suwokrouter\"") || config.includes("[model_providers.suwokrouter]");
 };
 
 export async function GET() {
@@ -90,7 +90,7 @@ export async function GET() {
     return NextResponse.json({
       installed: true,
       config,
-      hasSwayRouter: hasSwayRouterConfig(config),
+      hasSuwokRouter: hasSuwokRouterConfig(config),
       configPath: getCodexConfigPath(),
     });
   } catch (error) {
@@ -120,12 +120,12 @@ export async function POST(request) {
 
     if (model) {
       parsed.model = model;
-      parsed.model_provider = "swayrouter";
+      parsed.model_provider = "suwokrouter";
     }
 
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
-    setNestedSection(parsed, "model_providers.swayrouter", {
-      name: "Sway Router",
+    setNestedSection(parsed, "model_providers.suwokrouter", {
+      name: "Suwok Router",
       base_url: normalizedBaseUrl,
       wire_api: "responses",
     });
@@ -183,12 +183,12 @@ export async function DELETE() {
       throw error;
     }
 
-    if (parsed.model_provider === "swayrouter") {
+    if (parsed.model_provider === "suwokrouter") {
       delete parsed.model;
       delete parsed.model_provider;
     }
 
-    deleteNestedSection(parsed, "model_providers.swayrouter");
+    deleteNestedSection(parsed, "model_providers.suwokrouter");
 
     deleteNestedSection(parsed, "agents.subagent");
 
@@ -211,7 +211,7 @@ export async function DELETE() {
 
     return NextResponse.json({
       success: true,
-      message: "Sway Router settings removed successfully",
+      message: "Suwok Router settings removed successfully",
     });
   } catch (error) {
     console.log("Error resetting codex settings:", error);

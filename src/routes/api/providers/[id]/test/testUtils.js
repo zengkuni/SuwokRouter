@@ -59,7 +59,7 @@ const OAUTH_TEST_CONFIG = {
     method: "GET",
     authHeader: "Authorization",
     authPrefix: "Bearer ",
-    extraHeaders: { "User-Agent": "SwayRouter", "Accept": "application/vnd.github+json" },
+    extraHeaders: { "User-Agent": "SuwokRouter", "Accept": "application/vnd.github+json" },
   },
   kiro: { checkExpiry: true, refreshable: true },
   qoder: {

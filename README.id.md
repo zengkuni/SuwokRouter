@@ -1,6 +1,6 @@
 <div align="center">
-  <img src="./assets/BannerGithubSway.png" alt="Banner Sway Router" />
-  <h1 style="margin: 8px 0 0;">Sway Router</h1>
+  <img src="./assets/BannerGithubSuwok.png" alt="Banner Suwok Router" />
+  <h1 style="margin: 8px 0 0;">Suwok Router</h1>
 </div>
 
 <p align="center">
@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/envielxyz/SwayRouter/stargazers"><img src="https://img.shields.io/github/stars/envielxyz/SwayRouter?style=flat" alt="GitHub stars" /></a>
+  <a href="https://github.com/bolone-sengkuni/SwayRouter/stargazers"><img src="https://img.shields.io/github/stars/bolone-sengkuni/SwayRouter?style=flat" alt="GitHub stars" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="Lisensi MIT" /></a>
   <a href="https://bun.sh"><img src="https://img.shields.io/badge/runtime-Bun-black?logo=bun" alt="Bun" /></a>
   <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/code-TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript" /></a>
@@ -23,10 +23,10 @@
 </p>
 
 <p align="center">
-  <img src="./docs/media/screenshots/dashboard.png" alt="Dashboard Sway Router" width="960" />
+  <img src="./docs/media/screenshots/dashboard.png" alt="Dashboard Suwok Router" width="960" />
 </p>
 
-Sway Router membawa semua provider AI kamu ke satu gateway yang clean, dengan
+Suwok Router membawa semua provider AI kamu ke satu gateway yang clean, dengan
 dashboard simpel untuk mengatur model, routing, dan usage.
 
 ## Daftar isi
@@ -40,7 +40,7 @@ dashboard simpel untuk mengatur model, routing, dan usage.
 - [Providers](#providers)
 - [CLI Tools yang didukung](#cli-tools-yang-didukung)
 - [Fitur lengkap](#fitur-yang-tersedia)
-- [Perbandingan](#sway-router-vs-9router-vs-omniroute)
+- [Perbandingan](#suwok-router-vs-9router-vs-omniroute)
 - [Operasional dan keamanan](#operasional-dan-keamanan)
 - [Tech stack](#tech-stack)
 - [Konfigurasi](#konfigurasi)
@@ -53,8 +53,8 @@ dashboard simpel untuk mengatur model, routing, dan usage.
 Install global lalu jalanin router:
 
 ```bash
-bun install -g swayrouter@latest
-swayrouter
+bun install -g suwokrouter@latest
+suwokrouter
 ```
 
 CLI bisa start, stop, restart, dan cek status router. Saat start, CLI juga
@@ -78,11 +78,11 @@ sudah terpasang, lewati langkah pertama.
    bun --version
    ```
 
-3. Install dan jalankan Sway Router:
+3. Install dan jalankan Suwok Router:
 
    ```powershell
-   bun install -g swayrouter@latest
-   swayrouter start -b
+   bun install -g suwokrouter@latest
+   suwokrouter start -b
    ```
 
 4. Buka `http://127.0.0.1:1212/dashboard` di browser, lalu selesaikan setup
@@ -91,11 +91,11 @@ sudah terpasang, lewati langkah pertama.
 5. Cek atau stop instance lokal kapan saja:
 
    ```powershell
-   swayrouter status
-   swayrouter stop
+   suwokrouter status
+   suwokrouter stop
    ```
 
-Data runtime CLI disimpan di `%APPDATA%\.swayrouter`. Untuk install lokal
+Data runtime CLI disimpan di `%APPDATA%\.suwokrouter`. Untuk install lokal
 biasa, kamu tidak perlu membuat file `.env`.
 
 ### Uninstall
@@ -103,14 +103,14 @@ biasa, kamu tidak perlu membuat file `.env`.
 Stop router dulu sebelum menghapus CLI global:
 
 ```powershell
-swayrouter stop
-bun remove -g swayrouter
+suwokrouter stop
+bun remove -g suwokrouter
 ```
 
-Kalau install-nya memakai npm, gunakan `npm uninstall -g swayrouter`.
+Kalau install-nya memakai npm, gunakan `npm uninstall -g suwokrouter`.
 Menghapus package tidak menghapus credential provider, setting, API key, atau
 data usage. Kalau ingin menghapus semuanya juga, export backup JSON dulu, stop
-router, lalu hapus `%APPDATA%\.swayrouter` di Windows atau `~/.swayrouter` di
+router, lalu hapus `%APPDATA%\.suwokrouter` di Windows atau `~/.suwokrouter` di
 Linux/macOS.
 
 ### Windows — jalankan dari source
@@ -118,8 +118,8 @@ Linux/macOS.
 Untuk contributor yang bekerja dari checkout:
 
 ```powershell
-git clone https://github.com/envielxyz/SwayRouter.git
-cd SwayRouter
+git clone https://github.com/bolone-sengkuni/SwayRouter.git
+cd SuwokRouter
 bun install --frozen-lockfile
 Push-Location dashboard
 bun install --frozen-lockfile
@@ -152,12 +152,12 @@ Kalau mau ngembangin dashboard, jalanin `bun run dev` di dalam folder
 Gunakan image publik dari Docker Hub:
 
 ```bash
-docker pull envielxyz/swayrouter:latest
+docker pull sengkuni/suwokrouter:latest
 docker compose up -d
 docker compose ps
 ```
 
-Kalau ingin build image dari source, jalankan `docker build -t envielxyz/swayrouter:latest .`
+Kalau ingin build image dari source, jalankan `docker build -t sengkuni/suwokrouter:latest .`
 sebelum menjalankan Compose.
 
 Docker juga membuat secret persistent di data volume. Copy `.env.example`
@@ -166,10 +166,10 @@ menjadi `.env` hanya kalau kamu ingin memberi override deployment sendiri.
 Buka `http://127.0.0.1:1212/dashboard`. Untuk lihat log:
 
 ```bash
-docker compose logs -f swayrouter
+docker compose logs -f suwokrouter
 ```
 
-Setup Docker memakai volume `swayrouter-data`, bind port hanya ke localhost,
+Setup Docker memakai volume `suwokrouter-data`, bind port hanya ke localhost,
 menjalankan container sebagai user non-root, memakai root filesystem read-only,
 dan sudah punya readiness health check. Jangan hapus volume kalau ingin tetap
 menyimpan koneksi provider, key, setting, dan data usage.
@@ -184,16 +184,16 @@ menyimpan koneksi provider, key, setting, dan data usage.
 
 Untuk native VPS kecil, mulai dari **2 vCPU, RAM 2 GB, dan SSD 10 GB**. Komputer
 lokal bisa jalan dengan resource lebih kecil. Sebelum dibuka ke internet, taruh
-Sway Router di belakang reverse proxy HTTPS.
+Suwok Router di belakang reverse proxy HTTPS.
 
 ### Native VPS dengan PM2 (opsional)
 
-PM2 sudah mendukung Bun, tapi hanya diperlukan kalau Sway Router dijalankan langsung
+PM2 sudah mendukung Bun, tapi hanya diperlukan kalau Suwok Router dijalankan langsung
 di VPS tanpa Docker atau supervisor lain:
 
 ```bash
 npm install -g pm2
-pm2 start src/server.ts --name swayrouter --interpreter bun
+pm2 start src/server.ts --name suwokrouter --interpreter bun
 pm2 save
 pm2 startup
 ```
@@ -204,7 +204,7 @@ container yang sama.
 
 ## Satu HTTP API untuk semua kebutuhan
 
-Pakai format client yang sudah biasa kamu pakai. Sway Router akan menerjemahkan
+Pakai format client yang sudah biasa kamu pakai. Suwok Router akan menerjemahkan
 request dan response ke provider di belakang layar.
 
 | Client / fitur          | Endpoint                         |
@@ -226,9 +226,9 @@ yang umum.
 ### Contoh singkat
 
 ```bash
-export SWAY_API_KEY="swy-your_gateway_key"
+export SUWOK_API_KEY="swy-your_gateway_key"
 curl http://127.0.0.1:1212/v1/chat/completions \
-  --oauth2-bearer "${SWAY_API_KEY}" \
+  --oauth2-bearer "${SUWOK_API_KEY}" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "your-active-model-id",
@@ -236,12 +236,12 @@ curl http://127.0.0.1:1212/v1/chat/completions \
   }'
 ```
 
-Gateway key Sway Router berbeda dari credential provider di belakangnya. Secret
+Gateway key Suwok Router berbeda dari credential provider di belakangnya. Secret
 provider tetap tersimpan di server.
 
 ## Dashboard yang enak dipakai
 
-Dashboard Sway Router bukan sekadar halaman admin. Ini jadi control room yang fokus
+Dashboard Suwok Router bukan sekadar halaman admin. Ini jadi control room yang fokus
 buat ngatur provider, model, akun, kuota, usage, log, dan routing. Ada compact
 card, status badge yang jelas, search dan filter, layout responsive, serta
 loading/refresh state yang smooth supaya semuanya tetap gampang dipantau di
@@ -249,7 +249,7 @@ desktop, tablet, dan mobile.
 
 | Dashboard                                                        | Providers                                                        |
 | ---------------------------------------------------------------- | ---------------------------------------------------------------- |
-| ![Dashboard Sway Router](./docs/media/screenshots/dashboard.png) | ![Pengelolaan provider](./docs/media/screenshots/providers.png)  |
+| ![Dashboard Suwok Router](./docs/media/screenshots/dashboard.png) | ![Pengelolaan provider](./docs/media/screenshots/providers.png)  |
 | Model provider                                                   | Custom provider                                                  |
 | ![Model provider](./docs/media/screenshots/provider-models.png)  | ![Custom provider](./docs/media/screenshots/custom-provider.png) |
 | Usage & cost                                                     | Monitor kuota                                                    |
@@ -271,7 +271,7 @@ desktop, tablet, dan mobile.
 | **Usage**         | Chart, breakdown token, estimasi cost, history, filter, sorting, dan detail request |
 | **Quota Monitor** | Ketersediaan provider/akun, status kuota, diagnostik, dan refresh manual            |
 | **CLI Tools**     | Atur coding tools yang didukung, pilih model, dan copy config otomatis              |
-| **Sway Chat**     | Chat lewat router dengan pemilihan model dan built-in tools opsional                |
+| **Suwok Chat**     | Chat lewat router dengan pemilihan model dan built-in tools opsional                |
 | **Settings**      | Kontrol Preferences, General, Security, Data, dan migrasi 9Router                   |
 | **Console Logs**  | Cari, filter, wrap, copy, dan cek diagnostik runtime/provider                       |
 
@@ -288,7 +288,7 @@ desktop, tablet, dan mobile.
 ## Migrasi dari 9Router
 
 Kalau mau pindah dari 9Router, buka **Settings → Data → Migrate from 9Router**.
-Sway Router mendukung dua sumber migrasi:
+Suwok Router mendukung dua sumber migrasi:
 
 - **Instalasi lokal:** otomatis mencari database 9Router yang didukung di
   perangkat yang sama.
@@ -304,22 +304,22 @@ Sebelum import, kamu bisa pilih data yang mau dibawa:
 - Routing settings — default mati
 - Langsung aktifkan account hasil import — default mati
 
-Sway Router akan menampilkan preview dulu: data yang siap diimport, sudah ada, atau
+Suwok Router akan menampilkan preview dulu: data yang siap diimport, sudah ada, atau
 akan dilewati. Source divalidasi, referensi provider dan model disesuaikan ke
-format Sway Router, data duplikat ditangani, dan provider yang tidak kompatibel atau
+format Suwok Router, data duplikat ditangani, dan provider yang tidak kompatibel atau
 tidak tersedia dilaporkan tanpa memasukkan entry yang rusak. Preview tidak
 mengubah data apa pun.
 
-Setelah kamu konfirmasi dengan password dashboard, Sway Router membuat safety backup,
+Setelah kamu konfirmasi dengan password dashboard, Suwok Router membuat safety backup,
 menggabungkan data yang dipilih ke database yang sudah ada, lalu me-refresh
-dashboard. Data Sway Router yang lama tidak diganti, dan account hasil import tetap
+dashboard. Data Suwok Router yang lama tidak diganti, dan account hasil import tetap
 inactive kecuali kamu memilih untuk langsung mengaktifkannya. Gunakan **Import
-JSON** untuk backup Sway Router; gunakan **Migrate from 9Router** untuk backup
+JSON** untuk backup Suwok Router; gunakan **Migrate from 9Router** untuk backup
 9Router.
 
 ## Providers
 
-Katalog bawaan Sway Router saat ini menampilkan **65 provider**. Daftar di bawah
+Katalog bawaan Suwok Router saat ini menampilkan **65 provider**. Daftar di bawah
 diambil dari provider yang tersedia di dashboard, bukan daftar marketing.
 Ketersediaan provider dan pilihan auth bisa berubah mengikuti layanan upstream.
 
@@ -412,7 +412,7 @@ Perplexity AI memakai [Perplexity Router API resmi](https://docs.perplexity.ai/d
 
 ## CLI Tools yang didukung
 
-Sway Router bisa mendeteksi dan mengatur coding tools berikut agar memakai
+Suwok Router bisa mendeteksi dan mengatur coding tools berikut agar memakai
 gateway:
 
 - Claude Code
@@ -472,7 +472,7 @@ gateway:
 
 ### Backup dan migrasi
 
-- Export dan restore data Sway Router dalam format JSON.
+- Export dan restore data Suwok Router dalam format JSON.
 - Migrasi dari instalasi lokal 9Router atau backup JSON 9Router.
 - Pilih account, custom provider, model, combo, dan routing settings yang mau
   diimport.
@@ -493,21 +493,21 @@ gateway:
 
 ### Built-in tools
 
-- Sway Chat dengan web search opsional lewat Tavily atau Brave.
+- Suwok Chat dengan web search opsional lewat Tavily atau Brave.
 - Shell, curl, dan router inspection tools dengan kontrol yang jelas.
 - Fitur token saver RTK, Caveman, dan Ponytail.
 - CLI model mapping untuk coding tools yang didukung.
 
-## Sway Router vs 9Router vs OmniRoute
+## Suwok Router vs 9Router vs OmniRoute
 
 Ketiganya menyelesaikan masalah yang mirip dan punya routing, account, fallback,
 serta provider workflow. Perbandingan arsitektur sederhananya:
 
-Sway Router juga punya rotasi multi-account, pemilihan berbasis kuota, token saver,
+Suwok Router juga punya rotasi multi-account, pemilihan berbasis kuota, token saver,
 retry, fallback, dan refresh token provider. Bagian ini sengaja fokus ke berat
 runtime, bukan adu daftar fitur.
 
-- **Sway Router:** Bun + Hono + SQLite, dengan dashboard React/Vite. Satu
+- **Suwok Router:** Bun + Hono + SQLite, dengan dashboard React/Vite. Satu
   core server yang dirancang untuk penggunaan lokal dan VPS kecil.
 - **[9Router](https://github.com/decolua/9router):** Node + Next.js/React +
   Express + SQLite. Layer framework lebih banyak dan runtime CLI terpisah.
@@ -516,31 +516,31 @@ runtime, bukan adu daftar fitur.
 
 ### Mana yang lebih ringan?
 
-Untuk setup gateway lokal atau VPS kecil yang sebanding, **Sway Router adalah
+Untuk setup gateway lokal atau VPS kecil yang sebanding, **Suwok Router adalah
 default yang lebih ringan**. Bun dan Hono punya overhead server yang lebih kecil
-daripada aplikasi Next.js penuh, dan core Sway Router tidak membutuhkan service
+daripada aplikasi Next.js penuh, dan core Suwok Router tidak membutuhkan service
 tambahan untuk berjalan.
 
 Ini perbandingan arsitektur, bukan janji RAM tetap. Pemakaian nyata tetap
 tergantung concurrent stream, ukuran request, jumlah account, layer proxy, dan
-service opsional. Starting point VPS kecil Sway Router yang didokumentasikan adalah
+service opsional. Starting point VPS kecil Suwok Router yang didokumentasikan adalah
 2 vCPU dan 2 GB RAM, dengan queue, concurrency, retry, dan request body yang
 dibatasi.
 
-### Kenapa pilih Sway Router?
+### Kenapa pilih Suwok Router?
 
 - **Footprint default lebih kecil.** Core cukup dengan server Bun dan SQLite,
   tanpa Redis, hosted sync service, desktop shell, atau browser pool.
 - **Dashboard yang enak dipakai harian.** Provider, account, model, routing,
   usage, quota, proxy, log, dan settings ada dalam satu control room yang clean.
-- **Resource guardrail sudah built-in.** Sway Router mendeteksi profile host dan
+- **Resource guardrail sudah built-in.** Suwok Router mendeteksi profile host dan
   menjaga concurrency, queue, request body, retry, serta background work tetap
   terbatas.
 - **Gampang dikirim dan diperiksa.** Bisa dijalankan lokal, di VPS kecil, Docker,
   atau standalone binary, dengan backup/import SQLite dan API yang mudah
   diinspeksi.
 
-Angka dan peta menu Sway Router diambil dari [provider registry](./src/providers/registry/index.js),
+Angka dan peta menu Suwok Router diambil dari [provider registry](./src/providers/registry/index.js),
 [navigasi dashboard](./dashboard/src/components/Sidebar.tsx),
 [route table](./src/routes/table.js), dan [package manifest](./package.json).
 
@@ -555,7 +555,7 @@ Angka dan peta menu Sway Router diambil dari [provider registry](./src/providers
 - SQLite WAL mode, migration, index, backup, export, dan import.
 - Docker/Compose, native source run, Bun CLI, dan standalone binary.
 
-Sway Router menjaga process dan account pool-nya sendiri, tapi tidak membuat kuota
+Suwok Router menjaga process dan account pool-nya sendiri, tapi tidak membuat kuota
 provider dan tidak menjanjikan RPS tetap. Kapasitas nyata tetap tergantung limit
 provider, jumlah akun, latency jaringan, ukuran prompt, dan durasi stream.
 
@@ -571,29 +571,29 @@ provider, jumlah akun, latency jaringan, ukuran prompt, dan durasi stream.
 ## Konfigurasi
 
 Untuk satu instance lokal atau Docker, konfigurasi bersifat opsional. Saat
-start pertama, Sway Router membuat JWT secret, gateway-key secret, dan machine salt
+start pertama, Suwok Router membuat JWT secret, gateway-key secret, dan machine salt
 yang kuat di data directory persistent. Pakai `.env` kalau perlu mengganti
 default, bind ke host lain, atau mengelola secret dari luar:
 
 ```dotenv
 PORT=1212
 HOSTNAME=127.0.0.1
-DATA_DIR=/var/lib/swayrouter
+DATA_DIR=/var/lib/suwokrouter
 NODE_ENV=production
 JWT_SECRET=replace-with-a-random-secret-at-least-32-characters
 API_KEY_SECRET=replace-with-a-random-secret-at-least-32-characters
 MACHINE_ID_SALT=replace-with-a-random-private-salt
 ```
 
-Jangan arahkan beberapa instance Sway Router yang berbeda ke SQLite data directory
+Jangan arahkan beberapa instance Suwok Router yang berbeda ke SQLite data directory
 yang sama. Kalau secret diberikan oleh supervisor, nilainya harus tetap sama
 setelah restart agar session dashboard dan identitas instance tetap stabil.
 
 Lokasi database default:
 
 ```text
-Linux/macOS: ~/.swayrouter/db/data.sqlite
-Windows:     %APPDATA%\\.swayrouter\\db\\data.sqlite
+Linux/macOS: ~/.suwokrouter/db/data.sqlite
+Windows:     %APPDATA%\\.suwokrouter\\db\\data.sqlite
 Docker:      /app/data/db/data.sqlite
 ```
 
@@ -603,9 +603,9 @@ cookie, atau log.
 
 ## Kenapa SQLite?
 
-SQLite bikin satu instance Sway Router private tetap kecil, portable, dan gampang
+SQLite bikin satu instance Suwok Router private tetap kecil, portable, dan gampang
 dibackup. PostgreSQL dan Redis lebih cocok untuk aplikasi komersial terpisah
-dengan user terdistribusi, billing, background job, atau banyak instance Sway Router.
+dengan user terdistribusi, billing, background job, atau banyak instance Suwok Router.
 
 ## Development checks
 
@@ -623,7 +623,7 @@ bun run test:e2e
 
 ## Atribusi
 
-Sway Router adalah project standalone. Beberapa bagian OAuth, tunnel, CLI, dan utility
+Suwok Router adalah project standalone. Beberapa bagian OAuth, tunnel, CLI, dan utility
 diadaptasi dari [9Router](https://github.com/decolua/9router), sedangkan gateway,
 routing, dashboard, storage, API, performa, dan setup release dikembangkan serta
 dirawat di project ini.
@@ -634,5 +634,5 @@ Lihat [`LICENSE`](./LICENSE) untuk atribusi MIT lengkap.
 
 MIT. Lihat [`LICENSE`](./LICENSE).
 
-Sway Router adalah gateway dan admin tool. Kamu bertanggung jawab atas akun
+Suwok Router adalah gateway dan admin tool. Kamu bertanggung jawab atas akun
 provider, credential, traffic, privacy, compliance, dan keamanan deployment-mu.

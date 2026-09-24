@@ -2,7 +2,7 @@ const { spawn } = require("child_process");
 const crypto = require("crypto");
 const { LOCAL_STDIO_PLUGINS } = require("@/shared/constants/coworkPlugins");
 
-const G_KEY = "__swayrouterMcpBridges";
+const G_KEY = "__suwokrouterMcpBridges";
 const MAX_TEXT_CHARS = 50000;
 const COLLAPSE_THRESHOLD = 30;
 const COLLAPSE_KEEP_HEAD = 10;
@@ -16,7 +16,7 @@ function smartFilterText(text) {
   out = collapseRepeated(out);
   if (out.length > MAX_TEXT_CHARS) {
     const head = out.slice(0, MAX_TEXT_CHARS - 300);
-    out = `${head}\n\n... [truncated ${text.length - head.length} chars by swayrouter bridge. Page is large; ask user to scroll/navigate to a specific section, or click an element with the refs shown above]`;
+    out = `${head}\n\n... [truncated ${text.length - head.length} chars by suwokrouter bridge. Page is large; ask user to scroll/navigate to a specific section, or click an element with the refs shown above]`;
   }
   return out;
 }
@@ -44,7 +44,7 @@ function collapseRepeated(text) {
       const headEnd = findNthSiblingEnd(lines, i, indent, role, COLLAPSE_KEEP_HEAD);
       const tailStart = findLastNSiblingStart(lines, j, indent, role, COLLAPSE_KEEP_TAIL);
       for (let k = i; k < headEnd; k++) out.push(lines[k]);
-      out.push(`${indent}... [${groupLen - COLLAPSE_KEEP_HEAD - COLLAPSE_KEEP_TAIL} similar "${role}" items omitted by swayrouter bridge]`);
+      out.push(`${indent}... [${groupLen - COLLAPSE_KEEP_HEAD - COLLAPSE_KEEP_TAIL} similar "${role}" items omitted by suwokrouter bridge]`);
       for (let k = tailStart; k < j; k++) out.push(lines[k]);
     } else {
       for (let k = i; k < j; k++) out.push(lines[k]);

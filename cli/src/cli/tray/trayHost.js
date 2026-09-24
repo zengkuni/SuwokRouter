@@ -3,15 +3,15 @@ const os = require("node:os");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 
-const LOCK_FILE = "swayrouter-tray.json";
+const LOCK_FILE = "suwokrouter-tray.json";
 
 function defaultDataDirectory() {
   return process.platform === "win32"
     ? path.join(
         process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"),
-        ".swayrouter",
+        ".suwokrouter",
       )
-    : path.join(os.homedir(), ".swayrouter");
+    : path.join(os.homedir(), ".suwokrouter");
 }
 
 function trayLockPath(installation = {}) {

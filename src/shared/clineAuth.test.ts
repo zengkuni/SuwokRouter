@@ -19,7 +19,7 @@ describe("Cline authentication headers", () => {
   test("builds Cline OAuth headers without exposing the raw token elsewhere", () => {
     const headers = buildClineHeaders("oauth-token") as Record<string, string>;
     expect(headers["Authorization"]).toBe("Bearer workos:oauth-token");
-    expect(headers["X-CLIENT-TYPE"]).toBe("swayrouter");
+    expect(headers["X-CLIENT-TYPE"]).toBe("suwokrouter");
   });
 
   test("sends ClinePass API keys as plain Bearer tokens", () => {

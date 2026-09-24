@@ -47,7 +47,7 @@ export function createChildSpan(parent, opts = {}) {
     parentSpanId: parent?.spanId || null,
     flags,
     sampled,
-    name: opts.name || "sway.proxy",
+    name: opts.name || "suwok.proxy",
   };
 }
 
@@ -56,7 +56,7 @@ export function ensureTraceContext(store, inboundTraceparent, inboundTracestate)
   if (store.trace) return store.trace;
   const parent = parseTraceparent(inboundTraceparent);
   const span = createChildSpan(parent, {
-    name: parent ? "sway.proxy.child" : "sway.proxy.root",
+    name: parent ? "suwok.proxy.child" : "suwok.proxy.root",
   });
   store.trace = {
     ...span,
@@ -90,7 +90,7 @@ export function stampResponseWithTrace(response, trace) {
   if (!trace) return response;
   try {
     const headers = new Headers(response.headers);
-    headers.set("x-swayrouter-trace-id", trace.traceId);
+    headers.set("x-suwokrouter-trace-id", trace.traceId);
     headers.set("traceparent", `${trace.version || "00"}-${trace.traceId}-${trace.spanId}-${trace.flags}`);
     return new Response(response.body, {
       status: response.status,

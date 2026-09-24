@@ -9,7 +9,7 @@ function request(body) {
   });
 }
 
-describe("Sway Chat Router inspection tool", () => {
+describe("Suwok Chat Router inspection tool", () => {
   test("returns a safe overview with provider counts and admission state", async () => {
     const response = await POST(request({ action: "overview" }));
     expect(response.status).toBe(200);

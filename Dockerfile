@@ -16,8 +16,8 @@ RUN bun run --cwd dashboard build
 FROM base AS runner
 WORKDIR /app
 
-LABEL org.opencontainers.image.title="Sway Router"
-LABEL org.opencontainers.image.source="https://github.com/envielxyz/SwayRouter"
+LABEL org.opencontainers.image.title="Suwok Router"
+LABEL org.opencontainers.image.source="https://github.com/bolone-sengkuni/SwayRouter"
 LABEL org.opencontainers.image.licenses="MIT"
 
 ENV NODE_ENV=production
@@ -35,7 +35,7 @@ COPY dashboard/public/ ./dashboard/public/
 
 RUN mkdir -p /app/data && chown -R bun:bun /app && \
   mkdir -p /app/data-home && chown bun:bun /app/data-home && \
-  ln -sf /app/data-home /home/bun/.swayrouter 2>/dev/null || true
+  ln -sf /app/data-home /home/bun/.suwokrouter 2>/dev/null || true
 
 USER bun
 

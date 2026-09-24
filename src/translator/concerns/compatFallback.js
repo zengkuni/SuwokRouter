@@ -1,13 +1,13 @@
 const CACHE_MAX_KEYS = 512;
 const CACHE_TTL_MS = 30 * 60 * 1000;
 
-if (!global._swayCompatFallback) {
-  global._swayCompatFallback = {
+if (!global._suwokCompatFallback) {
+  global._suwokCompatFallback = {
 
     rejected: new Map(),
   };
 }
-const REJECTED = global._swayCompatFallback.rejected;
+const REJECTED = global._suwokCompatFallback.rejected;
 
 function cacheKey(provider, model) {
   return `${provider || "?"}:${model || "?"}`;

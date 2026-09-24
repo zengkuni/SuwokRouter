@@ -2,8 +2,11 @@ import crypto from "crypto";
 import { env } from "@/lib/env";
 
 const API_KEY_SECRET = env.apiKeySecret;
-const API_KEY_PREFIX = "swy-";
+const API_KEY_PREFIX = "suw-";
 const LEGACY_API_KEY_PREFIX = "sws-";
+// Keys minted before the Suwok Router rebrand used swy-; still validated so
+// existing dashboards/clients keep working.
+const REBRANDED_API_KEY_PREFIX = "swy-";
 
 function generateKeyId() {
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -30,7 +33,7 @@ export function generateApiKeyWithMachine(machineId) {
 }
 
 export function parseApiKey(apiKey) {
-  if (!apiKey || (!apiKey.startsWith(API_KEY_PREFIX) && !apiKey.startsWith(LEGACY_API_KEY_PREFIX) && !apiKey.startsWith("sk-"))) return null;
+  if (!apiKey || (!apiKey.startsWith(API_KEY_PREFIX) && !apiKey.startsWith(REBRANDED_API_KEY_PREFIX) && !apiKey.startsWith(LEGACY_API_KEY_PREFIX) && !apiKey.startsWith("sk-"))) return null;
 
   const parts = apiKey.split("-");
 

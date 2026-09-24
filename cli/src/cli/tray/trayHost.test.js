@@ -6,7 +6,7 @@ const { acquireTrayLock, trayLockPath } = require("./trayHost");
 
 describe("tray host singleton", () => {
   test("allows only one tray host for a data directory", () => {
-    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "swayrouter-tray-"));
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "suwokrouter-tray-"));
     const installation = { dataDir, installDir: dataDir };
     const first = acquireTrayLock(installation, 1212);
 

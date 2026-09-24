@@ -64,7 +64,7 @@ describe("database export/import", () => {
     await db.run("DELETE FROM apiKeys WHERE name = ?", [TEST_KEY_NAME]);
     const created = await createApiKey(TEST_KEY_NAME, "production-import-test-machine");
     const payload = await exportDb();
-    expect(payload.product).toBe("swayrouter");
+    expect(payload.product).toBe("suwokrouter");
     expect(payload.apiKeysRedacted).toBe(true);
     expect(payload.apiKeys.every((key) => !Object.prototype.hasOwnProperty.call(key, "key"))).toBe(true);
 

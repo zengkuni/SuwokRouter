@@ -1,6 +1,6 @@
-# Contributing to Sway Router
+# Contributing to Suwok Router
 
-Thanks for helping make Sway Router better. Bug fixes, provider integrations,
+Thanks for helping make Suwok Router better. Bug fixes, provider integrations,
 compatibility improvements, tests, docs, and focused UI work are welcome.
 
 ## Start locally

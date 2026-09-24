@@ -1,15 +1,15 @@
 {
-  "name": "swayrouter",
+  "name": "suwokrouter",
   "version": "1.0.6",
   "description": "Self-hosted AI gateway with a clean local dashboard",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/envielxyz/SwayRouter.git"
+    "url": "git+https://github.com/bolone-sengkuni/SwayRouter.git"
   },
-  "homepage": "https://github.com/envielxyz/SwayRouter#readme",
+  "homepage": "https://github.com/bolone-sengkuni/SwayRouter#readme",
   "bugs": {
-    "url": "https://github.com/envielxyz/SwayRouter/issues"
+    "url": "https://github.com/bolone-sengkuni/SwayRouter/issues"
   },
   "keywords": [
     "ai",
@@ -23,7 +23,7 @@
   "module": "src/server.ts",
   "type": "module",
   "bin": {
-    "swayrouter": "cli/cli.js"
+    "suwokrouter": "cli/cli.js"
   },
   "files": [
     "cli",
@@ -72,10 +72,12 @@
     "chalk": "^5",
     "confbox": "^0.2.4",
     "hono": "^4.13.1",
+    "ioredis": "^5",
     "jose": "^6.2.8",
     "node-machine-id": "^1.1.12",
     "open": "^11",
     "ora": "^9",
+    "postgres": "^3.4.9",
     "socks-proxy-agent": "^10.1.0",
     "sql.js": "^1.14.1",
     "undici": "^7.19.2",
