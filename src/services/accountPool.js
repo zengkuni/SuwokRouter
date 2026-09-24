@@ -6,6 +6,10 @@ export const ACCOUNT_POOL_DEFAULTS = Object.freeze({
   maxQueuePerProvider: 1024,
   queueWaitTimeoutMs: 30_000,
   cacheTtlMs: 5_000,
+  // Fair-share balancing: sliding window for assignment counting and the
+  // near-tie width treated as "statistically equal" before jittering.
+  fairShareWindowMs: 60_000,
+  fairShareJitterRatio: 0.25,
 });
 
 const GLOBAL_STATE_KEY = "__suwokAccountPoolState";
@@ -130,12 +134,42 @@ function getAccountLoadEntry(connectionId, provider = null) {
   if (!connectionId) return null;
   let entry = state.accountLoads.get(connectionId);
   if (!entry) {
-    entry = { provider, active: 0, lastAssignedAt: 0 };
+    entry = { provider, active: 0, lastAssignedAt: 0, assignments: [] };
     state.accountLoads.set(connectionId, entry);
   } else if (provider && !entry.provider) {
     entry.provider = provider;
   }
+  entry.assignments ||= [];
   return entry;
+}
+
+// Sliding-window assignment log. Drives fair share: an account that has been
+// picked a lot lately yields to one that has not, even at equal inflight.
+export function recordAccountAssignment(connectionId, at = Date.now()) {
+  const entry = getAccountLoadEntry(connectionId);
+  if (!entry) return 0;
+  entry.assignments.push(at);
+  entry.lastAssignedAt = at;
+  // Reads prune by window; this cap bounds the array when nobody picks (a
+  // cold account nobody selects still accumulates).
+  if (entry.assignments.length > 4096) {
+    entry.assignments = entry.assignments.slice(-1024);
+  }
+  return entry.assignments.length;
+}
+
+function recentAssignmentCount(connectionId, windowMs, now = Date.now()) {
+  const entry = state.accountLoads.get(connectionId);
+  if (!entry?.assignments?.length) return 0;
+  const cutoff = now - windowMs;
+  const kept = entry.assignments.filter((at) => at > cutoff);
+  entry.assignments = kept;
+  return kept.length;
+}
+
+// Read-only view of the fair-share window (observability + tests).
+export function getRecentAssignmentCount(connectionId, windowMs = ACCOUNT_POOL_DEFAULTS.fairShareWindowMs) {
+  return recentAssignmentCount(connectionId, positiveInt(windowMs, ACCOUNT_POOL_DEFAULTS.fairShareWindowMs, { min: 1 }));
 }
 
 export function getAccountLoad(connectionId) {
@@ -154,28 +188,57 @@ export function getAccountQueueLoad(connectionId) {
   return [...queue.waiters].filter((waiter) => !waiter.connectionIds || waiter.connectionIds.has(connectionId)).length;
 }
 
-export function pickLeastInflightConnection(connections = []) {
-  let best = null;
-  let bestActive = Infinity;
-  let bestLastAssigned = Infinity;
-  let bestPriority = Infinity;
+// Optimistic fair-share with jitter.
+//
+// Ordering: (1) fewest in-flight — capacity correctness never sacrificed;
+// (2) fewest assignments inside the sliding window — fair share; (3) oldest
+// last assignment — idle-first. Connections within `jitterRatio` of the best
+// assignment count form a cohort, and the pick inside the cohort is random.
+// Without jitter every waiter arriving during an idle moment picks the SAME
+// account (deterministic tie-break), which is exactly the burst that trips
+// per-account rate limits. With it, the burst spreads over the cohort.
+export function pickFairShareConnection(connections = [], options = {}) {
+  const list = (connections || []).filter(Boolean);
+  if (!list.length) return null;
+  if (list.length === 1) return list[0];
 
-  for (const connection of connections) {
-    const active = getAccountLoad(connection?.id);
-    const lastAssigned = state.accountLoads.get(connection?.id)?.lastAssignedAt || 0;
-    const priority = Number.isFinite(Number(connection?.priority)) ? Number(connection.priority) : 999;
-    if (
-      active < bestActive
-      || (active === bestActive && lastAssigned < bestLastAssigned)
-      || (active === bestActive && lastAssigned === bestLastAssigned && priority < bestPriority)
-    ) {
-      best = connection;
-      bestActive = active;
-      bestLastAssigned = lastAssigned;
-      bestPriority = priority;
-    }
+  const now = options.now ?? Date.now();
+  const windowMs = positiveInt(options.windowMs, ACCOUNT_POOL_DEFAULTS.fairShareWindowMs, { min: 1 });
+  const jitterRatio = Number.isFinite(Number(options.jitterRatio))
+    ? Math.max(0, Number(options.jitterRatio))
+    : ACCOUNT_POOL_DEFAULTS.fairShareJitterRatio;
+  const random = typeof options.random === "function" ? options.random : Math.random;
+
+  const scored = list.map((connection) => ({
+    connection,
+    active: getAccountLoad(connection?.id),
+    recent: recentAssignmentCount(connection?.id, windowMs, now),
+    lastAssigned: state.accountLoads.get(connection?.id)?.lastAssignedAt || 0,
+  }));
+
+  const bestActive = Math.min(...scored.map((s) => s.active));
+  const capacityCohort = scored.filter((s) => s.active === bestActive);
+  const bestRecent = Math.min(...capacityCohort.map((s) => s.recent));
+  const slack = Math.max(1, Math.ceil(bestRecent * jitterRatio));
+  let cohort = capacityCohort.filter((s) => s.recent <= bestRecent + slack);
+
+  // Prefer the longest-idle inside the cohort when there is a clear gap; the
+  // randomized pick only resolves statistical ties.
+  const oldest = Math.max(...cohort.map((s) => s.lastAssigned));
+  const idleGapMs = positiveInt(options.idleGapMs, 5_000, { min: 0 });
+  if (idleGapMs > 0 && now - oldest > idleGapMs) {
+    cohort = cohort.filter((s) => s.lastAssigned >= oldest - idleGapMs);
   }
-  return best;
+  if (!cohort.length) cohort = capacityCohort;
+
+  const index = Math.min(cohort.length - 1, Math.max(0, Math.floor(random() * cohort.length)));
+  return cohort[index].connection;
+}
+
+// least-inflight keeps its name and semantics (fewest in-flight first); the
+// jittered fair-share tie-break now lives inside it so bursts spread.
+export function pickLeastInflightConnection(connections = [], options = {}) {
+  return pickFairShareConnection(connections, options);
 }
 
 export function rankConnectionsByInflight(connections = []) {
@@ -237,7 +300,7 @@ export function tryAcquireAccountSlot(provider, connectionId, config = {}) {
 
   entry.active += 1;
   providerEntry.active += 1;
-  entry.lastAssignedAt = Date.now();
+  recordAccountAssignment(connectionId);
   let released = false;
 
   return () => {

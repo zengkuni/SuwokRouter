@@ -12,11 +12,11 @@ services:
       - -c
       - max_connections=300
       - -c
-      - shared_buffers=1024MB
+      - shared_buffers=256MB
       - -c
-      - effective_cache_size=3072MB
+      - effective_cache_size=768MB
       - -c
-      - work_mem=32MB
+      - work_mem=8MB
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
