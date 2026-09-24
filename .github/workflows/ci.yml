@@ -115,6 +115,29 @@ jobs:
     name: Compiled binary smoke (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: suwok
+          POSTGRES_PASSWORD: suwok
+          POSTGRES_DB: suwokrouter_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 5432:5432
+      valkey:
+        image: valkey/valkey:8-alpine
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+        ports:
+          - 6379:6379
     strategy:
       fail-fast: false
       matrix:
@@ -213,6 +236,29 @@ jobs:
     name: Browser E2E (Chromium)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: suwok
+          POSTGRES_PASSWORD: suwok
+          POSTGRES_DB: suwokrouter_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 5432:5432
+      valkey:
+        image: valkey/valkey:8-alpine
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+        ports:
+          - 6379:6379
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -241,6 +287,29 @@ jobs:
     name: Docker image smoke
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: suwok
+          POSTGRES_PASSWORD: suwok
+          POSTGRES_DB: suwokrouter_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 5432:5432
+      valkey:
+        image: valkey/valkey:8-alpine
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+        ports:
+          - 6379:6379
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -265,8 +334,13 @@ jobs:
           trap cleanup EXIT
 
           docker volume create "$volume" >/dev/null
+          # --network host: the container must reach the runner's Postgres
+          # service (published on 127.0.0.1:5432) — a bridge container cannot.
           docker run --detach \
             --name "$container" \
+            --network host \
+            --env DB_URL \
+            --env REDIS_URL \
             --read-only \
             --security-opt no-new-privileges:true \
             --cap-drop ALL \
