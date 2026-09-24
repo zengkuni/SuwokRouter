@@ -63,7 +63,11 @@ export function createLockStore(redis) {
 let defaultLock = null;
 
 export function getLockStore() {
-  if (!defaultLock) defaultLock = createLockStore(getRedis());
+  const redis = getRedis();
+  const wantValkey = isRedisAvailable();
+  if (!defaultLock || (defaultLock.kind === "valkey") !== wantValkey) {
+    defaultLock = createLockStore(wantValkey ? redis : null);
+  }
   return defaultLock;
 }
 
