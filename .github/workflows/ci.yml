@@ -69,6 +69,11 @@ jobs:
           --health-retries 10
         ports:
           - 6379:6379
+    # Postgres + Valkey are mandatory (PG is the only driver), so every step
+    # in this job — tests, e2e webServer, docker/binary smokes — needs the URLs.
+    env:
+      DB_URL: postgres://suwok:suwok@127.0.0.1:5432/suwokrouter_test
+      REDIS_URL: redis://127.0.0.1:6379
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -97,9 +102,6 @@ jobs:
 
       - name: Run tests
         run: bun test
-        env:
-          DB_URL: postgres://suwok:suwok@127.0.0.1:5432/suwokrouter_test
-          REDIS_URL: redis://127.0.0.1:6379
 
       - name: Run CLI tests
         run: bun test ./cli/cli.test.js ./cli/src/runtime/discover.test.js ./cli/src/runtime/lifecycle.test.js ./cli/src/runtime/runMenu.test.js ./cli/src/runtime/update.test.js
