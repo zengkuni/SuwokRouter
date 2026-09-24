@@ -1,3 +1,4 @@
+import { ttlGetRaw, ttlSetRaw, ttlDel } from "../../lib/cache/ttlStore.js";
 import "open-sse/index.js";
 
 import { getSettings, getProviderConnections, updateProviderConnection } from "@/lib/localDb";
@@ -28,7 +29,6 @@ const g = (global.__quotaAutoPing ??= {
   interval: null,
   running: false,
   resetCache: {},
-  failureCache: {},
 });
 
 function cacheKey(provider, connectionId) {
@@ -179,8 +179,11 @@ async function sendCodexPing(connection, providerConfig, proxyOptions, deps) {
   return true;
 }
 
-function shouldSkipAfterFailure(state, key, nowMs = Date.now()) {
-  const failedAt = state.failureCache[key];
+async function shouldSkipAfterFailure(state, key, nowMs = Date.now()) {
+  // Shared cooldown (hashed key, failure timestamp): a failing connection is
+  // skipped by every process, not just the one that saw the failure.
+  const raw = await ttlGetRaw(`cooldown:quota-fail:${key}`);
+  const failedAt = raw ? Number(raw) : 0;
   return failedAt && nowMs - failedAt < C.failureCooldownMs;
 }
 
@@ -190,7 +193,7 @@ async function pingConnection(conn, provider, providerConfig, handler, deps, sta
   const cachedReset = state.resetCache[key];
   if (!providerConfig.pingWhenResetAtSlides && cachedReset && Date.now() < new Date(cachedReset).getTime() - C.refreshAheadMs) return;
 
-  if (shouldSkipAfterFailure(state, key)) return;
+  if (await shouldSkipAfterFailure(state, key)) return;
 
   const proxyCfg = await deps.resolveConnectionProxyConfig(conn.providerSpecificData);
   const proxyOptions = buildProxyOptions(proxyCfg);
@@ -200,7 +203,7 @@ async function pingConnection(conn, provider, providerConfig, handler, deps, sta
     const r = await deps.refreshAndUpdateCredentials(connection, false, proxyOptions);
     connection = r.connection;
   } catch (e) {
-    state.failureCache[key] = Date.now();
+    await ttlSetRaw(`cooldown:quota-fail:${key}`, String(Date.now()), C.failureCooldownMs);
     console.warn(`[AutoPing] ${provider}:${conn.id}: refresh failed: ${e.message}`);
     return;
   }
@@ -227,12 +230,12 @@ async function pingConnection(conn, provider, providerConfig, handler, deps, sta
   const ok = await handler.sendPing(connection, providerConfig, proxyOptions, deps);
   if (!ok) {
 
-    state.failureCache[key] = Date.now();
+    await ttlSetRaw(`cooldown:quota-fail:${key}`, String(Date.now()), C.failureCooldownMs);
     console.warn(`[AutoPing] ${provider}:${connection.id}: ping failed (reset ${resetAt})`);
     return;
   }
 
-  delete state.failureCache[key];
+  await ttlDel(`cooldown:quota-fail:${key}`);
   await deps.updateProviderConnection(connection.id, {
     lastPingedResetAt: resetAt,
     lastPingedResetKey: resetKey,
@@ -274,7 +277,7 @@ export async function runQuotaAutoPingTick(deps = createDefaultDeps(), state = g
         try {
           await pingConnection(conn, provider, providerConfig, handler, deps, state);
         } catch (e) {
-          state.failureCache[cacheKey(provider, conn.id)] = Date.now();
+          await ttlSetRaw(`cooldown:quota-fail:${cacheKey(provider, conn.id)}`, String(Date.now()), C.failureCooldownMs);
           console.warn(`[AutoPing] ${provider}:${conn.id}: ${e.message}`);
         }
       }
