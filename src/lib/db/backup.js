@@ -35,28 +35,28 @@ export function backupFile(srcPath, destDir, destName = null) {
   return dest;
 }
 
-export function backupDbLite(adapter, destDir, destName = "data.sqlite") {
+export async function backupDbLite(adapter, destDir, destName = "data.sqlite") {
   const dest = path.join(destDir, destName);
   try { fs.rmSync(dest, { force: true }); } catch {}
   const escaped = dest.replace(/'/g, "''");
 
-  adapter.exec(`ATTACH DATABASE '${escaped}' AS bak`);
+  await adapter.exec(`ATTACH DATABASE '${escaped}' AS bak`);
   try {
     const excluded = new Set(BACKUP_EXCLUDE_TABLES);
-    const tables = adapter
-      .all(`SELECT name, sql FROM main.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`)
+    const tables = await (await adapter
+      .all(`SELECT name, sql FROM main.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`))
       .filter((t) => !excluded.has(t.name));
 
-    adapter.transaction(() => {
+    await adapter.transaction(async () => {
       for (const t of tables) {
 
         const createSql = t.sql.replace(/CREATE TABLE\s+/i, "CREATE TABLE bak.");
-        adapter.exec(createSql);
-        adapter.exec(`INSERT INTO bak.${t.name} SELECT * FROM main.${t.name}`);
+        await adapter.exec(createSql);
+        await adapter.exec(`INSERT INTO bak.${t.name} SELECT * FROM main.${t.name}`);
       }
     });
   } finally {
-    try { adapter.exec("DETACH DATABASE bak"); } catch {}
+    try { await adapter.exec("DETACH DATABASE bak"); } catch {}
   }
   applyPrivateMode(dest, 0o600);
   return dest;

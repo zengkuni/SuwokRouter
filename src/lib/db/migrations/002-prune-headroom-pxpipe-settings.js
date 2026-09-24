@@ -13,8 +13,8 @@ const STALE_KEYS = [
 export default {
   version: 2,
   name: "prune-headroom-pxpipe-settings",
-  up(db) {
-    const row = db.get(`SELECT data FROM settings WHERE id = 1`);
+  async up(db) {
+    const row = await db.get(`SELECT data FROM settings WHERE id = 1`);
     if (!row) return;
     const settings = parseJson(row.data, {});
     if (!settings || typeof settings !== "object") return;
@@ -26,7 +26,7 @@ export default {
       }
     }
     if (changed) {
-      db.run(`INSERT INTO settings(id, data) VALUES(1, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`, [stringifyJson(settings)]);
+      await db.run(`INSERT INTO settings(id, data) VALUES(1, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`, [stringifyJson(settings)]);
     }
   },
 };
