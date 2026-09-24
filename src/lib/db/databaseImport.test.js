@@ -61,7 +61,7 @@ describe("database export/import", () => {
 
   test("secretless export preserves existing API keys", async () => {
     const db = await getAdapter();
-    db.run("DELETE FROM apiKeys WHERE name = ?", [TEST_KEY_NAME]);
+    await db.run("DELETE FROM apiKeys WHERE name = ?", [TEST_KEY_NAME]);
     const created = await createApiKey(TEST_KEY_NAME, "production-import-test-machine");
     const payload = await exportDb();
     expect(payload.product).toBe("swayrouter");
@@ -69,10 +69,10 @@ describe("database export/import", () => {
     expect(payload.apiKeys.every((key) => !Object.prototype.hasOwnProperty.call(key, "key"))).toBe(true);
 
     await importDb({ ...payload, apiKeysRedacted: true });
-    const restored = db.get("SELECT key, name FROM apiKeys WHERE id = ?", [created.id]);
+    const restored = await db.get("SELECT key, name FROM apiKeys WHERE id = ?", [created.id]);
     expect(restored?.key).toBeTruthy();
     expect(restored?.name).toBe(TEST_KEY_NAME);
-    db.run("DELETE FROM apiKeys WHERE id = ?", [created.id]);
+    await db.run("DELETE FROM apiKeys WHERE id = ?", [created.id]);
   });
 
   test("rejects API-key metadata without secret material", async () => {
