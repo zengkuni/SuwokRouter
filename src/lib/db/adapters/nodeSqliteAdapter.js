@@ -1,3 +1,4 @@
+import { createAsyncTransaction } from "./sqliteAsyncShim.js";
 import { PRAGMA_SQL } from "../schema.js";
 import { createStatementCache, startPeriodicTask } from "./runtimeHelpers.js";
 
@@ -31,30 +32,18 @@ export async function createNodeSqliteAdapter(filePath) {
   }
   return {
     driver: "node:sqlite",
-    run(sql, params = []) {
+    async run(sql, params = []) {
       const r = statements.get(sql).run(...params);
       return { changes: Number(r.changes ?? 0), lastInsertRowid: Number(r.lastInsertRowid ?? 0) };
     },
-    get(sql, params = []) {
+    async get(sql, params = []) {
       return statements.get(sql).get(...params);
     },
-    all(sql, params = []) {
+    async all(sql, params = []) {
       return statements.get(sql).all(...params);
     },
-    exec(sql) { return db.exec(sql); },
-    transaction(fn) {
-
-      const sp = `sp_${Math.random().toString(36).slice(2)}`;
-      db.exec(`SAVEPOINT ${sp}`);
-      try {
-        const r = fn();
-        db.exec(`RELEASE ${sp}`);
-        return r;
-      } catch (e) {
-        try { db.exec(`ROLLBACK TO ${sp}`); db.exec(`RELEASE ${sp}`); } catch {}
-        throw e;
-      }
-    },
+    async exec(sql) { return db.exec(sql); },
+    transaction: createAsyncTransaction(db),
     checkpoint() { try { db.exec("PRAGMA wal_checkpoint(TRUNCATE)"); } catch {} },
     close() {
       stopCheckpoint();
