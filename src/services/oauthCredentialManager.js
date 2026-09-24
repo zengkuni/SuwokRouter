@@ -1,3 +1,4 @@
+import { getLockStore } from "../cache/lockStore.js";
 import {
   getRefreshLeadMs,
   isUnrecoverableRefreshError,
@@ -128,15 +129,43 @@ function getRefreshLockKey(provider, credentials) {
   return `${provider}:${stableId}`;
 }
 
+// Cross-process serialization for credential refresh. The in-process promise
+// join is unchanged (same process still coalesces). Around it sits a
+// distributed lock (Valkey when configured, memory otherwise) so two
+// processes cannot rotate the same refresh token concurrently — the second
+// would burn a rotating token and strand the connection as
+// refresh_token_reused.
+const REFRESH_LOCK_TTL_MS = 60_000;
+const REFRESH_LOCK_WAIT_MS = 8_000;
+const REFRESH_LOCK_POLL_MS = 100;
+
 export async function withCredentialRefreshLock(provider, credentials, refreshFn) {
   const key = getRefreshLockKey(provider, credentials);
   const existing = refreshLocks.get(key);
   if (existing) return existing;
 
+  const lockStore = getLockStore();
+  const lockKey = `lock:refresh:${key}`;
+  let token = await lockStore.acquire(lockKey, REFRESH_LOCK_TTL_MS);
+  if (!token) {
+    // Another process holds the refresh. Wait for it instead of racing:
+    // starting a parallel rotation would consume the rotating token first.
+    const deadline = Date.now() + REFRESH_LOCK_WAIT_MS;
+    while (!token && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, REFRESH_LOCK_POLL_MS));
+      token = await lockStore.acquire(lockKey, REFRESH_LOCK_TTL_MS);
+    }
+    if (!token) {
+      // Give up rather than race: the caller retries with fresh credentials.
+      return null;
+    }
+  }
+
   const pending = Promise.resolve()
     .then(refreshFn)
-    .finally(() => {
+    .finally(async () => {
       refreshLocks.delete(key);
+      await lockStore.release(lockKey, token).catch(() => {});
     });
 
   refreshLocks.set(key, pending);
