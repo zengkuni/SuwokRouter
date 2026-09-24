@@ -24,7 +24,9 @@ function run(command, args, cwd = root) {
 await rm(outDir, { recursive: true, force: true });
 await mkdir(outDir, { recursive: true });
 await run(process.platform === "win32" ? "bun.exe" : "bun", ["run", "build"], join(root, "dashboard"));
-await run(process.platform === "win32" ? "bun.exe" : "bun", ["build", "--compile", "--minify", "--bytecode", "src/server.ts", "--outfile", output, ...(target ? ["--target", target] : [])]);
+// --format=esm: the server entry uses top-level await (boot gate), which the
+  // default cjs compile target rejects.
+  await run(process.platform === "win32" ? "bun.exe" : "bun", ["build", "--compile", "--format=esm", "--minify", "--bytecode", "src/server.ts", "--outfile", output, ...(target ? ["--target", target] : [])]);
 await cp(join(root, "dashboard", "dist"), join(outDir, "dashboard", "dist"), { recursive: true });
 await cp(join(root, "dashboard", "public"), join(outDir, "dashboard", "public"), { recursive: true });
 await cp(join(root, "src", "lib", "db", "migrations"), join(outDir, "migrations"), { recursive: true });
