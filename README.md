@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/bolone-sengkuni/suwokrouter/stargazers"><img src="https://img.shields.io/github/stars/bolone-sengkuni/suwokrouter?style=flat" alt="GitHub stars" /></a>
+  <a href="https://github.com/bolone-sengkuni/SuwokRouter/stargazers"><img src="https://img.shields.io/github/stars/bolone-sengkuni/SuwokRouter?style=flat" alt="GitHub stars" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" /></a>
   <a href="https://bun.sh"><img src="https://img.shields.io/badge/runtime-Bun-black?logo=bun" alt="Bun" /></a>
   <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/code-TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript" /></a>
@@ -118,7 +118,7 @@ stop the router, then delete `%APPDATA%\.suwokrouter` on Windows or
 For contributors working from a checkout:
 
 ```powershell
-git clone https://github.com/bolone-sengkuni/suwokrouter.git
+git clone https://github.com/bolone-sengkuni/SuwokRouter.git
 cd SuwokRouter
 bun install --frozen-lockfile
 Push-Location dashboard
