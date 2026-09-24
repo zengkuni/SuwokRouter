@@ -9,6 +9,13 @@ on:
 permissions:
   contents: read
 
+# Postgres + Valkey are mandatory (PG is the only driver). Workflow-level so
+# every job — unit tests, e2e webServer, docker smoke, binary smoke — boots
+# with a database.
+env:
+  DB_URL: postgres://suwok:suwok@127.0.0.1:5432/suwokrouter_test
+  REDIS_URL: redis://127.0.0.1:6379
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -69,11 +76,6 @@ jobs:
           --health-retries 10
         ports:
           - 6379:6379
-    # Postgres + Valkey are mandatory (PG is the only driver), so every step
-    # in this job — tests, e2e webServer, docker/binary smokes — needs the URLs.
-    env:
-      DB_URL: postgres://suwok:suwok@127.0.0.1:5432/suwokrouter_test
-      REDIS_URL: redis://127.0.0.1:6379
     steps:
       - name: Checkout
         uses: actions/checkout@v4
