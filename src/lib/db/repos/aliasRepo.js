@@ -71,10 +71,12 @@ export async function addCustomModel({ providerAlias, id, type = "llm", name, ca
   const key = customKey(provider, modelId, type);
   const db = await getAdapter();
   let changed = false;
-  db.transaction(() => {
-    const existing = legacyCustomKeys(provider, id, type)
-      .map((candidate) => db.get(`SELECT key, value FROM kv WHERE scope = 'customModels' AND key = ?`, [candidate]))
-      .find(Boolean);
+  await db.transaction(async () => {
+    let existing = null;
+    for (const candidate of legacyCustomKeys(provider, id, type)) {
+      const row = await db.get(`SELECT key, value FROM kv WHERE scope = 'customModels' AND key = ?`, [candidate]);
+      if (row) { existing = row; break; }
+    }
     const parsedExisting = existing ? parseJson(existing.value, {}) : {};
     const value = stringifyJson({
       ...parsedExisting,
@@ -85,14 +87,14 @@ export async function addCustomModel({ providerAlias, id, type = "llm", name, ca
       ...(capabilities && typeof capabilities === "object" ? { capabilities } : {}),
     });
     if (existing) {
-      if (existing.key !== key) db.run(`DELETE FROM kv WHERE scope = 'customModels' AND key = ?`, [key]);
+      if (existing.key !== key) await db.run(`DELETE FROM kv WHERE scope = 'customModels' AND key = ?`, [key]);
       if (existing.key !== key || value !== existing.value) {
-        db.run(`UPDATE kv SET key = ?, value = ? WHERE scope = 'customModels' AND key = ?`, [key, value, existing.key]);
+        await db.run(`UPDATE kv SET key = ?, value = ? WHERE scope = 'customModels' AND key = ?`, [key, value, existing.key]);
         changed = true;
       }
       return;
     }
-    db.run(`INSERT INTO kv(scope, key, value) VALUES('customModels', ?, ?)`, [key, value]);
+    await db.run(`INSERT INTO kv(scope, key, value) VALUES('customModels', ?, ?)`, [key, value]);
     changed = true;
   });
   if (changed) await bumpConfigCacheVersion().catch(() => {});
@@ -102,7 +104,7 @@ export async function addCustomModel({ providerAlias, id, type = "llm", name, ca
 export async function deleteCustomModel({ providerAlias, id, type = "llm" }) {
   const db = await getAdapter();
   for (const key of legacyCustomKeys(providerAlias, id, type)) {
-    db.run(`DELETE FROM kv WHERE scope = 'customModels' AND key = ?`, [key]);
+    await db.run(`DELETE FROM kv WHERE scope = 'customModels' AND key = ?`, [key]);
   }
   await bumpConfigCacheVersion().catch(() => {});
 }
