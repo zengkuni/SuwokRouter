@@ -99,6 +99,19 @@ describe("runtime environment", () => {
   });
 });
 
+
+  test("flags an explicitly configured INITIAL_PASSWORD", () => {
+    expect(loadEnv({ INITIAL_PASSWORD: "my-secret" }).initialPasswordConfigured).toBe(true);
+    expect(loadEnv({ INITIAL_PASSWORD: "  " }).initialPasswordConfigured).toBe(false);
+    expect(loadEnv({}).initialPasswordConfigured).toBe(false);
+  });
+
+  test("parses SUWOK_TRUSTED_LOCAL_HOSTS", () => {
+    const config = loadEnv({ SUWOK_TRUSTED_LOCAL_HOSTS: "192.168.1.10, router.local ,," });
+    expect(config.trustedLocalHosts).toEqual(["192.168.1.10", "router.local"]);
+    expect(loadEnv({}).trustedLocalHosts).toEqual([]);
+  });
+
 describe("database and cache environment", () => {
   test("leaves database fields unset when no DB configuration is provided", () => {
     const config = loadEnv({ NODE_ENV: "development" });
