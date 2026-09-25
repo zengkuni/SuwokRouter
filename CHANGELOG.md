@@ -2,6 +2,11 @@
 
 All notable changes to Sway Router are documented here.
 
+## [Unreleased]
+
+- Label CodeBuddy connections with the account email collected from the CodeBuddy server (`GET /v2/accounts`) during device login and Access Token import, then the account name, then `CodeBuddy-1`, `CodeBuddy-2`, … when neither is available.
+- Port upstream SwayRouter v1.0.7: stop fallback on non-retryable request statuses (400/405/413/415/422) and cancellations (499) without cooling the account, turn aborted combo requests into a terminal 499, replace the CodeBuddy CN/Intl model catalogs with the real ones, drop CodeBuddy API-key mode (device + Access Token only), add package-aware quota status (an exhausted CodeBuddy package no longer marks the account limited) with 60s quota refresh, line numbers in the CodeBuddy token field, and a responsive model search row.
+
 ## [1.0.4] - 2026-09-19
 
 - Add OpenCode Free, Zen, and Go support with official endpoints, model discovery, and authentication validation.

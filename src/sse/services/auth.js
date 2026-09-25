@@ -391,6 +391,11 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
     const retryCount = Number.isFinite(opts.retryCount) ? opts.retryCount : backoffLevel;
     const decision = classifyError(status, errorText, retryCount);
     ({ tier, action, cooldownMs, deprioitizeUntil: deprioitizeUntilMs } = decision);
+
+    if (action === "final") {
+      return { shouldFallback: false, cooldownMs: 0, action, tier };
+    }
+
     shouldFallback = action !== "retry-same" || cooldownMs > 0;
   }
   if (action === "passthrough") return { shouldFallback: false, cooldownMs: 0 };

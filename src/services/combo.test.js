@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { handleFusionChat } from "./combo.js";
+import { handleComboChat, handleFusionChat } from "./combo.js";
 
 const log = {
   info() {},
@@ -35,5 +35,43 @@ describe("fusion cancellation", () => {
 
     expect(result.status).toBe(200);
     expect(aborted).toEqual(["slow"]);
+  });
+});
+
+describe("combo cancellation", () => {
+  test("does not try another model after a cancelled response", async () => {
+    const attempts = [];
+    const result = await handleComboChat({
+      body: { model: "combo", messages: [{ role: "user", content: "hello" }] },
+      models: ["first", "second"],
+      comboName: "cancel-test",
+      comboStrategy: "fallback",
+      log,
+      handleSingleModel: async (_body, model) => {
+        attempts.push(model);
+        return new Response(JSON.stringify({ error: "Request aborted" }), { status: 499 });
+      },
+    });
+
+    expect(result.status).toBe(499);
+    expect(attempts).toEqual(["first"]);
+  });
+
+  test("turns an aborted model error into a terminal cancellation response", async () => {
+    const attempts = [];
+    const result = await handleComboChat({
+      body: { model: "combo", messages: [{ role: "user", content: "hello" }] },
+      models: ["first", "second"],
+      comboName: "abort-error-test",
+      comboStrategy: "fallback",
+      log,
+      handleSingleModel: async (_body, model) => {
+        attempts.push(model);
+        throw new DOMException("The operation was aborted", "AbortError");
+      },
+    });
+
+    expect(result.status).toBe(499);
+    expect(attempts).toEqual(["first"]);
   });
 });

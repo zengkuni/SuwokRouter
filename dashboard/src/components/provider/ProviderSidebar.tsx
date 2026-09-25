@@ -201,7 +201,7 @@ export function ProviderSidebar({
                             <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-muted-foreground sm:gap-x-2 sm:text-[11px]">
                               {(p.id === "opencode"
                                 ? ["Built-in"]
-                                : authModeLabels(p.authType, p.noAuth, p.authModes)
+                                : authModeLabels(p.authType, p.noAuth, p.authModes, p.id)
                               ).map(
                                 (mode) => (
                                   <span

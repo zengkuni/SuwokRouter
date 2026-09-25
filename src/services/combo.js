@@ -1,5 +1,5 @@
 import { checkFallbackError, formatRetryAfter } from "./accountFallback.js";
-import { unavailableResponse } from "../utils/error.js";
+import { errorResponse, unavailableResponse } from "../utils/error.js";
 import { getCapabilitiesForModel } from "../providers/capabilities.js";
 import { extractTextContent } from "../translator/formats/gemini.js";
 
@@ -251,6 +251,10 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
       if (!lastStatus) lastStatus = result.status;
       log.warn("COMBO", `Model ${modelStr} failed, trying next`, { status: result.status });
     } catch (error) {
+
+      if (error?.name === "AbortError") {
+        return errorResponse(499, "Request aborted");
+      }
 
       lastError = error.message || String(error);
       if (!lastStatus) lastStatus = 500;

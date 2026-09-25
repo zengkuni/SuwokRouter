@@ -1,4 +1,13 @@
-import { ERROR_RULES, BACKOFF_CONFIG, TRANSIENT_COOLDOWN_MS, classifyError, ERROR_TIERS, isDeprioitized } from "../config/errorConfig.js";
+import {
+  ERROR_RULES,
+  BACKOFF_CONFIG,
+  TRANSIENT_COOLDOWN_MS,
+  classifyError,
+  ERROR_TIERS,
+  isDeprioitized,
+  isCancellationStatus,
+  isNonRetryableRequestStatus,
+} from "../config/errorConfig.js";
 
 import { fnv1a } from "@/lib/security/payloadCapture.js";
 
@@ -9,6 +18,10 @@ export function getQuotaCooldown(backoffLevel = 0) {
 }
 
 export function checkFallbackError(status, errorText, backoffLevel = 0) {
+  if (isNonRetryableRequestStatus(status) || isCancellationStatus(status)) {
+    return { shouldFallback: false, cooldownMs: 0, action: "final", newBackoffLevel: backoffLevel };
+  }
+
   const lowerError = errorText
     ? (typeof errorText === "string" ? errorText : JSON.stringify(errorText)).toLowerCase()
     : "";

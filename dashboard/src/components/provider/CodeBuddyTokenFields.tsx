@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
+import { useState } from "react";
 import { Check, Loader2, X } from "lucide-react";
 import { RippleButton } from "@/components/animate/ripple-button";
 import { TextShimmer } from "@/components/animate/text-shimmer";
@@ -24,6 +25,9 @@ export function CodeBuddyTokenFields({
   validCount: number;
   checking: boolean;
 }) {
+  const [scrollTop, setScrollTop] = useState(0);
+  const lineCount = Math.max(1, raw.split(/\r?\n/).length);
+
   return (
     <div className="space-y-2">
       <p className="text-xs text-muted-foreground">
@@ -33,16 +37,32 @@ export function CodeBuddyTokenFields({
         <label htmlFor="codebuddy-token" className="text-xs font-medium text-muted-foreground">
           Access / Refresh Tokens
         </label>
-        <textarea
-          id="codebuddy-token"
-          className="min-h-36 w-full resize-y overflow-x-auto whitespace-pre rounded-md border border-input bg-surface px-3 py-2 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          placeholder={"access-token-1\nrefresh-token-2\naccess-token-3|refresh-token-3"}
-          value={raw}
-          autoComplete="off"
-          spellCheck={false}
-          wrap="off"
-          onChange={(event) => onRawChange(event.target.value)}
-        />
+        <div className="relative flex h-36 max-h-36 overflow-hidden rounded-md border border-input bg-surface focus-within:outline-none focus-within:ring-2 focus-within:ring-ring">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none h-36 w-10 shrink-0 overflow-hidden border-r border-border/70 bg-background/90 py-2 text-right font-mono text-xs leading-5 text-muted-foreground/75"
+          >
+            <div style={{ transform: `translateY(-${scrollTop}px)` }}>
+              {Array.from({ length: lineCount }, (_, index) => (
+                <div key={index} className="px-2">
+                  {index + 1}
+                </div>
+              ))}
+            </div>
+          </div>
+          <textarea
+            id="codebuddy-token"
+            className="h-36 max-h-36 min-h-36 min-w-0 flex-1 resize-none overflow-auto bg-transparent px-3 py-2 font-mono text-xs leading-5 text-foreground outline-none placeholder:text-muted-foreground/70"
+            placeholder={"access-token-1\nrefresh-token-2\naccess-token-3|refresh-token-3"}
+            value={raw}
+            autoComplete="off"
+            spellCheck={false}
+            wrap="off"
+            data-scrollbar-visible="true"
+            onChange={(event) => onRawChange(event.target.value)}
+            onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
+          />
+        </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <RippleButton

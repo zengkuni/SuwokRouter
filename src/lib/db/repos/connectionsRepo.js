@@ -88,7 +88,14 @@ async function upsert(db, c) {
   );
 }
 
-function deriveConnectionName(data, fallbackName) {
+const CODEBUDDY_PROVIDERS = new Set(["codebuddy-cn", "codebuddy-intl"]);
+
+function deriveConnectionName(existingRows, data, fallbackName) {
+  if (CODEBUDDY_PROVIDERS.has(data.provider)) {
+    return normalizeConnectionName(data.email)
+      || normalizeConnectionName(data.displayName)
+      || nextGeneratedCodeBuddyName(existingRows);
+  }
   if (data.provider === "github") {
     return data.providerSpecificData?.githubLogin
       || data.providerSpecificData?.githubEmail
@@ -111,6 +118,17 @@ function conflictError(code, message) {
   const error = new Error(message);
   error.code = code;
   return error;
+}
+
+function nextGeneratedCodeBuddyName(existingRows) {
+  const used = new Set(
+    existingRows
+      .map((connection) => normalizeConnectionName(connection.name).toLowerCase())
+      .filter(Boolean)
+  );
+  let suffix = 1;
+  while (used.has(`codebuddy-${suffix}`)) suffix += 1;
+  return `CodeBuddy-${suffix}`;
 }
 
 function nextGeneratedConnectionName(existingRows, preferredName = "") {
@@ -295,7 +313,9 @@ export async function createProviderConnection(data) {
     let connectionName = requestedName || null;
     if (data.authType === "apikey" || data.authType === "api_key") {
       if (data.autoName === true || !requestedName) {
-        connectionName = nextGeneratedConnectionName(all, requestedName);
+        connectionName = CODEBUDDY_PROVIDERS.has(data.provider)
+          ? nextGeneratedCodeBuddyName(all)
+          : nextGeneratedConnectionName(all, requestedName);
       } else if (findDuplicateConnectionName(all, requestedName)) {
         throw conflictError(
           "DUPLICATE_CONNECTION_NAME",
@@ -304,7 +324,7 @@ export async function createProviderConnection(data) {
       }
     }
     if (!connectionName && (data.authType === "oauth" || data.authType === "access_token")) {
-      connectionName = deriveConnectionName(data, data.email || `Account ${all.length + 1}`);
+      connectionName = deriveConnectionName(all, data, data.email || `Account ${all.length + 1}`);
     }
     let connectionPriority = data.priority;
     if (connectionPriority === undefined || connectionPriority === null) {
