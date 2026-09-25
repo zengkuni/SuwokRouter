@@ -1,4 +1,5 @@
 import { HOST_PEER_HEADER } from "./transport/requestBoundary";
+import { loadEnv } from "@/lib/env";
 import { NextResponse } from "next/server";
 import { getSettings, validateApiKey } from "@/lib/localDb";
 import { getConsistentMachineId } from "@/shared/utils/machineId";
@@ -79,6 +80,24 @@ function isLoopbackHostname(h) {
   return LOOPBACK_HOSTS.has(name);
 }
 
+// Operator-declared local hosts (SUWOK_TRUSTED_LOCAL_HOSTS): e.g. the box's
+// own LAN address when the dashboard is reached at http://192.168.1.10:1212.
+// Explicit opt-in — a bare private range would let any LAN device run the
+// initial setup.
+function hostPartOf(h) {
+  return h ? h.split(":")[0].replace(/^\[|\]$/g, "").toLowerCase() : "";
+}
+
+function isTrustedLocalHostname(h) {
+  const name = hostPartOf(h);
+  if (!name) return false;
+  if (isLoopbackHostname(name)) return true;
+  // loadEnv (not the frozen singleton) so the allowlist can be changed
+  // without a restart and the value is always fresh per request.
+  const trusted = loadEnv().trustedLocalHosts || [];
+  return trusted.includes(name);
+}
+
 export function isLocalRequest(request) {
 
   if (request.headers.get("x-suwokrouter-via-proxy")) return false;
@@ -90,16 +109,16 @@ export function isLocalRequest(request) {
   // the host cannot turn remote traffic into local traffic by rewriting only the peer.
   const realIp = request.headers.get("x-suwokrouter-real-ip");
   const hostPeer = request.headers.get(HOST_PEER_HEADER) === "1";
-  const loopbackHost = isLoopbackHostname(request.headers.get("host"));
+  const loopbackHost = isTrustedLocalHostname(request.headers.get("host"));
   if (realIp) {
-    if (!isLoopbackHostname(realIp) && !(hostPeer && loopbackHost)) return false;
+    if (!isTrustedLocalHostname(realIp) && !(hostPeer && loopbackHost)) return false;
   } else if (!loopbackHost) {
     return false;
   }
   const origin = request.headers.get("origin");
   if (origin) {
     try {
-      if (!isLoopbackHostname(new URL(origin).hostname)) return false;
+      if (!isTrustedLocalHostname(new URL(origin).hostname)) return false;
     } catch { return false; }
   }
   return true;

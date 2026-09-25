@@ -13,6 +13,10 @@ export interface EnvConfig {
   apiKeySecret: string;
 
   initialPassword: string;
+  /** true when the operator explicitly set INITIAL_PASSWORD (not the default). */
+  initialPasswordConfigured: boolean;
+  /** Extra hostnames/IPs treated as local for the initial-setup gate. */
+  trustedLocalHosts: string[];
   nodeEnv: NodeEnv;
   trustProxy: boolean;
   requestLogsEnabled: boolean;
@@ -172,10 +176,14 @@ export function loadEnv(
     source.API_KEY_SECRET ??
     (nodeEnv === "production" ? "" : "endpoint-proxy-api-key-secret");
 
-  const initialPassword =
-    typeof source.INITIAL_PASSWORD === "string" && source.INITIAL_PASSWORD.trim()
-      ? source.INITIAL_PASSWORD.trim()
-      : DEFAULT_PASSWORD;
+  const initialPasswordConfigured =
+    typeof source.INITIAL_PASSWORD === "string" && source.INITIAL_PASSWORD.trim().length > 0;
+  const initialPassword = initialPasswordConfigured
+    ? (source.INITIAL_PASSWORD as string).trim()
+    : DEFAULT_PASSWORD;
+  const trustedLocalHosts = typeof source.SUWOK_TRUSTED_LOCAL_HOSTS === "string"
+    ? source.SUWOK_TRUSTED_LOCAL_HOSTS.split(",").map((h) => h.trim().toLowerCase()).filter(Boolean)
+    : [];
 
   if (nodeEnv === "production") {
     if (INSECURE_JWT_SECRETS.has(jwtSecret) || jwtSecret.length < 32) {
@@ -250,6 +258,8 @@ export function loadEnv(
     jwtExpiresIn: source.JWT_EXPIRES_IN ?? "7d",
     apiKeySecret,
     initialPassword,
+    initialPasswordConfigured,
+    trustedLocalHosts,
     nodeEnv,
     trustProxy: parseBoolean(source.TRUST_PROXY ?? "false"),
     requestLogsEnabled: parseBoolean(source.ENABLE_REQUEST_LOGS ?? "false"),

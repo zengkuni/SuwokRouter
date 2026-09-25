@@ -61,4 +61,31 @@ describe("local request detection", () => {
     });
     expect(isLocalRequest(request)).toBe(false);
   });
-});
+})
+  test("accepts an operator-declared trusted local host", async () => {
+    process.env.SUWOK_TRUSTED_LOCAL_HOSTS = "192.168.1.10,router.local";
+    try {
+      const request = new Request("http://192.168.1.10:12122/api/auth/login", {
+        method: "POST",
+        headers: { host: "192.168.1.10:12122" },
+      });
+      expect(isLocalRequest(request)).toBe(true);
+      const viaName = new Request("http://router.local/api/auth/login", {
+        method: "POST",
+        headers: { host: "router.local" },
+      });
+      expect(isLocalRequest(viaName)).toBe(true);
+    } finally {
+      delete process.env.SUWOK_TRUSTED_LOCAL_HOSTS;
+    }
+  });
+
+  test("still rejects an untrusted LAN address", async () => {
+    const request = new Request("http://192.168.1.99:1212/api/auth/login", {
+      method: "POST",
+      headers: { host: "192.168.1.99:1212" },
+    });
+    expect(isLocalRequest(request)).toBe(false);
+  });
+;
+;

@@ -57,7 +57,10 @@ export async function POST(request) {
       await recordSuccess(ip);
       const cookieStore = await cookies();
 
-      const mustChangePassword = !storedHash;
+      // A password configured via INITIAL_PASSWORD is deliberate: don't
+      // force the change flow on first login. Only the built-in default
+      // (which every fresh install shares) must be replaced.
+      const mustChangePassword = !storedHash && !env.initialPasswordConfigured;
       await setDashboardAuthCookie(cookieStore, request, { mustChangePassword });
 
       return NextResponse.json({ success: true, mustChangePassword }, { headers: NO_STORE_HEADERS });
