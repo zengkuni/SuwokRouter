@@ -132,7 +132,11 @@ export function isLocalRequest(request) {
   // gateway / host alias. A remote client — internet, tunnel, LAN forward —
   // has a different peer, so a spoofed `Host: 192.168.x.x` still cannot run
   // the initial setup.
-  const privateHost = hostPeer && isPrivateHostname(hostHeader);
+  // Private host is honored when the traffic also looks like the deployment's
+  // own network: the host-peer marker (docker published port) OR a private
+  // peer address (bare-metal server reached over the LAN). Internet and
+  // tunnel connectors present public peers, so they stay blocked.
+  const privateHost = isPrivateHostname(hostHeader) && (hostPeer || isPrivateHostname(realIp || ""));
   if (realIp) {
     if (!isTrustedLocalHostname(realIp) && !((hostPeer && loopbackHost) || privateHost)) return false;
   } else if (!loopbackHost) {
