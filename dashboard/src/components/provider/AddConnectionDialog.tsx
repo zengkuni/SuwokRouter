@@ -853,7 +853,7 @@ export function AddConnectionDialog({
         const res = await pollDeviceCode(providerId, {
           deviceCode,
           codeVerifier: verifier,
-          displayName: nameRef.current.trim() || providerName,
+          displayName: nameRef.current.trim() || undefined,
         });
         if (stopped || pollAbortRef.current) return;
         if (res.success) {
