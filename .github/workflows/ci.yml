@@ -247,10 +247,6 @@ jobs:
       - name: Install dashboard deps
         working-directory: dashboard
         run: bun install --frozen-lockfile
-
-      - name: Install dashboard deps
-        working-directory: dashboard
-        run: bun install --frozen-lockfile
       - name: Build dashboard
         run: bun run build:dashboard
 
