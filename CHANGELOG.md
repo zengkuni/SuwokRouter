@@ -2,10 +2,26 @@
 
 All notable changes to Sway Router are documented here.
 
-## [Unreleased]
+## [1.0.7] - 2026-09-26
+
+### Added
 
 - Label CodeBuddy connections with the account email collected from the CodeBuddy server (`GET /v2/accounts`) during device login and Access Token import, then the account name, then `CodeBuddy-1`, `CodeBuddy-2`, … when neither is available.
 - Port upstream SwayRouter v1.0.7: stop fallback on non-retryable request statuses (400/405/413/415/422) and cancellations (499) without cooling the account, turn aborted combo requests into a terminal 499, replace the CodeBuddy CN/Intl model catalogs with the real ones, drop CodeBuddy API-key mode (device + Access Token only), add package-aware quota status (an exhausted CodeBuddy package no longer marks the account limited) with 60s quota refresh, line numbers in the CodeBuddy token field, and a responsive model search row.
+- Add a safe **Migrate from 9Router** flow with local database detection and
+  9Router JSON import.
+- Add migration previews, selectable data scopes, conflict handling, automatic
+  database backups, transaction rollback, and animated progress states.
+- Keep imported accounts inactive by default and normalize legacy CodeBuddy
+  provider data to Sway Router's built-in provider.
+
+### Fixed
+
+- Prevent 9Router backups from being mistaken for regular Sway Router restores.
+- Keep routing settings, dashboard security, gateway keys, usage history, and
+  request logs out of the 9Router migration by default.
+
+[1.0.7]: https://github.com/envielxyz/SwayRouter/releases/tag/v1.0.7
 
 ## [1.0.4] - 2026-09-19
 
@@ -106,25 +122,6 @@ Sway Router is the new project identity, package name, and CLI name.
   either `localhost` or `127.0.0.1`.
 
 [1.0.8]: https://github.com/envielxyz/SwayRouter/releases/tag/v1.0.8
-
-## [1.0.7] - 2026-09-09
-
-### Added
-
-- Add a safe **Migrate from 9Router** flow with local database detection and
-  9Router JSON import.
-- Add migration previews, selectable data scopes, conflict handling, automatic
-  database backups, transaction rollback, and animated progress states.
-- Keep imported accounts inactive by default and normalize legacy CodeBuddy
-  provider data to Sway Router's built-in provider.
-
-### Fixed
-
-- Prevent 9Router backups from being mistaken for regular Sway Router restores.
-- Keep routing settings, dashboard security, gateway keys, usage history, and
-  request logs out of the 9Router migration by default.
-
-[1.0.7]: https://github.com/envielxyz/SwayRouter/releases/tag/v1.0.7
 
 ## [1.0.6] - 2026-09-08
 
