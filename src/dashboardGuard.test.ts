@@ -39,12 +39,39 @@ describe("local request detection", () => {
     expect(isLocalRequest(request)).toBe(false);
   });
 
-  test("rejects a host peer whose Host header was rewritten by a host-side proxy", () => {
+  test("rejects a host-side proxy that forwards a remote client (via-proxy)", () => {
+    // A reverse proxy on the host stamping x-forwarded-for is remote traffic
+    // regardless of the Host header it forwards — including a private one.
     const request = new Request("http://192.168.1.10:1212/api/auth/login", {
       headers: {
         host: "192.168.1.10:1212",
         "x-suwokrouter-real-ip": "192.168.127.1",
         "x-suwokrouter-host-peer": "1",
+        "x-suwokrouter-via-proxy": "1",
+      },
+    });
+    expect(isLocalRequest(request)).toBe(false);
+  });
+
+  test("accepts the deployment's own LAN address through the host peer", () => {
+    // docker published port; the user browses http://192.168.1.10:1212 on the
+    // server's own LAN: peer is the gateway (host-peer) and Host is the box's
+    // own LAN address → initial setup is allowed without any env config.
+    const request = new Request("http://192.168.1.10:1212/api/auth/login", {
+      headers: {
+        host: "192.168.1.10:1212",
+        "x-suwokrouter-real-ip": "172.21.0.1",
+        "x-suwokrouter-host-peer": "1",
+      },
+    });
+    expect(isLocalRequest(request)).toBe(true);
+  });
+
+  test("rejects a private host claimed by a tunnel/proxy peer", () => {
+    const request = new Request("http://192.168.1.10:1212/api/auth/login", {
+      headers: {
+        host: "192.168.1.10:1212",
+        "x-suwokrouter-real-ip": "100.64.0.7",
       },
     });
     expect(isLocalRequest(request)).toBe(false);

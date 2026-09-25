@@ -98,6 +98,21 @@ function isTrustedLocalHostname(h) {
   return trusted.includes(name);
 }
 
+// RFC1918 unicast: the deployment's own LAN range. NOT trusted on its own
+// (any LAN device — or a spoofed Host header from the internet — could
+// claim it); only in combination with hostPeer below.
+function isPrivateHostname(h) {
+  const name = hostPartOf(h);
+  if (!name) return false;
+  const m = name.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (!m) return false;
+  const [a, b] = [Number(m[1]), Number(m[2])];
+  if (a === 10) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  return false;
+}
+
 export function isLocalRequest(request) {
 
   if (request.headers.get("x-suwokrouter-via-proxy")) return false;
@@ -109,16 +124,25 @@ export function isLocalRequest(request) {
   // the host cannot turn remote traffic into local traffic by rewriting only the peer.
   const realIp = request.headers.get("x-suwokrouter-real-ip");
   const hostPeer = request.headers.get(HOST_PEER_HEADER) === "1";
-  const loopbackHost = isTrustedLocalHostname(request.headers.get("host"));
+  const hostHeader = request.headers.get("host");
+  const loopbackHost = isTrustedLocalHostname(hostHeader);
+  // A private Host header (the deployment's own LAN address, e.g.
+  // http://192.168.1.10:1212) is honored only for traffic that provably
+  // arrived through the host: HOST_PEER_HEADER means the peer was the docker
+  // gateway / host alias. A remote client — internet, tunnel, LAN forward —
+  // has a different peer, so a spoofed `Host: 192.168.x.x` still cannot run
+  // the initial setup.
+  const privateHost = hostPeer && isPrivateHostname(hostHeader);
   if (realIp) {
-    if (!isTrustedLocalHostname(realIp) && !(hostPeer && loopbackHost)) return false;
+    if (!isTrustedLocalHostname(realIp) && !((hostPeer && loopbackHost) || privateHost)) return false;
   } else if (!loopbackHost) {
     return false;
   }
   const origin = request.headers.get("origin");
   if (origin) {
     try {
-      if (!isTrustedLocalHostname(new URL(origin).hostname)) return false;
+      const originHost = new URL(origin).hostname;
+      if (!isTrustedLocalHostname(originHost) && !(privateHost && isPrivateHostname(originHost))) return false;
     } catch { return false; }
   }
   return true;

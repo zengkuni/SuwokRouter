@@ -149,15 +149,17 @@ Kalau mau ngembangin dashboard, jalanin `bun run dev` di dalam folder
 
 ### Docker — terisolasi dan datanya persistent
 
-Gunakan image publik dari Docker Hub:
+Pakai image publik dari GitHub Container Registry (dipublish CI setiap push ke
+`main` dan setiap tag `v*` — tag: `latest`, versi app dari `package.json`, nama
+branch, dan SHA commit):
 
 ```bash
-docker pull sengkuni/suwokrouter:latest
+docker pull ghcr.io/zengkuni/suwokrouter:latest
 docker compose up -d
 docker compose ps
 ```
 
-Kalau ingin build image dari source, jalankan `docker build -t sengkuni/suwokrouter:latest .`
+Kalau mau build dari source, jalankan `docker build -t ghcr.io/zengkuni/suwokrouter:latest .`
 sebelum menjalankan Compose.
 
 Docker juga membuat secret persistent di data volume. Copy `.env.example`

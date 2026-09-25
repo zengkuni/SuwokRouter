@@ -40,7 +40,13 @@ export async function POST(request) {
 
     if (!storedHash && !localRequest) {
       return NextResponse.json(
-        { error: "Initial setup must be completed from localhost before remote login is enabled." },
+        {
+          error:
+            "Initial setup must be completed from localhost before remote login is enabled. " +
+            "Access the dashboard at http://127.0.0.1:1212 on the host machine, " +
+            "or set SUWOK_TRUSTED_LOCAL_HOSTS (e.g. SUWOK_TRUSTED_LOCAL_HOSTS=192.168.1.10) " +
+            "when this instance is only reachable from its own LAN.",
+        },
         { status: 403, headers: NO_STORE_HEADERS },
       );
     }

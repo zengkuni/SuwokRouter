@@ -149,15 +149,17 @@ second terminal.
 
 ### Docker — isolated and persistent
 
-Use the public image from Docker Hub:
+Use the public image from GitHub Container Registry (published by CI on
+every push to `main` and every `v*` tag — tags: `latest`, the app version
+from `package.json`, the branch name, and the commit SHA):
 
 ```bash
-docker pull sengkuni/suwokrouter:latest
+docker pull ghcr.io/zengkuni/suwokrouter:latest
 docker compose up -d
 docker compose ps
 ```
 
-To build the image from source instead, run `docker build -t sengkuni/suwokrouter:latest .`
+To build the image from source instead, run `docker build -t ghcr.io/zengkuni/suwokrouter:latest .`
 before starting Compose.
 
 Docker also generates persistent secrets in its data volume. Copy
