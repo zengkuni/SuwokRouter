@@ -129,12 +129,12 @@ export function ProviderModelsPanel({
                           ) : null}
                         </div>
                       </div>
-                      <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+                      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
                         <Input
                           placeholder="Search models…"
                           value={modelQuery}
                           onChange={(e) => onModelQueryChange(e.target.value)}
-                          className="min-w-0"
+                          className="min-w-0 sm:flex-1"
                         />
                         <span
                           aria-hidden="true"
@@ -142,7 +142,7 @@ export function ProviderModelsPanel({
                         >
                           |
                         </span>
-                        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2 sm:contents">
+                        <div className="flex min-w-0 gap-2 sm:flex-1">
                           <Input
                             placeholder="model-id"
                             value={newModel}
