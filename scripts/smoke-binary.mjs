@@ -68,9 +68,21 @@ Object.assign(childEnv, {
   HOSTNAME: "127.0.0.1",
 });
 
+// Cross-target runners (macOS/Windows) cannot host Postgres service
+// containers, so the smoke there is artifact-only: the compiled binary must
+// boot far enough to reach the driver check and exit with the DB_URL error.
+const artifactOnly = process.env.SUWOK_SMOKE_NO_DB === "1";
+if (artifactOnly) {
+  // Bun compiled binaries auto-load .env from the cwd and its ancestors; a
+  // temp cwd guarantees the DB_URL check actually fires (dev checkouts have
+  // a .env at the repo root).
+  delete childEnv.DB_URL;
+  delete childEnv.REDIS_URL;
+}
+
 const output = [];
 const child = spawn(binary, [], {
-  cwd: outDir,
+  cwd: artifactOnly ? dataDir : outDir,
   env: childEnv,
   windowsHide: true,
   stdio: ["ignore", "pipe", "pipe"],
@@ -79,18 +91,27 @@ child.stdout.on("data", (chunk) => output.push(String(chunk)));
 child.stderr.on("data", (chunk) => output.push(String(chunk)));
 
 try {
-  await waitForReady(port, child, output);
-  const [ready, version, login] = await Promise.all([
-    fetch(`http://127.0.0.1:${port}/api/health/ready`),
-    fetch(`http://127.0.0.1:${port}/api/version`),
-    fetch(`http://127.0.0.1:${port}/login`),
-  ]);
-  if (!ready.ok || !version.ok || !login.ok) {
-    throw new Error(`Compiled binary smoke failed: ready=${ready.status}, version=${version.status}, login=${login.status}`);
+  if (artifactOnly) {
+    await waitForExit(child);
+    const text = output.join("");
+    if (child.exitCode === 0 || !text.includes("DB_URL is required")) {
+      throw new Error(`Artifact smoke failed (exit=${child.exitCode}): ${text.slice(-1500)}`);
+    }
+    console.log(`Compiled binary artifact smoke passed (${target}): boots, requires DB_URL`);
+  } else {
+    await waitForReady(port, child, output);
+    const [ready, version, login] = await Promise.all([
+      fetch(`http://127.0.0.1:${port}/api/health/ready`),
+      fetch(`http://127.0.0.1:${port}/api/version`),
+      fetch(`http://127.0.0.1:${port}/login`),
+    ]);
+    if (!ready.ok || !version.ok || !login.ok) {
+      throw new Error(`Compiled binary smoke failed: ready=${ready.status}, version=${version.status}, login=${login.status}`);
+    }
+    console.log(`Compiled binary smoke passed on 127.0.0.1:${port}`);
   }
-  console.log(`Compiled binary smoke passed on 127.0.0.1:${port}`);
 } finally {
   if (child.exitCode === null) child.kill("SIGTERM");
   await waitForExit(child);
-  await rm(dataDir, { recursive: true, force: true });
+  await rm(dataDir, { recursive: true, force: true }).catch(() => {});
 }
