@@ -46,6 +46,66 @@ describe("provider connection identity", () => {
     }
   });
 
+  test("labels CodeBuddy accounts with the collected email, then codebuddy-N", async () => {
+    const provider = "codebuddy-cn";
+    const createdIds = [];
+
+    try {
+      const withEmail = await createProviderConnection({
+        provider,
+        authType: "oauth",
+        accessToken: `codebuddy-access-${crypto.randomUUID()}`,
+        email: "budi@example.com",
+        displayName: "Budi",
+        providerSpecificData: { authMethod: "device" },
+      });
+      createdIds.push(withEmail.id);
+      expect(withEmail.name).toBe("budi@example.com");
+
+      const withNameOnly = await createProviderConnection({
+        provider,
+        authType: "oauth",
+        accessToken: `codebuddy-access-${crypto.randomUUID()}`,
+        displayName: "Siti",
+        providerSpecificData: { authMethod: "device" },
+      });
+      createdIds.push(withNameOnly.id);
+      expect(withNameOnly.name).toBe("Siti");
+
+      const firstAnonymous = await createProviderConnection({
+        provider,
+        authType: "oauth",
+        accessToken: `codebuddy-access-${crypto.randomUUID()}`,
+        providerSpecificData: { authMethod: "device" },
+      });
+      createdIds.push(firstAnonymous.id);
+      expect(firstAnonymous.name).toMatch(/^CodeBuddy-\d+$/);
+
+      const secondAnonymous = await createProviderConnection({
+        provider,
+        authType: "oauth",
+        accessToken: `codebuddy-access-${crypto.randomUUID()}`,
+        providerSpecificData: { authMethod: "device" },
+      });
+      createdIds.push(secondAnonymous.id);
+      expect(secondAnonymous.name).toMatch(/^CodeBuddy-\d+$/);
+      expect(secondAnonymous.name).not.toBe(firstAnonymous.name);
+
+      const namedByOperator = await createProviderConnection({
+        provider,
+        authType: "oauth",
+        accessToken: `codebuddy-access-${crypto.randomUUID()}`,
+        name: "Pool A",
+        email: "other@example.com",
+        providerSpecificData: { authMethod: "device" },
+      });
+      createdIds.push(namedByOperator.id);
+      expect(namedByOperator.name).toBe("Pool A");
+    } finally {
+      for (const id of createdIds) await deleteProviderConnection(id);
+    }
+  });
+
   test("does not overwrite a connection with a duplicate account name", async () => {
     const provider = `repo-test-${crypto.randomUUID()}`;
     const createdIds = [];

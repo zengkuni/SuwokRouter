@@ -15,6 +15,7 @@ import {
   refreshCodebuddyIntlToken,
 } from "@/services/tokenRefresh/providers.js";
 import { resolveCodeBuddyModels } from "@/services/codebuddyModels.js";
+import { resolveCodeBuddyIdentity } from "@/services/codebuddyAccount.js";
 
 export const dynamic = "force-dynamic";
 
@@ -167,7 +168,8 @@ export async function POST(request) {
     const isWebCookieProvider = !!WEB_COOKIE_PROVIDERS[provider];
 
     const supportsApiKeyMode = !!AI_PROVIDERS[provider]?.authModes?.includes("apikey");
-    const isValidProvider = APIKEY_PROVIDERS[provider] ||
+    const isValidProvider = CODEBUDDY_TOKEN_PROVIDERS.has(provider) ||
+      APIKEY_PROVIDERS[provider] ||
       supportsApiKeyMode ||
       isWebCookieProvider ||
       isOpenAICompatibleProvider(provider) ||
@@ -306,6 +308,15 @@ export async function POST(request) {
       }
     }
 
+    let codeBuddyIdentity = null;
+    if (hasCodeBuddyTokens && accessToken) {
+      try {
+        codeBuddyIdentity = await resolveCodeBuddyIdentity(provider, accessToken);
+      } catch {
+        codeBuddyIdentity = null;
+      }
+    }
+
     const mergedProviderSpecificData = {
       ...(providerSpecificData || {}),
       connectionProxyEnabled: proxyConfig.connectionProxyEnabled,
@@ -326,6 +337,7 @@ export async function POST(request) {
       apiKey: normalizedApiKey || undefined,
       accessToken: accessToken || undefined,
       refreshToken: refreshToken || undefined,
+      ...(codeBuddyIdentity?.email ? { email: codeBuddyIdentity.email } : {}),
       ...(expiresIn ? { expiresIn } : {}),
       ...(expiresAt ? { expiresAt } : {}),
       autoName,

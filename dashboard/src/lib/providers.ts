@@ -97,10 +97,13 @@ export function resolveAuthFlow(
   return "apikey";
 }
 
-function authModeWord(mode: string): string {
+function authModeWord(mode: string, providerId?: string): string {
   const m = (mode || "").toLowerCase();
   if (m.includes("oauth")) return "OAuth";
   if (m.includes("device")) return "Device";
+  if (m.includes("import") && (providerId === "codebuddy-cn" || providerId === "codebuddy-intl")) {
+    return "Access Token";
+  }
   if (m.includes("import")) return "Import";
   if (m === "local") return "Local";
   if (m === "none") return "No auth";
@@ -111,7 +114,8 @@ function authModeWord(mode: string): string {
 export function authModeLabels(
   authType?: string,
   noAuth?: boolean,
-  authModes?: string[]
+  authModes?: string[],
+  providerId?: string,
 ): string[] {
   if (noAuth) return ["Local"];
   const modes = Array.isArray(authModes) && authModes.length
@@ -121,7 +125,7 @@ export function authModeLabels(
   const seen = new Set<string>();
   const out: string[] = [];
   for (const m of modes) {
-    const word = authModeWord(m);
+    const word = authModeWord(m, providerId);
     if (!seen.has(word)) {
       seen.add(word);
       out.push(word);

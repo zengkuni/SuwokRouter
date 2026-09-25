@@ -1,4 +1,5 @@
 import { CODEBUDDY_CONFIG } from "../constants/oauth.js";
+import { resolveCodeBuddyIdentity } from "../../../services/codebuddyAccount.js";
 
 const codebuddyCn = {
   config: CODEBUDDY_CONFIG,
@@ -64,12 +65,21 @@ const codebuddyCn = {
     if (data.code === 11217) return { ok: true, data: { error: "authorization_pending" } };
     return { ok: false, data: { error: data.msg || "unknown_error" } };
   },
-  mapTokens: (tokens) => ({
-    accessToken: tokens.access_token,
-    refreshToken: tokens.refresh_token,
-    expiresIn: tokens.expires_in || 86400,
-    providerSpecificData: {},
-  }),
+  postExchange: async (tokens) => {
+    const identity = await resolveCodeBuddyIdentity("codebuddy-cn", tokens.access_token);
+    return { userInfo: identity };
+  },
+  mapTokens: (tokens, extra) => {
+    const identity = extra?.userInfo || {};
+    return {
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      expiresIn: tokens.expires_in || 86400,
+      ...(identity.email ? { email: identity.email } : {}),
+      ...(identity.name ? { displayName: identity.name } : {}),
+      providerSpecificData: { authMethod: "device" },
+    };
+  },
 };
 
 export default codebuddyCn;

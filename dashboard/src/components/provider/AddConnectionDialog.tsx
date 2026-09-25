@@ -165,7 +165,7 @@ export function AddConnectionDialog({
     if (mode === "device") return "Device Code";
     if (mode === "import") {
       return providerId === "codebuddy-cn" || providerId === "codebuddy-intl"
-        ? "AT/RT"
+        ? "Access Token"
         : "Import Token";
     }
     return mode;
@@ -1093,13 +1093,13 @@ export function AddConnectionDialog({
             : undefined
           : undefined,
         codeBuddyTokens: effectiveFlow === "import" && isCodeBuddyProvider
-          ? validCodeBuddyRows.map((row, index) => {
+          ? validCodeBuddyRows.map((row) => {
             const explicitName = validCodeBuddyRows.length === 1 ? finalName : "";
             return {
               ...(row.credentialToken
                 ? { credentialToken: row.credentialToken }
                 : { accessToken: row.accessToken, refreshToken: row.refreshToken }),
-              name: explicitName || `suwokrouter-account${index + 1}`,
+              name: explicitName,
               autoName: !explicitName,
             };
           })

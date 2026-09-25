@@ -32,6 +32,7 @@ import {
 import { getProviderIconSrc } from "@/lib/provider-icon";
 import { providerColor, providerIcon, providerName } from "@/lib/providers";
 import { probeEnabled } from "@/lib/live-mode";
+import { getQuotaStatus } from "@/lib/quota-status";
 
 const USAGE_PROVIDERS = new Set([
   "github",
@@ -58,6 +59,7 @@ const QUOTA_PAGE_SIZE = 25;
 const QUOTA_MAX_ACCOUNTS_PER_PROVIDER = 200;
 const QUOTA_FETCH_CONCURRENCY = 6;
 const QUOTA_VISIBLE_ROWS = 3;
+const QUOTA_REFRESH_INTERVAL = 60_000;
 
 type QuotaFetchJob = {
   run: () => Promise<unknown>;
@@ -250,9 +252,10 @@ function quotaStatus(card: QuotaCard): React.ReactNode {
   if (card.error) return <StatusBadge tone="err">Error</StatusBadge>;
   if (card.conn.isActive === false) return <StatusBadge tone="muted">Disabled</StatusBadge>;
   if (card.quotas.length === 0) return <StatusBadge tone="muted">No quota</StatusBadge>;
-  const min = Math.min(...card.quotas.map((q) => q.remaining));
-  if (min <= 0) return <StatusBadge tone="err">Limit reached</StatusBadge>;
-  if (min < 30) return <StatusBadge tone="warn">Low quota</StatusBadge>;
+  const status = getQuotaStatus(card.conn.provider, card.quotas);
+  if (status === "no-quota") return <StatusBadge tone="muted">No quota</StatusBadge>;
+  if (status === "limit-reached") return <StatusBadge tone="err">Limit reached</StatusBadge>;
+  if (status === "low-quota") return <StatusBadge tone="warn">Low quota</StatusBadge>;
   return <StatusBadge tone="ok">OK</StatusBadge>;
 }
 
@@ -306,6 +309,8 @@ export default function QuotaMonitor() {
     queryFn: listProviderCounts,
     enabled: probeEnabled(),
     retry: false,
+    refetchInterval: QUOTA_REFRESH_INTERVAL,
+    refetchIntervalInBackground: false,
   });
 
   const providerGroups = useMemo<QuotaProviderGroup[]>(() => {
@@ -346,6 +351,8 @@ export default function QuotaMonitor() {
       enabled: probeEnabled(),
       retry: false,
       staleTime: 30_000,
+      refetchInterval: QUOTA_REFRESH_INTERVAL,
+      refetchIntervalInBackground: false,
     })),
   });
 
@@ -400,6 +407,8 @@ export default function QuotaMonitor() {
       enabled: Boolean(connection.id),
       retry: false,
       staleTime: 30_000,
+      refetchInterval: QUOTA_REFRESH_INTERVAL,
+      refetchIntervalInBackground: false,
     })),
   });
 
