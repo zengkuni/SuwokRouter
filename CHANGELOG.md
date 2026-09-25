@@ -7,7 +7,7 @@ All notable changes to Sway Router are documented here.
 ### Added
 
 - Label CodeBuddy connections with the account email collected from the CodeBuddy server (`GET /v2/accounts`) during device login and Access Token import, then the account name, then `CodeBuddy-1`, `CodeBuddy-2`, … when neither is available.
-- Port upstream SwayRouter v1.0.7: stop fallback on non-retryable request statuses (400/405/413/415/422) and cancellations (499) without cooling the account, turn aborted combo requests into a terminal 499, replace the CodeBuddy CN/Intl model catalogs with the real ones, drop CodeBuddy API-key mode (device + Access Token only), add package-aware quota status (an exhausted CodeBuddy package no longer marks the account limited) with 60s quota refresh, line numbers in the CodeBuddy token field, and a responsive model search row.
+- Port upstream SwayRouter v1.0.7: stop fallback on non-retryable request statuses (400/405/413/415/422) and cancellations (499) without cooling the account, turn aborted combo requests into a terminal 499, replace the CodeBuddy CN/Intl model catalogs with the real ones, drop CodeBuddy API-key mode (device + Access Token only), add package-aware quota status (an exhausted CodeBuddy package no longer marks the account limited) with 60s quota refresh, and line numbers in the CodeBuddy token field.
 - Add a safe **Migrate from 9Router** flow with local database detection and
   9Router JSON import.
 - Add migration previews, selectable data scopes, conflict handling, automatic
