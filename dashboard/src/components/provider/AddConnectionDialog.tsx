@@ -653,7 +653,6 @@ export function AddConnectionDialog({
     let cancelled = false;
     let attempts = 0;
     const providerId = provider.id;
-    const providerName = provider.name;
     const state = oauthState;
     const maxAttempts = 200;
 
@@ -671,7 +670,7 @@ export function AddConnectionDialog({
           setLoading(true);
           try {
             await onSubmitRef.current({
-              name: nameRef.current.trim() || providerName,
+              name: nameRef.current.trim(),
               alreadySaved: true,
             });
           } catch {
@@ -843,7 +842,6 @@ export function AddConnectionDialog({
     let timer: ReturnType<typeof setTimeout> | null = null;
     let stopped = false;
     const providerId = provider.id;
-    const providerName = provider.name;
     const verifier = deviceCodeVerifier || undefined;
     const intervalMs = Math.max(2, pollIntervalSec) * 1000;
 
@@ -861,7 +859,7 @@ export function AddConnectionDialog({
           setLoading(true);
           try {
             await onSubmitRef.current({
-              name: nameRef.current.trim() || providerName,
+              name: nameRef.current.trim(),
               alreadySaved: true,
             });
           } catch {
