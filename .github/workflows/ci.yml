@@ -111,9 +111,9 @@ jobs:
       - name: Syntax check
         run: bun scripts/syntaxcheck.js
 
-  binary:
-    name: Compiled binary smoke (${{ matrix.target }})
-    runs-on: ${{ matrix.os }}
+  binary-linux:
+    name: Compiled binary smoke (bun-linux-x64)
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
       postgres:
@@ -138,12 +138,30 @@ jobs:
           --health-retries 10
         ports:
           - 6379:6379
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Install deps
+        run: bun install --frozen-lockfile
+      - name: Build dashboard
+        run: bun run build:dashboard
+      - name: Build binary
+        run: bun run build:binary
+      - name: Smoke compiled package
+        run: bun run smoke:binary
+
+  binary-cross:
+    name: Compiled binary artifact (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            target: bun-linux-x64
           - os: windows-latest
             target: bun-windows-x64
           - os: macos-15-intel
@@ -157,24 +175,22 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.14
-      - name: Install server deps
+      - name: Install deps
         run: bun install --frozen-lockfile
-      - name: Install dashboard deps
-        working-directory: dashboard
-        run: bun install --frozen-lockfile
-      - name: Build compiled package
-        env:
-          BUN_TARGET: ${{ matrix.target }}
+      - name: Build dashboard
+        run: bun run build:dashboard
+      # macOS/Windows runners cannot host Postgres service containers, so the
+      # cross-target smoke verifies the artifact boots and reaches the
+      # driver check (artifact-only); full readiness is covered on Linux.
+      - name: Build binary
         run: bun run build:binary
-      - name: Smoke compiled package
         env:
           BUN_TARGET: ${{ matrix.target }}
+      - name: Smoke compiled artifact
         run: bun run smoke:binary
-      - name: Upload binary package
-        uses: actions/upload-artifact@v4
-        with:
-          name: suwokrouter-${{ matrix.target }}
-          path: dist-binary
+        env:
+          BUN_TARGET: ${{ matrix.target }}
+          SUWOK_SMOKE_NO_DB: "1"
 
   dashboard:
     name: Dashboard (Vite build)
