@@ -2,6 +2,15 @@
 
 All notable changes to Sway Router are documented here.
 
+## [1.0.8] - 2026-09-26
+
+### Fixed
+
+- Make the OAuth **Copy link** button work on Docker deployments reached over plain HTTP: `navigator.clipboard` only exists in a secure context, so copying now falls back to the legacy `execCommand` path and reports a failure instead of staying silent.
+- Show how many provider connections are hidden behind pagination and add a **Load more** button: the sidebar counts every account (459 for the busiest custom node) while the connection list only rendered the first 50 and loaded the rest solely on scroll-to-bottom.
+
+[1.0.8]: https://github.com/envielxyz/SuwokRouter/releases/tag/v1.0.8
+
 ## [1.0.7] - 2026-09-26
 
 ### Added
