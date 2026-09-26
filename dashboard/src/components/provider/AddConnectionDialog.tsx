@@ -38,6 +38,7 @@ import {
   type OAuthCallbackPayload,
 } from "@/lib/oauth-callback";
 import { getErrorMessage } from "@/lib/api";
+import { copyText } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
 import { ApiKeyCredentialsFields } from "./ApiKeyAuthFields";
 import { AuthLinkFields } from "./AuthLinkFields";
@@ -1044,13 +1045,14 @@ export function AddConnectionDialog({
 
   async function copyAuthLink() {
     if (!authLink) return;
-    try {
-      await navigator.clipboard.writeText(authLink);
-      setLinkCopied(true);
-      window.setTimeout(() => setLinkCopied(false), 1500);
-    } catch {
-
+    const copied = await copyText(authLink);
+    if (!copied) {
+      setOauthBootError("Could not copy the link — select it above and copy manually.");
+      return;
     }
+    setOauthBootError(null);
+    setLinkCopied(true);
+    window.setTimeout(() => setLinkCopied(false), 1500);
   }
 
   function openAuthLink() {
