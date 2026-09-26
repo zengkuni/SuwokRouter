@@ -1,4 +1,6 @@
 import { DefaultExecutor } from "./default.js";
+import { withLeadingSystemMessage } from "./codebuddy-messages.js";
+
 export class CodeBuddyExecutor extends DefaultExecutor {
   constructor() {
     super("codebuddy-cn");
@@ -12,9 +14,11 @@ export class CodeBuddyExecutor extends DefaultExecutor {
     if (eff === "none" || eff === "off") {
       delete transformed.reasoning_effort;
     } else if (eff) {
-
       transformed.reasoning_summary = "auto";
     }
+
+    const source = Array.isArray(transformed.messages) ? transformed.messages : [];
+    transformed.messages = withLeadingSystemMessage(source);
 
     return transformed;
   }

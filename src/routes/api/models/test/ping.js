@@ -2,6 +2,7 @@ import { getActiveApiKey } from "@/lib/localDb";
 import { RUNTIME_CONFIG } from "@/shared/constants/config";
 import { MODEL_TEST_TIMEOUT_MS } from "@/config/runtimeConfig.js";
 import { getConsistentMachineId } from "@/shared/utils/machineId";
+import { resolveProviderId } from "@/shared/constants/providers";
 
 const CLI_TOKEN_SALT = "suwokrouter-cli-auth";
 
@@ -70,6 +71,31 @@ function buildProbeMessages(options) {
     ];
   }
   return [{ role: "user", content: "hi" }];
+}
+
+/**
+ * Providers whose probe needs a bespoke request shape. Callers that only know
+ * the routed model id (combo test, CLI) get the same treatment as the per
+ * provider test panel.
+ */
+export function resolveProbeOptions(model) {
+  const value = String(model || "");
+  const separator = value.indexOf("/");
+  const alias = separator > 0 ? value.slice(0, separator) : "";
+  if (!alias) return {};
+  let providerId = alias;
+  try {
+    providerId = resolveProviderId(alias);
+  } catch {
+    providerId = alias;
+  }
+  if (providerId !== "codebuddy-intl") return {};
+  return {
+    providerId,
+    stream: true,
+    probeFormat: "codebuddy-intl",
+    timeoutMs: 60_000,
+  };
 }
 
 export async function pingModelByKind(

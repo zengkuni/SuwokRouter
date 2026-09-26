@@ -1,4 +1,5 @@
 import { DefaultExecutor } from "./default.js";
+import { withLeadingSystemMessage } from "./codebuddy-messages.js";
 
 export class CodeBuddyIntlExecutor extends DefaultExecutor {
   constructor() {
@@ -17,16 +18,10 @@ export class CodeBuddyIntlExecutor extends DefaultExecutor {
     }
 
     const source = Array.isArray(transformed.messages) ? transformed.messages : [];
-    const systemMessages = source
-      .filter((message) => message && ["system", "developer"].includes(message.role))
-      .map((message) => ({ ...message, role: "system" }));
-    transformed.messages = [...systemMessages];
-    for (const message of source) {
-      if (!message || typeof message !== "object" || ["system", "developer"].includes(message.role)) continue;
+    transformed.messages = withLeadingSystemMessage(source);
+    for (const message of transformed.messages) {
       if (message.role === "user" && typeof message.content === "string") {
-        transformed.messages.push({ ...message, content: [{ type: "text", text: message.content }] });
-      } else {
-        transformed.messages.push({ ...message });
+        message.content = [{ type: "text", text: message.content }];
       }
     }
 

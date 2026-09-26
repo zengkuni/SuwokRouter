@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { pingModelByKind } from "./ping.js";
+import { pingModelByKind, resolveProbeOptions } from "./ping.js";
 
 const originalFetch = globalThis.fetch;
 
@@ -167,5 +167,22 @@ describe("pingModelByKind", () => {
 
     expect(result).toMatchObject({ ok: false, status: 400 });
     expect(result.error).toContain("CodeBuddy 11102");
+  });
+});
+
+describe("resolveProbeOptions", () => {
+  test("recognizes the CodeBuddy Intl alias from the routed model id", () => {
+    expect(resolveProbeOptions("cbai/kimi-k3")).toEqual({
+      providerId: "codebuddy-intl",
+      stream: true,
+      probeFormat: "codebuddy-intl",
+      timeoutMs: 60_000,
+    });
+  });
+
+  test("leaves other providers on the default probe", () => {
+    expect(resolveProbeOptions("cx/gpt-5.6")).toEqual({});
+    expect(resolveProbeOptions("no-alias-model")).toEqual({});
+    expect(resolveProbeOptions("")).toEqual({});
   });
 });
