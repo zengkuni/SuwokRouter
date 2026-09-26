@@ -55,6 +55,10 @@ import {
 } from "@/lib/custom-models-api";
 import { api, getErrorMessage } from "@/lib/api";
 import {
+  CONNECTION_PAGE_SIZE as SHARED_CONNECTION_PAGE_SIZE,
+  MAX_LOADED_CONNECTIONS as SHARED_MAX_LOADED_CONNECTIONS,
+} from "@/lib/connections-paging";
+import {
   fetchSettings,
   getProviderStickyRoundRobin,
   getProviderStrategy,
@@ -100,8 +104,8 @@ function modelTestKey(providerId: string, modelId: string) {
   return `${providerId}::${modelId}`;
 }
 
-const CONNECTION_PAGE_SIZE = 50;
-const MAX_LOADED_CONNECTIONS = 1_000;
+const CONNECTION_PAGE_SIZE = SHARED_CONNECTION_PAGE_SIZE;
+const MAX_LOADED_CONNECTIONS = SHARED_MAX_LOADED_CONNECTIONS;
 
 function isProviderActive(provider: AvailableProvider): boolean {
   // OpenCode Free is a built-in public catalog, so it is active without
@@ -1788,6 +1792,11 @@ export default function Provider() {
                     connListRef={connListRef}
                     connVirtualizer={connVirtualizer}
                     connResults={connResults}
+                    loadingMoreConnections={connectionsQ.isFetching && connPage > 1}
+                    onLoadMoreConnections={() => {
+                      if (connectionsQ.isFetching || connectionsCapped) return;
+                      setConnPage((page) => page + 1);
+                    }}
                     onStrategyChange={(value) => strategyM.mutate({ strategy: value })}
                     onStickyDraftChange={setStickyDraft}
                     onSaveSticky={() => {

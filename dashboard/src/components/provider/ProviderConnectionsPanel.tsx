@@ -3,6 +3,7 @@ import {
   ArrowDown,
   ArrowUp,
   Copy,
+  Loader2,
   Pencil,
   Play,
   Plus,
@@ -20,6 +21,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Segmented } from "@/components/ui/segmented";
 import { Tooltip } from "@/components/ui/tooltip";
 import { TabsContent } from "@/components/ui/tabs";
+import { CONNECTION_PAGE_SIZE } from "@/lib/connections-paging";
 import type { ReactVirtualizer } from "@tanstack/react-virtual";
 import { type AvailableProvider, type Connection } from "@/lib/connections-api";
 import { connectionCtaLabel } from "@/lib/providers-mock";
@@ -70,6 +72,8 @@ type ProviderConnectionsPanelProps = {
   connListRef: RefObject<HTMLDivElement | null>;
   connVirtualizer: ReactVirtualizer<HTMLDivElement, Element>;
   connResults: Record<string, ConnectionTestResult>;
+  loadingMoreConnections: boolean;
+  onLoadMoreConnections: () => void;
   onStrategyChange: (value: RotationStrategy) => void | Promise<void>;
   onStickyDraftChange: (value: string) => void;
   onSaveSticky: () => void | Promise<void>;
@@ -109,6 +113,8 @@ export function ProviderConnectionsPanel({
   connListRef,
   connVirtualizer,
   connResults,
+  loadingMoreConnections,
+  onLoadMoreConnections,
   onStrategyChange,
   onStickyDraftChange,
   onSaveSticky,
@@ -127,6 +133,11 @@ export function ProviderConnectionsPanel({
   onEditConnection,
   onDeleteConnection,
 }: ProviderConnectionsPanelProps) {
+  const remainingConnections = Math.max(
+    0,
+    (totalConnections ?? conns.length) - conns.length,
+  );
+
   return (
                   <TabsContent
                     value="connections"
@@ -605,6 +616,30 @@ export function ProviderConnectionsPanel({
                           </ScrollArea>
                         </div>
                       )}
+
+                      {remainingConnections > 0 && !connectionsCapped ? (
+                        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border/60 px-1 pt-2 text-[11px] text-muted-foreground">
+                          <span>
+                            Showing {conns.length.toLocaleString()} of {totalConnections.toLocaleString()} connections.
+                            Scroll the list or load more below.
+                          </span>
+                          <RippleButton
+                            size="sm"
+                            variant="outline"
+                            disabled={loadingMoreConnections}
+                            onClick={onLoadMoreConnections}
+                          >
+                            {loadingMoreConnections ? (
+                              <>
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                Loading…
+                              </>
+                            ) : (
+                              <>Load {Math.min(CONNECTION_PAGE_SIZE, remainingConnections).toLocaleString()} more</>
+                            )}
+                          </RippleButton>
+                        </div>
+                      ) : null}
                     </div>
                   </TabsContent>
   );

@@ -1,0 +1,2 @@
+export const CONNECTION_PAGE_SIZE = 50;
+export const MAX_LOADED_CONNECTIONS = 1_000;
