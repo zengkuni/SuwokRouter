@@ -21,6 +21,10 @@ LABEL org.opencontainers.image.source="https://github.com/zengkuni/SuwokRouter"
 LABEL org.opencontainers.image.licenses="MIT"
 
 ENV NODE_ENV=production
+# curl drives the Grok SSO -> Build OAuth exchange: accounts.x.ai gates its
+# consent + approve endpoints behind TLS fingerprint checks that non-browser
+# fetch (Bun/undici) fails with 403.
+RUN apk add --no-cache curl
 ENV PORT=1212
 ENV HOSTNAME=0.0.0.0
 ENV DATA_DIR=/app/data

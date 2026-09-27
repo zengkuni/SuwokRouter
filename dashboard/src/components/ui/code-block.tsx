@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Check, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { copyText } from "@/lib/clipboard";
 
 type CodeLang =
   | "python"
@@ -214,13 +215,9 @@ export function CodeBlock({
   const gutterWidth = String(lines.length).length;
 
   async function onCopy() {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
-    } catch {
-
-    }
+    if (!(await copyText(code))) return;
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
   }
 
   return (

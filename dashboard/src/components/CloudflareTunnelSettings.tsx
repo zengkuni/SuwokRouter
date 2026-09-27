@@ -17,6 +17,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { Frame, FrameHeader, FramePanel } from "@/components/ui/frame";
 import { getErrorMessage } from "@/lib/api";
 import { probeEnabled } from "@/lib/live-mode";
+import { copyText } from "@/lib/clipboard";
 import { fetchSettings, updateSettings } from "@/lib/settings-api";
 import {
   clientPingAny,
@@ -399,13 +400,12 @@ export function CloudflareTunnelSettings({ requireApiKey, requireLogin, hasPassw
 
   const copyTunnelUrl = async () => {
     const url = `${tunnelPublicUrl || tunnelUrl}/v1`;
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopiedTunnelUrl(true);
-      window.setTimeout(() => setCopiedTunnelUrl(false), 1500);
-    } catch (error) {
-      toast.error(getErrorMessage(error, "Failed to copy tunnel URL"));
+    if (!(await copyText(url))) {
+      toast.error("Failed to copy tunnel URL");
+      return;
     }
+    setCopiedTunnelUrl(true);
+    window.setTimeout(() => setCopiedTunnelUrl(false), 1500);
   };
 
   return (

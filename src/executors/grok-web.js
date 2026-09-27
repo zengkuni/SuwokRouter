@@ -2,6 +2,7 @@ import { BaseExecutor } from "./base.js";
 import { PROVIDERS } from "../config/providers.js";
 import { SSE_DONE, SSE_HEADERS_NO_BUFFER } from "../utils/sseConstants.js";
 import { sseChunk } from "../utils/sse.js";
+import { GROK_ANTI_BOT_MESSAGE, isGrokAntiBotResponse } from "../services/grokSsoProbe.js";
 
 const GROK_CHAT_API = PROVIDERS["grok-web"].baseUrl;
 const GROK_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36";
@@ -219,8 +220,8 @@ async function buildNonStreamingResponse(eventStream, model, cid, created, isThi
 }
 
 export class GrokWebExecutor extends BaseExecutor {
-  constructor() {
-    super("grok-web", PROVIDERS["grok-web"]);
+  constructor(provider = "grok-web") {
+    super(provider, PROVIDERS[provider] || PROVIDERS["grok-web"]);
   }
 
   async execute({ model, body, stream, credentials, signal, log }) {
@@ -260,6 +261,7 @@ export class GrokWebExecutor extends BaseExecutor {
 
     const traceId = randomHex(16);
     const spanId = randomHex(8);
+    const statsigId = credentials?.providerSpecificData?.xStatsigId?.trim() || generateStatsigId();
     const headers = {
       Accept: "*/*",
       "Accept-Encoding": "gzip, deflate, br, zstd",
@@ -277,7 +279,7 @@ export class GrokWebExecutor extends BaseExecutor {
       "Sec-Fetch-Mode": "cors",
       "Sec-Fetch-Site": "same-origin",
       "User-Agent": GROK_USER_AGENT,
-      "x-statsig-id": generateStatsigId(),
+      "x-statsig-id": statsigId,
       "x-xai-request-id": crypto.randomUUID(),
       traceparent: `00-${traceId}-${spanId}-00`,
     };
@@ -305,9 +307,17 @@ export class GrokWebExecutor extends BaseExecutor {
 
     if (!response.ok) {
       const status = response.status;
+      const bodyText = await response.text().catch(() => "");
       let errMsg = `Grok returned HTTP ${status}`;
-      if (status === 401 || status === 403) errMsg = "Grok auth failed — SSO cookie may be expired. Re-paste your sso cookie value from grok.com.";
-      else if (status === 429) errMsg = "Grok rate limited. Wait a moment and retry, or rotate cookies.";
+      if (isGrokAntiBotResponse(status, bodyText)) {
+        errMsg = `${GROK_ANTI_BOT_MESSAGE}. Grok said: ${bodyText.slice(0, 160)}`;
+      } else if (status === 401) {
+        errMsg = "Grok auth failed — the SSO cookie is expired. Re-paste the sso cookie value from grok.com.";
+      } else if (status === 403) {
+        errMsg = "Grok refused the request (403) — the SSO cookie may have lost access to this model.";
+      } else if (status === 429) {
+        errMsg = "Grok rate limited. Wait a moment and retry, or rotate cookies.";
+      }
       log?.warn?.("GROK-WEB", errMsg);
       const errResp = new Response(JSON.stringify({
         error: { message: errMsg, type: "upstream_error", code: `HTTP_${status}` },

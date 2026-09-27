@@ -11,6 +11,8 @@ import { KiroService } from "@/lib/oauth/services/kiro";
 import { AGENTROUTER_MODELS_URL, AGENTROUTER_OPENAI_HEADERS } from "open-sse/providers/shared.js";
 import { OPENCODE_USER_AGENT } from "open-sse/utils/opencode.js";
 import { resolveCodeBuddyModels } from "@/services/codebuddyModels.js";
+import { validateGrokSsoCookie } from "@/services/grokSsoAccount.js";
+import { convertGrokSsoToBuild } from "@/services/grokSsoBuild.js";
 
 const VALIDATION_TIMEOUT_MS = 15000;
 
@@ -483,57 +485,25 @@ export async function POST(request) {
           break;
         }
 
+        case "grok-cli": {
+          // Strongest proof of a grok.com sso cookie: exchange it into real
+          // Grok Build OAuth credentials via the device flow. grok-web keeps
+          // the cheap identity-only check handled below.
+          const converted = await convertGrokSsoToBuild(apiKey);
+          isValid = converted.ok;
+          error = converted.ok ? null : converted.error;
+          break;
+        }
+
         case "grok-web": {
-          const token = apiKey.startsWith("sso=") ? apiKey.slice(4) : apiKey;
-
-          const randomHex = (n) => {
-            const a = new Uint8Array(n);
-            crypto.getRandomValues(a);
-            return Array.from(a, (b) => b.toString(16).padStart(2, "0")).join("");
-          };
-          const statsigId = Buffer.from("e:TypeError: Cannot read properties of null (reading 'children')").toString("base64");
-          const traceId = randomHex(16);
-          const spanId = randomHex(8);
-          const res = await fetchWithTimeout("https://grok.com/rest/app-chat/conversations/new", {
-            method: "POST",
-            headers: {
-              Accept: "*/*",
-              "Accept-Encoding": "gzip, deflate, br, zstd",
-              "Accept-Language": "en-US,en;q=0.9",
-              "Cache-Control": "no-cache",
-              "Content-Type": "application/json",
-              Cookie: `sso=${token}`,
-              Origin: "https://grok.com",
-              Pragma: "no-cache",
-              Referer: "https://grok.com/",
-              "Sec-Ch-Ua": '"Google Chrome";v="136", "Chromium";v="136", "Not(A:Brand";v="24"',
-              "Sec-Ch-Ua-Mobile": "?0",
-              "Sec-Ch-Ua-Platform": '"macOS"',
-              "Sec-Fetch-Dest": "empty",
-              "Sec-Fetch-Mode": "cors",
-              "Sec-Fetch-Site": "same-origin",
-              "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
-              "x-statsig-id": statsigId,
-              "x-xai-request-id": crypto.randomUUID(),
-              traceparent: `00-${traceId}-${spanId}-00`,
-            },
-            body: JSON.stringify({
-              temporary: true, modelName: "grok-4", modelMode: "MODEL_MODE_GROK_4", message: "ping",
-              fileAttachments: [], imageAttachments: [],
-              disableSearch: false, enableImageGeneration: false, returnImageBytes: false,
-              returnRawGrokInXaiRequest: false, enableImageStreaming: false, imageGenerationCount: 0,
-              forceConcise: false, toolOverrides: {}, enableSideBySide: true, sendFinalMetadata: true,
-              isReasoning: false, disableTextFollowUps: true, disableMemory: true,
-              forceSideBySide: false, isAsyncChat: false, disableSelfHarmShortCircuit: false,
-            }),
-          });
-
-          if (res.status === 401 || res.status === 403) {
-            isValid = false;
-            error = "Invalid SSO cookie — re-paste from grok.com DevTools → Cookies → sso";
-          } else {
+          const verdict = await validateGrokSsoCookie(apiKey);
+          if (verdict.valid === null) {
             isValid = true;
+            error = null;
+            break;
           }
+          isValid = verdict.valid;
+          error = verdict.error;
           break;
         }
 

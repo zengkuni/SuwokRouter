@@ -14,6 +14,7 @@ import {
 } from "../config/grokCli.js";
 import { MEMORY_CONFIG } from "../config/runtimeConfig.js";
 import { resolveSessionId } from "../utils/sessionManager.js";
+import { GrokWebExecutor } from "./grok-web.js";
 import { getConsistentMachineId } from "../shared/utils/machineId.js";
 
 const SERVER_ID_PATTERN = /^(rs|fc|resp|msg)_/;
@@ -484,6 +485,14 @@ export class GrokCliExecutor extends BaseExecutor {
   }
 
   async execute(args) {
+    // Legacy grok.com SSO-import rows without exchanged Build tokens cannot use
+    // the Grok Build CLI protocol, so they fall back to the web (app-chat)
+    // executor. Modern SSO imports hold real OAuth credentials and use the CLI
+    // transport below.
+    if (args.credentials?.providerSpecificData?.authMethod === "sso" && !args.credentials?.accessToken) {
+      if (!this._webExecutor) this._webExecutor = new GrokWebExecutor("grok-cli");
+      return this._webExecutor.execute(args);
+    }
 
     if (!this._agentId && !args.credentials?.providerSpecificData?.deviceId) {
       try {

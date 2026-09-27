@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { RippleButton } from "@/components/animate/ripple-button";
+import { copyText } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/ui/tooltip";
 
@@ -22,18 +23,14 @@ export function CopyButton({
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
-    if (!navigator.clipboard) {
+    const copied = await copyText(value);
+    if (!copied) {
       onCopyError?.();
       return;
     }
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
-      onCopy?.();
-    } catch {
-      onCopyError?.();
-    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
+    onCopy?.();
   }
 
   return (

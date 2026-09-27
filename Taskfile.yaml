@@ -1,0 +1,19 @@
+version: "3"
+
+tasks:
+  dev:
+    desc: Run frontend and backend together
+    deps:
+      - frontend
+      - server
+
+  frontend:
+    desc: Run dashboard development server
+    dir: dashboard
+    cmds:
+      - bun run dev --port 5174 --host
+
+  server:
+    desc: Run backend server
+    cmds:
+      - bun run src/server.ts

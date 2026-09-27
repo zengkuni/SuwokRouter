@@ -16,6 +16,8 @@ import {
 } from "@/services/tokenRefresh/providers.js";
 import { resolveCodeBuddyModels } from "@/services/codebuddyModels.js";
 import { resolveCodeBuddyIdentity } from "@/services/codebuddyAccount.js";
+import { fetchGrokSsoIdentity } from "@/services/grokSsoAccount.js";
+import { convertGrokSsoToBuild } from "@/services/grokSsoBuild.js";
 
 export const dynamic = "force-dynamic";
 
@@ -166,12 +168,14 @@ export async function POST(request) {
     const proxyPoolId = proxyPoolResult.proxyPoolId;
 
     const isWebCookieProvider = !!WEB_COOKIE_PROVIDERS[provider];
+    const supportsSsoImport = AI_PROVIDERS[provider]?.supportsSso === true;
 
     const supportsApiKeyMode = !!AI_PROVIDERS[provider]?.authModes?.includes("apikey");
     const isValidProvider = CODEBUDDY_TOKEN_PROVIDERS.has(provider) ||
       APIKEY_PROVIDERS[provider] ||
       supportsApiKeyMode ||
       isWebCookieProvider ||
+      supportsSsoImport ||
       isOpenAICompatibleProvider(provider) ||
       isAnthropicCompatibleProvider(provider) ||
       isCustomEmbeddingProvider(provider);
@@ -190,7 +194,9 @@ export async function POST(request) {
     if (!normalizedApiKey && !hasCodeBuddyCredentials && provider !== "ollama-local") {
       const missingCredential = CODEBUDDY_TOKEN_PROVIDERS.has(provider)
         ? "Access token or refresh token is required"
-        : `${isWebCookieProvider ? "Cookie value" : "API Key"} is required`;
+        : supportsSsoImport
+          ? "An sso cookie value is required"
+          : `${isWebCookieProvider ? "Cookie value" : "API Key"} is required`;
       return NextResponse.json({ error: missingCredential }, { status: 400 });
     }
 
@@ -247,6 +253,7 @@ export async function POST(request) {
     const hasCodeBuddyTokens = CODEBUDDY_TOKEN_PROVIDERS.has(provider)
       && Boolean(accessToken || refreshToken);
     let expiresIn;
+    let idToken = "";
     let expiresAt = jwtExpiresAt(accessToken);
     if (hasCodeBuddyTokens && !accessToken && refreshToken) {
       const refreshFn = provider === "codebuddy-cn"
@@ -317,6 +324,37 @@ export async function POST(request) {
       }
     }
 
+    let grokSsoIdentity = null;
+    let grokBuildTokens = null;
+    let grokBuildExpiresIn = null;
+    if (provider === "grok-cli" && supportsSsoImport && normalizedApiKey) {
+      // Exchange the pasted grok.com sso cookie for real Grok Build OAuth
+      // credentials (access + refresh token) instead of proxying the web API,
+      // which x.ai gates behind anti-bot on /rest/*.
+      const converted = await convertGrokSsoToBuild(normalizedApiKey);
+      if (!converted.ok) {
+        return NextResponse.json({ error: converted.error }, { status: 400 });
+      }
+      grokBuildTokens = converted;
+      grokBuildExpiresIn = Number(converted.expiresInSeconds) > 0 ? Number(converted.expiresInSeconds) : null;
+      accessToken = converted.accessToken;
+      refreshToken = converted.refreshToken;
+      expiresAt = converted.expiresAt;
+      if (converted.idToken) {
+        idToken = converted.idToken;
+      }
+      grokSsoIdentity = {
+        email: converted.email || "",
+        userId: converted.userId || "",
+      };
+    } else if (supportsSsoImport && normalizedApiKey) {
+      try {
+        grokSsoIdentity = await fetchGrokSsoIdentity(normalizedApiKey);
+      } catch {
+        grokSsoIdentity = null;
+      }
+    }
+
     const mergedProviderSpecificData = {
       ...(providerSpecificData || {}),
       connectionProxyEnabled: proxyConfig.connectionProxyEnabled,
@@ -326,23 +364,30 @@ export async function POST(request) {
 
     if (hasCodeBuddyTokens) mergedProviderSpecificData.authMethod = "token";
 
+    if (supportsSsoImport) mergedProviderSpecificData.authMethod = "sso";
+
     if (proxyPoolId !== null) {
       mergedProviderSpecificData.proxyPoolId = proxyPoolId;
     }
 
     const newConnection = await createProviderConnection({
       provider,
-      authType: hasCodeBuddyTokens ? "oauth" : isWebCookieProvider ? "cookie" : "apikey",
-      name: connectionName,
+      authType: hasCodeBuddyTokens || grokBuildTokens ? "oauth" : isWebCookieProvider ? "cookie" : "apikey",
+      ...(connectionName ? { name: connectionName } : {}),
       apiKey: normalizedApiKey || undefined,
       accessToken: accessToken || undefined,
       refreshToken: refreshToken || undefined,
+      ...(idToken ? { idToken } : {}),
       ...(codeBuddyIdentity?.email ? { email: codeBuddyIdentity.email } : {}),
-      ...(expiresIn ? { expiresIn } : {}),
+      ...(grokSsoIdentity?.email ? { email: grokSsoIdentity.email } : {}),
+      ...(expiresIn || grokBuildExpiresIn ? { expiresIn: expiresIn || grokBuildExpiresIn } : {}),
       ...(expiresAt ? { expiresAt } : {}),
       autoName,
 
-      priority: priority,
+      // Only send priority when the caller actually chose one: the OAuth
+      // re-import path merges the payload over the existing row, and an
+      // undefined value here would wipe the stored priority.
+      ...(priority !== undefined && priority !== null ? { priority } : {}),
       globalPriority: globalPriority || null,
       defaultModel: defaultModel || null,
       providerSpecificData: mergedProviderSpecificData,

@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { getErrorMessage } from "@/lib/api";
 import { probeEnabled } from "@/lib/live-mode";
 import { createApiKey, deleteApiKeyPermanent, displayPrefix, getApiKeyRaw, listApiKeys, rotateApiKey, updateApiKey, type ApiKey } from "@/lib/api-keys-api";
+import { copyText } from "@/lib/clipboard";
 
 type ConfirmState = { title: string; message: string; confirmLabel?: string; destructive?: boolean; onConfirm: () => void };
 
@@ -55,7 +56,7 @@ export default function ManageApiKey() {
   const handleRotateKey = (key: ApiKey) => setConfirmState({ title: "Rotate API key", message: `Generate a new secret for “${key.name}”? The old secret will stop working immediately while the key identity stays the same.`, confirmLabel: "Rotate secret", destructive: true, onConfirm: async () => { setConfirmState(null); setRotatingKeyId(key.id); try { const rotated = await rotateApiKey(key.id); setKeys((prev) => prev.map((item) => item.id === key.id ? rotated : item)); setRevealedKeys((prev) => { const next = { ...prev }; delete next[key.id]; return next; }); setVisibleKeys((prev) => { const next = new Set(prev); next.delete(key.id); return next; }); setCreatedKey(rotated.key || ""); await qc.invalidateQueries({ queryKey: ["api-keys-endpoint"] }); toast.success("Key rotated — replace the old secret in your clients."); } catch (error) { toast.error(getErrorMessage(error, "Failed to rotate key")); } finally { setRotatingKeyId(null); } } });
   const loadRawKey = async (key: ApiKey) => { const raw = await getApiKeyRaw(key.id); if (!raw) throw new Error("This key has no stored secret."); setRevealedKeys((prev) => ({ ...prev, [key.id]: raw })); return raw; };
   const handleRevealKey = async (key: ApiKey) => { if (revealedKeys[key.id]) { setVisibleKeys((prev) => new Set(prev).add(key.id)); return; } try { await loadRawKey(key); setVisibleKeys((prev) => new Set(prev).add(key.id)); } catch (error) { toast.error(getErrorMessage(error, "Failed to reveal key")); } };
-  const handleCopyKey = async (key: ApiKey) => { setCopyingKeyId(key.id); try { await navigator.clipboard.writeText(revealedKeys[key.id] || await loadRawKey(key)); setCopiedKeyId(key.id); window.setTimeout(() => setCopiedKeyId(null), 1500); } catch (error) { toast.error(getErrorMessage(error, "Failed to copy key")); } finally { setCopyingKeyId(null); } };
+  const handleCopyKey = async (key: ApiKey) => { setCopyingKeyId(key.id); try { const raw = revealedKeys[key.id] || await loadRawKey(key); if (!(await copyText(raw))) { toast.error("Failed to copy key"); return; } setCopiedKeyId(key.id); window.setTimeout(() => setCopiedKeyId(null), 1500); } catch (error) { toast.error(getErrorMessage(error, "Failed to copy key")); } finally { setCopyingKeyId(null); } };
 
   return <div className="space-y-5">
     <Header title="API Keys" actions={keys.length > 0 ? <RippleButton onClick={() => setShowAddModal(true)}><Plus className="h-4 w-4" />Create key</RippleButton> : null} />
@@ -67,7 +68,7 @@ export default function ManageApiKey() {
       <FramePanel className="p-0">
         <div className="flex flex-col gap-2.5 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-5">
           <div className="min-w-0"><p className="text-sm font-semibold">Base URL</p></div>
-          <div className="flex min-w-0 items-center gap-2 rounded-lg border border-border bg-surface px-2.5 py-1.5 sm:px-3 sm:py-2"><code className="min-w-0 flex-1 truncate font-mono text-[11px] sm:text-xs">{baseUrl}</code><Tooltip label="Copy gateway URL"><button type="button" onClick={() => void navigator.clipboard.writeText(baseUrl)} className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-surface-hover hover:text-primary" aria-label="Copy gateway URL"><Copy className="h-3.5 w-3.5" /></button></Tooltip></div>
+          <div className="flex min-w-0 items-center gap-2 rounded-lg border border-border bg-surface px-2.5 py-1.5 sm:px-3 sm:py-2"><code className="min-w-0 flex-1 truncate font-mono text-[11px] sm:text-xs">{baseUrl}</code><Tooltip label="Copy gateway URL"><button type="button" onClick={() => { void copyText(baseUrl).then((ok) => { if (!ok) toast.error("Failed to copy URL"); }); }} className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-surface-hover hover:text-primary" aria-label="Copy gateway URL"><Copy className="h-3.5 w-3.5" /></button></Tooltip></div>
         </div>
         <Separator />
         <div className="p-3 sm:p-5">

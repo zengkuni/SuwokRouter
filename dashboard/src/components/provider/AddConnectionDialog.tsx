@@ -46,6 +46,8 @@ import { AuthModeSelector } from "./AuthModeSelector";
 import { ApiKeyEntryTabs, BulkApiKeyFields } from "./BulkApiKeyFields";
 import { ImportTokenFields } from "./ImportTokenFields";
 import { CodeBuddyTokenFields } from "./CodeBuddyTokenFields";
+import { GrokSsoFields } from "./GrokSsoFields";
+import { parseGrokSsoTokens } from "@/lib/grok-sso";
 import {
   KiroAuthSelector,
   KiroImportFields,
@@ -114,6 +116,9 @@ export function AddConnectionDialog({
   const [apiKey, setApiKey] = useState("");
   const [token, setToken] = useState("");
   const [codeBuddyToken, setCodeBuddyToken] = useState("");
+  const [grokSsoToken, setGrokSsoToken] = useState("");
+  const [grokSsoChecking, setGrokSsoChecking] = useState(false);
+  const [grokSsoValidCount, setGrokSsoValidCount] = useState(0);
   const [machineId, setMachineId] = useState("");
   const [oauthCode, setOauthCode] = useState("");
   const [proxyPoolId, setProxyPoolId] = useState("pool_none");
@@ -165,7 +170,9 @@ export function AddConnectionDialog({
     }
     if (mode === "device") return "Device Code";
     if (mode === "import") {
-      return providerId === "codebuddy-cn" || providerId === "codebuddy-intl"
+      return providerId === "grok-cli"
+        ? "SSO"
+        : providerId === "codebuddy-cn" || providerId === "codebuddy-intl"
         ? "Access Token"
         : "Import Token";
     }
@@ -212,6 +219,7 @@ export function AddConnectionDialog({
 
   const isKiroProvider = provider?.id === "kiro";
   const isCodeBuddyProvider = provider?.id === "codebuddy-cn" || provider?.id === "codebuddy-intl";
+  const isGrokSsoProvider = provider?.supportsSso === true;
   const dualMode = provider?.authModes?.length ? provider.authModes : null;
   const hasMultipleAuthModes = Boolean(dualMode && dualMode.length > 1);
   const [authMode, setAuthMode] = useState<string>(
@@ -420,6 +428,9 @@ export function AddConnectionDialog({
     setKiroProfileArn("");
     setKiroCliProxyJson("");
     setCodeBuddyToken("");
+    setGrokSsoToken("");
+    setGrokSsoChecking(false);
+    setGrokSsoValidCount(0);
     setCheckMsg(null);
     setCursorAutoImporting(false);
     setCursorAutoImportMessage(null);
@@ -918,7 +929,9 @@ export function AddConnectionDialog({
     (isApiKeyFlow
       ? keyValid === true && apiKey.trim().length > 0
       : effectiveFlow === "import"
-        ? isCodeBuddyProvider
+        ? isGrokSsoProvider
+          ? parseGrokSsoTokens(grokSsoToken).length > 0 && !grokSsoChecking
+          : isCodeBuddyProvider
           ? validCodeBuddyRows.length > 0 && !codeBuddyChecking
           : isKiroProvider
           ? kiroAuthMode === "import-token"
@@ -955,6 +968,29 @@ export function AddConnectionDialog({
     } finally {
       setChecking(false);
     }
+  }
+
+  function grokSsoTokensForSubmit() {
+    return parseGrokSsoTokens(grokSsoToken).join("\n");
+  }
+
+  async function onCheckGrokSsoTokens() {
+    if (!provider || !grokSsoToken.trim()) return;
+    const candidates = parseGrokSsoTokens(grokSsoToken);
+    if (candidates.length === 0) return;
+
+    setGrokSsoChecking(true);
+    const valid: string[] = [];
+    for (const token of candidates) {
+      try {
+        const res = await testProviderKey({ provider: provider.id, apiKey: token });
+        if (res.valid === true) valid.push(token);
+      } catch {
+        // keep the token usable: the server re-validates on save
+      }
+    }
+    setGrokSsoValidCount(valid.length);
+    setGrokSsoChecking(false);
   }
 
   async function onCheckCodeBuddyTokens() {
@@ -1085,7 +1121,7 @@ export function AddConnectionDialog({
         authFlow: effectiveFlow,
         apiKey: isApiKeyFlow ? apiKey.trim() || undefined : undefined,
         importToken: effectiveFlow === "import" && !isKiroProvider && !isCodeBuddyProvider
-          ? token.trim() || undefined
+          ? (isGrokSsoProvider ? grokSsoTokensForSubmit() : token.trim()) || undefined
           : undefined,
         codeBuddyToken: effectiveFlow === "import" && isCodeBuddyProvider
           ? validCodeBuddyRows.length === 1
@@ -1228,8 +1264,24 @@ export function AddConnectionDialog({
             </p>
           ) : null}
 
+          {isApiKeyFlow && !isKiroProvider && provider.authHint ? (
+            <p className="text-xs text-muted-foreground">{provider.authHint}</p>
+          ) : null}
           {effectiveFlow === "import" ? (
-            isCodeBuddyProvider ? (
+            isGrokSsoProvider ? (
+              <GrokSsoFields
+                token={grokSsoToken}
+                checking={grokSsoChecking}
+                validCount={grokSsoValidCount}
+                hint={provider.authHint}
+                onTokenChange={(value) => {
+                  setGrokSsoToken(value);
+                  setGrokSsoValidCount(0);
+                  setSubmitError(null);
+                }}
+                onCheck={onCheckGrokSsoTokens}
+              />
+            ) : isCodeBuddyProvider ? (
               <CodeBuddyTokenFields
                 raw={codeBuddyToken}
                 rows={codeBuddyRows}

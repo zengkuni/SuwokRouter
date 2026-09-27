@@ -51,6 +51,7 @@ import { probeEnabled } from "@/lib/live-mode";
 import { fetchSettings, type AppSettings } from "@/lib/settings-api";
 import { getActiveGatewayApiKey } from "@/lib/api-keys-api";
 import type { ModelInfo } from "@/lib/cli-tools-api";
+import { copyText } from "@/lib/clipboard";
 import {
   MAX_IMAGES_PER_MSG,
   MAX_IMAGE_PAYLOAD_BYTES,
@@ -523,13 +524,9 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
   const lines = code.replace(/\n$/, "").split("\n");
   const lineDigits = String(lines.length).length;
   async function copy() {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1400);
-    } catch {
-
-    }
+    if (!(await copyText(code))) return;
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1400);
   }
   return (
     <div className="my-3 min-w-0 max-w-full overflow-hidden rounded-xl border border-[#2d2d30] bg-[#1e1e1e]">
@@ -1405,7 +1402,7 @@ export default function SuwokChat() {
                                 {m.content ? <MarkdownView content={m.content} streaming={isStreaming} /> : null}
                                 {m.content ? (
                                   <div className="mt-2 flex items-center gap-1.5 text-muted-foreground">
-                                    <Tooltip label="Copy response"><button type="button" onClick={() => { navigator.clipboard?.writeText(m.content).then(() => toast.info("Copied")).catch(() => {}); }} className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] transition-colors hover:bg-surface-hover hover:text-foreground" aria-label="Copy response"><Copy className="h-3 w-3" />Copy</button></Tooltip>
+                                    <Tooltip label="Copy response"><button type="button" onClick={() => { void copyText(m.content).then((ok) => { if (ok) toast.info("Copied"); }); }} className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] transition-colors hover:bg-surface-hover hover:text-foreground" aria-label="Copy response"><Copy className="h-3 w-3" />Copy</button></Tooltip>
                                     {m.status === "done" ? <Tooltip label="Regenerate response"><button type="button" onClick={() => { const prev = messages[messages.indexOf(m) - 1]; if (prev?.role === "user") void retryFrom(prev.id); }} className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] transition-colors hover:bg-surface-hover hover:text-foreground" aria-label="Regenerate response"><RotateCcw className="h-3 w-3" />Retry</button></Tooltip> : isStreaming ? <span className="ml-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground/70" role="status" aria-live="polite"><span className="size-1.5 animate-pulse rounded-full bg-emerald-400 motion-reduce:animate-none" />Streaming</span> : null}
                                     <Tooltip label="Delete message"><button type="button" onClick={() => deleteMessage(m.id)} className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] transition-colors hover:bg-surface-hover hover:text-destructive" aria-label="Delete message"><Trash2 className="h-3 w-3" /></button></Tooltip>
                                   </div>

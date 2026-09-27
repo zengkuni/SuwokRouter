@@ -24,6 +24,7 @@ import { TabsContent } from "@/components/ui/tabs";
 import { CONNECTION_PAGE_SIZE } from "@/lib/connections-paging";
 import type { ReactVirtualizer } from "@tanstack/react-virtual";
 import { type AvailableProvider, type Connection } from "@/lib/connections-api";
+import { copyText } from "@/lib/clipboard";
 import { connectionCtaLabel } from "@/lib/providers-mock";
 import { type RotationStrategy } from "@/lib/settings-api";
 import { type ThinkingLevel, thinkingLabel } from "@/lib/thinking";
@@ -470,7 +471,7 @@ export function ProviderConnectionsPanel({
                                                     aria-label="Copy full error"
                                                     onClick={(e) => {
                                                       e.stopPropagation();
-                                                      navigator.clipboard.writeText(result.message || "").catch(() => {});
+                                                      void copyText(result.message || "");
                                                     }}
                                                   >
                                                     <Copy className="h-3 w-3" />

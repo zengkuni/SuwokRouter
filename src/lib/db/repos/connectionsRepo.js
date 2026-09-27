@@ -88,13 +88,18 @@ async function upsert(db, c) {
   );
 }
 
-const CODEBUDDY_PROVIDERS = new Set(["codebuddy-cn", "codebuddy-intl"]);
+const IDENTITY_LABELLED_PROVIDERS = {
+  "grok-cli": "Grok Build",
+  "codebuddy-cn": "CodeBuddy",
+  "codebuddy-intl": "CodeBuddy",
+};
 
 function deriveConnectionName(existingRows, data, fallbackName) {
-  if (CODEBUDDY_PROVIDERS.has(data.provider)) {
+  const labelPrefix = IDENTITY_LABELLED_PROVIDERS[data.provider];
+  if (labelPrefix) {
     return normalizeConnectionName(data.email)
       || normalizeConnectionName(data.displayName)
-      || nextGeneratedCodeBuddyName(existingRows);
+      || nextGeneratedProviderName(existingRows, labelPrefix);
   }
   if (data.provider === "github") {
     return data.providerSpecificData?.githubLogin
@@ -120,15 +125,16 @@ function conflictError(code, message) {
   return error;
 }
 
-function nextGeneratedCodeBuddyName(existingRows) {
+function nextGeneratedProviderName(existingRows, prefix) {
   const used = new Set(
     existingRows
       .map((connection) => normalizeConnectionName(connection.name).toLowerCase())
       .filter(Boolean)
   );
+  const base = `${prefix}-`;
   let suffix = 1;
-  while (used.has(`codebuddy-${suffix}`)) suffix += 1;
-  return `CodeBuddy-${suffix}`;
+  while (used.has(`${base}${suffix}`.toLowerCase())) suffix += 1;
+  return `${base}${suffix}`;
 }
 
 function nextGeneratedConnectionName(existingRows, preferredName = "") {
@@ -313,8 +319,9 @@ export async function createProviderConnection(data) {
     let connectionName = requestedName || null;
     if (data.authType === "apikey" || data.authType === "api_key") {
       if (data.autoName === true || !requestedName) {
-        connectionName = CODEBUDDY_PROVIDERS.has(data.provider)
-          ? nextGeneratedCodeBuddyName(all)
+        const labelPrefix = IDENTITY_LABELLED_PROVIDERS[data.provider];
+        connectionName = labelPrefix
+          ? (normalizeConnectionName(data.email) || nextGeneratedProviderName(all, labelPrefix))
           : nextGeneratedConnectionName(all, requestedName);
       } else if (findDuplicateConnectionName(all, requestedName)) {
         throw conflictError(
@@ -325,6 +332,11 @@ export async function createProviderConnection(data) {
     }
     if (!connectionName && (data.authType === "oauth" || data.authType === "access_token")) {
       connectionName = deriveConnectionName(all, data, data.email || `Account ${all.length + 1}`);
+    }
+    if (!connectionName && IDENTITY_LABELLED_PROVIDERS[data.provider]) {
+      // Cookie/SSO providers land here: keep the account email as the label
+      // instead of leaving the name null (the UI would show the provider name).
+      connectionName = deriveConnectionName(all, data, data.email || "");
     }
     let connectionPriority = data.priority;
     if (connectionPriority === undefined || connectionPriority === null) {

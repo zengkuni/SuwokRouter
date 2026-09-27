@@ -48,6 +48,8 @@ export type AvailableProvider = {
   iconUrl?: string;
 
   authModes?: string[];
+  authHint?: string;
+  supportsSso?: boolean;
   models?: Array<{
     id: string;
     name?: string;

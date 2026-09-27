@@ -6,7 +6,9 @@ import {
   GROK_CLI_VERSION,
 } from "../../config/grokCli.js";
 
-export default {
+import { createRegistryEntry } from "../registryEntry.js";
+
+export default createRegistryEntry({
   id: "grok-cli",
   priority: 275,
   alias: "gcli",
@@ -24,7 +26,9 @@ export default {
     },
   },
   category: "oauth",
-  authModes: ["device"],
+  authModes: ["device", "import"],
+  authHint: "Sign in with device code, or paste an sso= cookie from grok.com to exchange it for Grok Build OAuth tokens",
+  supportsSso: true,
   hasOAuth: true,
   thinkingConfig: {
     options: ["low", "medium", "high", "xhigh"],
@@ -84,4 +88,4 @@ export default {
     referrer: "grok-build",
     refreshLeadMs: 5 * 60 * 1000,
   },
-};
+});

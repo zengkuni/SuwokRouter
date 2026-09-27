@@ -31,6 +31,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { api, getErrorMessage } from "@/lib/api";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
+import { copyText } from "@/lib/clipboard";
 import { displayConsoleSource, humanizeConsoleLogMessage } from "@/lib/console-log-format";
 
 const MAX_LINES = 1000;
@@ -468,14 +469,13 @@ export default function ConsoleLog() {
     const text = visible
       .map(({ message, source, level, ts }) => `${formatTime(ts)} ${level} ${source} — ${message}`)
       .join("\n");
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      if (copyResetRef.current) clearTimeout(copyResetRef.current);
-      copyResetRef.current = setTimeout(() => setCopied(false), 1600);
-    } catch (error) {
-      toast.error(getErrorMessage(error, "Copy failed"));
+    if (!(await copyText(text))) {
+      toast.error("Copy failed");
+      return;
     }
+    setCopied(true);
+    if (copyResetRef.current) clearTimeout(copyResetRef.current);
+    copyResetRef.current = setTimeout(() => setCopied(false), 1600);
   }
 
   const shownCount = visible.length;

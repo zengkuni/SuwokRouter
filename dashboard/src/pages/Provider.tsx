@@ -54,6 +54,7 @@ import {
   removeCustomModelAPI,
 } from "@/lib/custom-models-api";
 import { api, getErrorMessage } from "@/lib/api";
+import { copyText } from "@/lib/clipboard";
 import {
   CONNECTION_PAGE_SIZE as SHARED_CONNECTION_PAGE_SIZE,
   MAX_LOADED_CONNECTIONS as SHARED_MAX_LOADED_CONNECTIONS,
@@ -1610,6 +1611,44 @@ export default function Provider() {
         autoName: body.autoName,
         proxyPoolId: null,
       });
+    } else if (flowKind === "import" && selected.supportsSso === true) {
+      const tokens = (body.importToken || "")
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      if (tokens.length === 0) {
+        throw new Error("An sso cookie value is required.");
+      }
+      let added = 0;
+      let skippedDuplicates = 0;
+      for (const ssoToken of tokens) {
+        try {
+          await createConnection({
+            provider: selected.id,
+            apiKey: ssoToken,
+            name: tokens.length === 1 ? body.name : "",
+            autoName: tokens.length === 1 ? body.autoName : true,
+            proxyPoolId: null,
+          });
+          added += 1;
+        } catch (error) {
+          if (axios.isAxiosError(error) && error.response?.status === 409) {
+            skippedDuplicates += 1;
+            continue;
+          }
+          throw error;
+        }
+      }
+      void qc.invalidateQueries({ queryKey: ["connections"] });
+      void qc.invalidateQueries({ queryKey: ["providers-available"] });
+      setAddOpen(false);
+      flash(
+        skippedDuplicates > 0
+          ? `Added ${added} connections, skipped ${skippedDuplicates} duplicates`
+          : `Added ${added} connection${added === 1 ? "" : "s"}`,
+        skippedDuplicates > 0 ? "warning" : "success"
+      );
+      return;
     } else if (flowKind === "import") {
       if (!body.importToken?.trim()) {
         throw new Error("Access token required");
@@ -1859,7 +1898,8 @@ export default function Provider() {
                     onAddModel={() => void runAddCustomModel()}
                     onTogglePin={togglePin}
                     onCopyModelId={async (modelId) => {
-                      await navigator.clipboard.writeText(modelId);
+                      const ok = await copyText(modelId);
+                      if (!ok) return;
                       setCopied(modelId);
                       window.setTimeout(() => setCopied(null), 1000);
                     }}

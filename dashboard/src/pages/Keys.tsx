@@ -28,6 +28,7 @@ import {
   type ApiKey,
 } from "@/lib/api-keys-api";
 import { probeEnabled } from "@/lib/live-mode";
+import { copyText } from "@/lib/clipboard";
 import { maskKey } from "@/lib/tunnel-api";
 import { useApiKeyStore } from "@/stores/apiKeyStore";
 import { cn } from "@/lib/utils";
@@ -102,7 +103,10 @@ export default function Keys() {
         toast.error("No stored secret for this key — create a new key to copy it.");
         return;
       }
-      await navigator.clipboard.writeText(raw);
+      if (!(await copyText(raw))) {
+        toast.error("Failed to copy key");
+        return;
+      }
       toast.success("Key copied to clipboard");
     } catch (err) {
       toast.error(getErrorMessage(err, "Failed to copy key"));

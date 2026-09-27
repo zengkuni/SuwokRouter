@@ -45,6 +45,8 @@ export async function GET() {
           ...(display.color ? { color: display.color } : {}),
           ...(display.icon ? { icon: display.icon } : {}),
           ...(display.textIcon ? { textIcon: display.textIcon } : {}),
+          ...(r.authHint ? { authHint: r.authHint } : {}),
+          ...(r.supportsSso ? { supportsSso: true } : {}),
         };
       })
       .sort((a, b) => a.id.localeCompare(b.id));

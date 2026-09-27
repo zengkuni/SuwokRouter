@@ -30,7 +30,7 @@ export const BUILTIN_PROVIDER_CATALOG: AvailableProvider[] = [
   {"id":"github","name":"GitHub Copilot","alias":"gh","category":"oauth","authType":"device","authModes":["device"],"color":"#333333","icon":"code"},
   {"id":"glm","name":"GLM Coding","alias":"glm","category":"apikey","authType":"apikey","color":"#2563EB","icon":"code","textIcon":"GL"},
   {"id":"glm-cn","name":"GLM (China)","alias":"glm-cn","category":"apikey","authType":"apikey","color":"#DC2626","icon":"code","textIcon":"GC"},
-  {"id":"grok-cli","name":"Grok CLI (Grok Build)","alias":"gcli","category":"oauth","authType":"device","authModes":["device"],"hasOAuth":true,"color":"#1DA1F2","icon":"auto_awesome","textIcon":"GC"},
+  {"id":"grok-cli","name":"Grok CLI (Grok Build)","alias":"gcli","category":"oauth","authType":"device","authModes":["device","import"],"supportsSso":true,"hasOAuth":true,"color":"#1DA1F2","icon":"auto_awesome","textIcon":"GC","authHint":"Import your sso= cookie value from grok.com to use Grok Build with subscription credits"},
   {"id":"grok-web","name":"Grok Web (Subscription)","alias":"gw","category":"webCookie","authType":"cookie","color":"#1DA1F2","icon":"auto_awesome","textIcon":"GW"},
   {"id":"groq","name":"Groq","alias":"groq","category":"apikey","authType":"apikey","color":"#F55036","icon":"speed","textIcon":"GQ"},
   {"id":"kilo-gateway","name":"Kilo Gateway","alias":"kgw","category":"apikey","authType":"apikey","authModes":["apikey"],"color":"#8B5CF6","icon":"login","textIcon":"KG"},

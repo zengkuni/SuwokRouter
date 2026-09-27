@@ -2,6 +2,13 @@
 
 All notable changes to Sway Router are documented here.
 
+## [Unreleased]
+
+### Added
+
+- Import a grok.com `sso` cookie directly on the **Grok CLI (Grok Build)** provider: a new **SSO** / **Bulk SSO** mode in the Add Connection dialog pastes `sso=` values (bare token, `sso=` prefix, or a full cookie header) and exchanges each one into real Grok Build OAuth credentials through the xAI device authorization flow — including the previously missing `consent_token` step on the approval POST. The connection is stored as an OAuth account labelled with the grok.com account email and refreshes with the grok-cli refresh token. `grok-web` keeps its cheap identity-only cookie validation.
+- Make every **copy** button work outside `localhost` — in Docker/server deployments reached over plain HTTP the Clipboard API does not exist, so the copy buttons (console logs "Copy", API key copy, gateway/URL copy, model ID copy, code blocks, chat response copy, tunnel URL, connection error copy) failed silently. All of them now go through the shared `copyText` helper with the legacy `execCommand` fallback and show a real error toast when copying is impossible.
+
 ## [1.0.8] - 2026-09-26
 
 ### Fixed
