@@ -1,5 +1,6 @@
 const FIELD_CREDITS_INFO = 1;
 const CREDITS_FIELD_USAGE_RATIO = 1;
+const CREDITS_FIELD_USAGE_PERIOD = 8;
 const CREDITS_FIELD_RESET_TIMESTAMP = 5;
 const TIMESTAMP_FIELD_SECONDS = 1;
 const TIMESTAMP_FIELD_NANOS = 2;
@@ -121,7 +122,7 @@ function extractNestedMessage(field) {
 }
 
 function extractUsageRatio(field) {
-  if (!field) return 0;
+  if (!field) return null;
   if (field.wireType === WIRE_TYPE_FIXED32) return field.bytes.readFloatLE(0);
   if (field.wireType === WIRE_TYPE_FIXED64) return field.bytes.readDoubleLE(0);
   return null;
@@ -157,12 +158,26 @@ export function decodeGrokCreditsFrame(buffer) {
     const creditsInfo = extractNestedMessage(topLevelFields.get(FIELD_CREDITS_INFO));
     if (!creditsInfo) return null;
 
+    const resetAt = extractResetAt(creditsInfo.get(CREDITS_FIELD_RESET_TIMESTAMP));
     const usageRatio = extractUsageRatio(creditsInfo.get(CREDITS_FIELD_USAGE_RATIO));
-    if (usageRatio === null || !Number.isFinite(usageRatio) || usageRatio < 0) return null;
+
+    const usagePeriod = creditsInfo.get(CREDITS_FIELD_USAGE_PERIOD);
+    const hasUsagePeriod =
+      usagePeriod?.wireType === WIRE_TYPE_LENGTH_DELIMITED && usagePeriod.bytes.length > 0;
+
+    if (usageRatio === null) {
+      // A credits config that carries the usage-period window but no usage ratio
+      // means no usage has been recorded yet this period (mirrors CodexBar).
+      if (hasUsagePeriod && resetAt) {
+        return { percentUsed: 0, resetAt };
+      }
+      return null;
+    }
+    if (!Number.isFinite(usageRatio) || usageRatio < 0) return null;
 
     return {
       percentUsed: Math.min(100, usageRatio * 100),
-      resetAt: extractResetAt(creditsInfo.get(CREDITS_FIELD_RESET_TIMESTAMP)),
+      resetAt,
     };
   } catch {
     return null;

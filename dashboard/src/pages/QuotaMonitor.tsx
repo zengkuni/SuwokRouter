@@ -173,6 +173,21 @@ function calculatePercentage(used: number, total: number): number {
   return Math.round(((total - used) / total) * 100);
 }
 
+// USD gets a $ prefix per number; other units (tokens, requests) attach once,
+// to the denominator, so the row reads "29,396 / 500,000 tokens".
+function formatQuotaValue(value: number, unit?: string): string {
+  if (unit === "USD") return `$${value.toFixed(2)}`;
+  if (unit) return `${fmtCount(value)} ${unit}`;
+  return fmtCount(value);
+}
+
+function formatQuotaPair(used: number, total: number, unit?: string): string {
+  if (unit === "USD" || !unit) {
+    return `${formatQuotaValue(used, unit)} / ${formatQuotaValue(total, unit)}`;
+  }
+  return `${fmtCount(used)} / ${fmtCount(total)} ${unit}`;
+}
+
 function parseQuotaData(provider: string, data: ProviderUsage): NormalizedQuota[] {
   const quotas = data?.quotas;
   if (!quotas || typeof quotas !== "object") return [];
@@ -861,18 +876,27 @@ function QuotaRow({ quota }: { quota: NormalizedQuota }) {
         </span>
       </div>
       {quota.unlimited ? (
-        <p className="text-[11px] text-muted-foreground">Unlimited</p>
+        <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+          <span className="tabular-nums">
+            {formatQuotaValue(quota.used, quota.unit)} used · Unlimited
+          </span>
+          {countdown ? (
+            <span className="tabular-nums">
+              {resetWord} in {countdown}
+            </span>
+          ) : null}
+        </div>
       ) : (
         <>
           <div className={cn("h-1.5 overflow-hidden rounded-full", colors.bgLight)}>
             <div
               className={cn("h-full rounded-full transition-all duration-300", colors.bg)}
-              style={{ width: `${Math.min(quota.remaining, 100)}%` }}
+              style={{ width: `${quota.remaining}%` }}
             />
           </div>
           <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
             <span className="tabular-nums">
-              {fmtCount(quota.used)} / {quota.total > 0 ? fmtCount(quota.total) : "∞"}
+              {formatQuotaPair(quota.used, quota.total, quota.unit)}
             </span>
             {countdown ? (
               <span className="tabular-nums">
