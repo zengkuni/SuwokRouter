@@ -86,8 +86,8 @@ services:
       PORT: "1212"
       HOSTNAME: "0.0.0.0"
       NODE_ENV: production
-      DB_URL: postgres://${POSTGRES_USER:-suwok}:${POSTGRES_PASSWORD:-suwok}@postgres:5432/${POSTGRES_DB:-suwokrouter}
-      REDIS_URL: redis://valkey:6379
+      DB_URL: ${DB_URL:-postgres://${POSTGRES_USER:-suwok}:${POSTGRES_PASSWORD:-suwok}@postgres:5432/${POSTGRES_DB:-suwokrouter}}
+      REDIS_URL: ${REDIS_URL:-redis://valkey:6379}
       JWT_SECRET: ${JWT_SECRET:-}
       API_KEY_SECRET: ${API_KEY_SECRET:-}
       MACHINE_ID_SALT: ${MACHINE_ID_SALT:-}
