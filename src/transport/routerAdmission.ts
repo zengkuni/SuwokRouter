@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { detectResourceCapacity } from "@/lib/resourceProfile";
 import { env } from "@/lib/env";
 import {
   routerActiveRequests,
@@ -10,7 +10,7 @@ import {
 
 const MIB = 1024 * 1024;
 
-export type AdmissionReason = "queue_full" | "timeout" | "aborted" | "stopping" | "body_budget";
+export type AdmissionReason = "queue_full" | "timeout" | "aborted" | "stopping" | "body_budget" | "memory_pressure";
 
 export interface AdmissionLease {
   release(): void;
@@ -30,10 +30,12 @@ export interface RouterAdmissionOptions {
   maxQueue?: number;
   queueWaitMs?: number;
   bodyBudgetBytes?: number;
+  memoryCapacityBytes?: number;
   memoryHighWaterBytes?: number;
   memoryCriticalWaterBytes?: number;
   sampleIntervalMs?: number;
   autoSample?: boolean;
+  readRss?: () => number;
 }
 
 interface Waiter {
@@ -57,23 +59,6 @@ function clampBodyBytes(value: number, budget: number): number {
   return Math.min(Math.floor(value), budget);
 }
 
-function readContainerMemoryLimit(): number | null {
-  for (const path of ["/sys/fs/cgroup/memory.max", "/sys/fs/cgroup/memory/memory.limit_in_bytes"]) {
-    try {
-      const raw = readFileSync(path, "utf8").trim();
-      if (!raw || raw === "max") continue;
-      const value = Number(raw);
-
-      if (Number.isFinite(value) && value > 0 && value < 1024 * 1024 * 1024 * 1024) {
-        return value;
-      }
-    } catch {
-
-    }
-  }
-  return null;
-}
-
 export class RouterAdmission {
   readonly hardMaxConcurrent: number;
   readonly minConcurrent: number;
@@ -90,8 +75,8 @@ export class RouterAdmission {
   private stopping = false;
   private stableSamples = 0;
   private lastEventLoopLagMs = 0;
-  private readonly baselineRss: number;
-  private readonly memoryLimitBytes: number | null;
+  private readonly readRssFn: () => number;
+  private readonly memoryCapacityBytes: number;
   private readonly memoryHighWaterBytes: number;
   private readonly memoryCriticalWaterBytes: number;
   private sampleTimer: ReturnType<typeof setTimeout> | null = null;
@@ -109,14 +94,21 @@ export class RouterAdmission {
     this.bodyBudgetBytes = positiveInt(options.bodyBudgetBytes, env.routerBodyBudgetBytes, 16 * 1024 * MIB);
     this.sampleIntervalMs = positiveInt(options.sampleIntervalMs, 2000, 60_000);
 
-    this.baselineRss = this.readRss();
-    this.memoryLimitBytes = readContainerMemoryLimit();
-    const automaticHigh = this.memoryLimitBytes
-      ? Math.floor(this.memoryLimitBytes * 0.70)
-      : this.baselineRss + (512 * MIB);
-    const automaticCritical = this.memoryLimitBytes
-      ? Math.max(automaticHigh + 1, Math.floor(this.memoryLimitBytes * 0.85))
-      : this.baselineRss + (768 * MIB);
+    this.readRssFn = options.readRss || (() => this.readRss());
+    // Automatic memory gates must be derived from a constant, real capacity
+    // basis (cgroup limit ?? machine memory), never from the startup RSS:
+    // process RSS only grows over a long uptime, so a startup-relative gate
+    // would permanently reject traffic once the router "warmed up".
+    this.memoryCapacityBytes = positiveInt(
+      options.memoryCapacityBytes,
+      detectResourceCapacity().memoryBytes,
+      1024 * 1024 * 1024 * 1024,
+    );
+    const automaticHigh = Math.floor(this.memoryCapacityBytes * 0.70);
+    const automaticCritical = Math.max(
+      automaticHigh + 1,
+      Math.floor(this.memoryCapacityBytes * 0.85),
+    );
     this.memoryHighWaterBytes = options.memoryHighWaterBytes
       || env.routerMemoryHighWaterBytes
       || automaticHigh;
@@ -163,13 +155,14 @@ export class RouterAdmission {
     this.sampleTimer?.unref?.();
   }
 
+  private isMemoryCritical(): boolean {
+    return this.readRssFn() >= this.memoryCriticalWaterBytes;
+  }
+
   sample(): void {
-    const rss = this.readRss();
-    const critical = rss >= this.memoryCriticalWaterBytes
-      || this.bodyBytesInUse >= this.bodyBudgetBytes * 0.95
+    const critical = this.bodyBytesInUse >= this.bodyBudgetBytes * 0.95
       || this.lastEventLoopLagMs >= 750;
-    const pressured = rss >= this.memoryHighWaterBytes
-      || this.bodyBytesInUse >= this.bodyBudgetBytes * 0.80
+    const pressured = this.bodyBytesInUse >= this.bodyBudgetBytes * 0.80
       || this.lastEventLoopLagMs >= 250;
 
     if (critical) {
@@ -247,7 +240,7 @@ export class RouterAdmission {
   }
 
   private drain(): void {
-    if (this.stopping) return;
+    if (this.stopping || this.isMemoryCritical()) return;
     while (this.activeWorkUnits < this.targetConcurrent && this.waiters.length > 0) {
 
       const index = this.waiters.findIndex((waiter) => (
@@ -275,6 +268,10 @@ export class RouterAdmission {
     if (signal?.aborted) {
       this.countReject("aborted");
       return Promise.resolve({ ok: false, reason: "aborted" });
+    }
+    if (this.isMemoryCritical()) {
+      this.countReject("memory_pressure");
+      return Promise.resolve({ ok: false, reason: "memory_pressure" });
     }
     if (this.canClaim(requestedBodyBytes, requestedWorkUnits)) {
       return Promise.resolve({ ok: true, lease: this.claim(requestedBodyBytes, requestedWorkUnits) });
@@ -323,9 +320,8 @@ export class RouterAdmission {
       workUnitLimit: this.targetConcurrent,
       hardMaxConcurrent: this.hardMaxConcurrent,
       minConcurrent: this.minConcurrent,
-      rssBytes: this.readRss(),
-      baselineRssBytes: this.baselineRss,
-      memoryLimitBytes: this.memoryLimitBytes,
+      rssBytes: this.readRssFn(),
+      memoryCapacityBytes: this.memoryCapacityBytes,
       memoryHighWaterBytes: this.memoryHighWaterBytes,
       memoryCriticalWaterBytes: this.memoryCriticalWaterBytes,
       eventLoopLagMs: this.lastEventLoopLagMs,

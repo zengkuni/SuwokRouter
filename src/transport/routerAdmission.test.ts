@@ -99,6 +99,74 @@ describe("router admission", () => {
     second.lease?.release();
   });
 
+  test("gates critical RSS without ratcheting concurrency or blocking recovery", async () => {
+    let rss = 10;
+    const admission = new RouterAdmission({
+      hardMaxConcurrent: 8,
+      initialConcurrent: 4,
+      minConcurrent: 1,
+      maxQueue: 1,
+      bodyBudgetBytes: 100,
+      memoryHighWaterBytes: 70,
+      memoryCriticalWaterBytes: 85,
+      readRss: () => rss,
+      autoSample: false,
+    });
+
+    const first = await admission.acquire();
+    expect(first.ok).toBe(true);
+    const before = admission.snapshot().currentLimit;
+
+    rss = 95;
+    admission.sample();
+    expect(admission.snapshot().currentLimit).toBe(before);
+    expect(await admission.acquire()).toEqual({ ok: false, reason: "memory_pressure" });
+
+    rss = 10;
+    admission.sample();
+    const recovered = await admission.acquire();
+    expect(recovered.ok).toBe(true);
+    recovered.lease?.release();
+    first.lease?.release();
+  });
+
+  test("automatic memory gates derive from machine capacity, not startup RSS", async () => {
+    const capacityBytes = 16 * 1024 * 1024 * 1024;
+    let rss = 1024 * 1024 * 1024;
+    const admission = new RouterAdmission({
+      hardMaxConcurrent: 8,
+      initialConcurrent: 4,
+      minConcurrent: 1,
+      maxQueue: 1,
+      bodyBudgetBytes: 100,
+      memoryCapacityBytes: capacityBytes,
+      readRss: () => rss,
+      autoSample: false,
+    });
+
+    expect(admission.snapshot().memoryHighWaterBytes).toBe(
+      Math.floor(capacityBytes * 0.7),
+    );
+    expect(admission.snapshot().memoryCriticalWaterBytes).toBe(
+      Math.floor(capacityBytes * 0.85),
+    );
+
+    // Long-uptime growth far past the startup baseline must not gate the
+    // router: only genuine machine capacity pressure may reject requests.
+    rss = Math.floor(capacityBytes * 0.7) + 64 * 1024 * 1024;
+    admission.sample();
+    const admitted = await admission.acquire();
+    expect(admitted.ok).toBe(true);
+    admitted.lease?.release();
+
+    // Crossing the critical water mark still rejects new requests.
+    rss = Math.floor(capacityBytes * 0.85);
+    expect(await admission.acquire()).toEqual({
+      ok: false,
+      reason: "memory_pressure",
+    });
+  });
+
   test("response completion and cancellation release the admission slot", async () => {
     const admission = new RouterAdmission({
       hardMaxConcurrent: 1,
