@@ -287,6 +287,7 @@ export async function listAvailableProviders(): Promise<AvailableProvider[]> {
       noAuth: display?.noAuth,
       authModes: display?.authModes,
       thinkingConfig: catalogProvider?.thinkingConfig,
+      supportsSso: display?.supportsSso === true || catalogProvider?.supportsSso === true || undefined,
       passthroughModels: catalogProvider?.passthroughModels === true,
       isCustom: Boolean(node),
       baseUrl: node?.baseUrl,

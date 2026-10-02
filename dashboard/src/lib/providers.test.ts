@@ -16,7 +16,7 @@ describe("provider auth flow resolution", () => {
   test("publishes Grok Build as a device-code provider", () => {
     const grok = BUILTIN_PROVIDER_CATALOG.find((provider) => provider.id === "grok-cli");
     expect(grok?.authType).toBe("device");
-    expect(grok?.authModes).toEqual(["device"]);
+    expect(grok?.authModes).toEqual(["device", "import"]);
   });
 
   test("keeps Cursor on import flow", () => {

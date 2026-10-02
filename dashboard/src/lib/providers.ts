@@ -367,6 +367,7 @@ export function getProviderDisplay(id: string): {
   noAuth?: boolean;
   hasOAuth?: boolean;
   authModes?: string[];
+  supportsSso?: boolean;
 } | null {
   if (id === "ollama-local") {
     return {
@@ -393,6 +394,7 @@ export function getProviderDisplay(id: string): {
       noAuth: entry.noAuth,
       hasOAuth: entry.hasOAuth,
       authModes: entry.authModes,
+      supportsSso: entry.supportsSso,
     };
   }
   const name = PROVIDER_NAMES[id];
