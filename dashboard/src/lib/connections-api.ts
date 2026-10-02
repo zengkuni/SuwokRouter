@@ -9,6 +9,7 @@ export type Connection = {
   authType?: string;
   isActive?: boolean;
   priority?: number;
+  botFlag?: boolean;
 
   proxyPoolId?: string | null;
   providerSpecificData?: Record<string, unknown> | null;

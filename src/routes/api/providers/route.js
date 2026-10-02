@@ -18,6 +18,7 @@ import { resolveCodeBuddyModels } from "@/services/codebuddyModels.js";
 import { resolveCodeBuddyIdentity } from "@/services/codebuddyAccount.js";
 import { fetchGrokSsoIdentity } from "@/services/grokSsoAccount.js";
 import { convertGrokSsoToBuild } from "@/services/grokSsoBuild.js";
+import { botFlagSourceFromAccessToken } from "@/services/usage/grok-cli.js";
 
 export const dynamic = "force-dynamic";
 
@@ -112,6 +113,9 @@ export async function GET(request) {
       return {
         ...c,
         name,
+        ...(c.provider === "grok-cli"
+          ? { botFlag: botFlagSourceFromAccessToken(c.accessToken) > 0 }
+          : {}),
         apiKey: undefined,
         accessToken: undefined,
         refreshToken: undefined,

@@ -445,6 +445,13 @@ export function ProviderConnectionsPanel({
                                                 c.email ||
                                                 c.id.slice(0, 8)}
                                             </span>
+                                            {c.botFlag === true ? (
+                                              <Tooltip label="Flagged by xAI as bot (bot_flag source 1/2 in access token claims)">
+                                                <span className="inline-flex shrink-0 rounded bg-amber-500/15 px-1 py-px text-[10px] font-medium text-amber-600 dark:text-amber-500">
+                                                  Bot
+                                                </span>
+                                              </Tooltip>
+                                            ) : null}
                                             {busy ? (
                                               <span
                                                 className="inline-flex shrink-0 items-center gap-0.5 text-[10px] text-foreground/90"

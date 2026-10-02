@@ -81,6 +81,26 @@ function tierFromAccessToken(accessToken) {
   return "";
 }
 
+// Bot-risk flag mirrors grok2api's Build adapter: the official CLI tokens
+// carry a `bot_flag_source` (or short alias `bfs`) numeric claim; only 1 or 2
+// count — other values and malformed tokens are treated as unflagged.
+export function botFlagSourceFromAccessToken(accessToken) {
+  try {
+    const payload = JSON.parse(
+      Buffer.from(String(accessToken).split(".")[1], "base64url"),
+    );
+    for (const key of ["bot_flag_source", "bfs"]) {
+      const value = payload?.[key];
+      if (typeof value === "number" && (value === 1 || value === 2)) {
+        return value;
+      }
+    }
+  } catch {
+    // Not a JWT or malformed — caller treats it as "unflagged".
+  }
+  return 0;
+}
+
 // Resolution order: the CLI /v1/settings store is the live tier display (the
 // only source that populates for xAI CLI accounts), then the subscription
 // object from /v1/user, billing plan fields, and finally the JWT claim.
