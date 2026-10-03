@@ -61,6 +61,16 @@ const QUOTA_FETCH_CONCURRENCY = 6;
 const QUOTA_VISIBLE_ROWS = 3;
 const QUOTA_REFRESH_INTERVAL = 60_000;
 
+// Per-plan badge colors on the account line (each tier gets its own hue).
+const PLAN_BADGE_CLASSES: Record<string, string> = {
+  free: "border-slate-400/40 bg-slate-500/15 text-slate-600 dark:text-slate-400",
+  plus: "border-sky-400/40 bg-sky-500/15 text-sky-600 dark:text-sky-400",
+  pro: "border-violet-400/40 bg-violet-500/15 text-violet-600 dark:text-violet-400",
+  ultra: "border-amber-400/40 bg-amber-500/15 text-amber-600 dark:text-amber-400",
+  enterprise: "border-rose-400/40 bg-rose-500/15 text-rose-600 dark:text-rose-400",
+};
+const PLAN_BADGE_FALLBACK = "border-border bg-surface text-muted-foreground";
+
 type QuotaFetchJob = {
   run: () => Promise<unknown>;
   resolve: (value: unknown) => void;
@@ -754,12 +764,22 @@ function ProviderCard({
         <div className="flex min-w-0 items-center gap-2">
           <ProviderMark provider={conn.provider} />
           <div className="min-w-0">
-            <h3 className="truncate text-sm font-medium leading-tight">
-              {conn.name || conn.email || conn.provider}
+            <h3 className="flex min-w-0 items-center gap-1.5 truncate text-sm font-medium leading-tight">
+              {card.plan ? (
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "shrink-0 px-1.5 py-0 text-[10px] font-semibold",
+                    PLAN_BADGE_CLASSES[card.plan.toLowerCase()] ?? PLAN_BADGE_FALLBACK,
+                  )}
+                >
+                  {card.plan}
+                </Badge>
+              ) : null}
+              <span className="truncate">
+                {conn.email || conn.name || conn.provider}
+              </span>
             </h3>
-            <p className="truncate text-[11px] text-muted-foreground">
-              {conn.email && conn.name ? conn.email : `Connection ID · ${conn.id}`}
-            </p>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
@@ -779,12 +799,6 @@ function ProviderCard({
       </FrameHeader>
 
       <FramePanel className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 p-4">
-        {card.plan ? (
-          <Badge variant="outline" className="w-fit text-[10px]">
-            {card.plan}
-          </Badge>
-        ) : null}
-
         <div className="min-h-[3.5rem] flex-1">
           {card.loading ? (
             <div className="space-y-2">
