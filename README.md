@@ -581,6 +581,22 @@ API_KEY_SECRET=replace-with-a-random-secret-at-least-32-characters
 MACHINE_ID_SALT=replace-with-a-random-private-salt
 ```
 
+### Chat agent network access
+
+The built-in chat **curl** tool blocks `localhost`, `127.0.0.1`, LAN IPs, and
+cloud metadata endpoints by default (SSRF protection). If you self-host the
+router on your own network and want the chat agent to curl your local services,
+set:
+
+```dotenv
+SSRF_ALLOW_PRIVATE=true
+```
+
+Cloud metadata endpoints (`169.254.169.254`, `metadata.google.internal`) stay
+blocked even with this flag. Only enable it on instances that are already
+private/authorized, since the chat agent can then reach anything the router
+host can reach.
+
 Multiple Suwok Router instances may share one Postgres database
 directory. If a supervisor injects secrets, keep their values stable across
 restarts so dashboard sessions and the instance identity remain stable.

@@ -590,6 +590,21 @@ API_KEY_SECRET=replace-with-a-random-secret-at-least-32-characters
 MACHINE_ID_SALT=replace-with-a-random-private-salt
 ```
 
+### Akses jaringan chat agent
+
+Tool **curl** bawaan chat memblokir `localhost`, `127.0.0.1`, IP LAN, dan
+metadata endpoint cloud secara default (proteksi SSRF). Kalau router ini
+self-host di jaringan sendiri dan chat agent perlu curl service lokal, set:
+
+```dotenv
+SSRF_ALLOW_PRIVATE=true
+```
+
+Endpoint metadata cloud (`169.254.169.254`, `metadata.google.internal`) tetap
+diblokir walau flag aktif. Hanya nyalakan pada instance yang memang sudah
+private/berwenang, karena chat agent jadi bisa menjangkau apa pun yang bisa
+dijangkau host router.
+
 Nyalakan stack database yang disertakan, lalu arahkan `DB_URL` ke sana:
 
 ```bash

@@ -9,6 +9,11 @@ export const dynamic = "force-dynamic";
 const MAX_URL_LENGTH = 2_000;
 const MAX_BODY_LENGTH = 1_000_000;
 const CURL_TIMEOUT_MS = 8_000;
+const ALLOW_PRIVATE_TARGETS = () => process.env.SSRF_ALLOW_PRIVATE === "true";
+// Cloud metadata endpoints stay blocked even when private targets are allowed.
+const BLOCKED_METADATA_HOSTNAMES = new Set([
+  "metadata", "metadata.google.internal", "instance-data", "169.254.169.254",
+]);
 
 class CurlInputError extends Error {}
 
@@ -24,8 +29,12 @@ async function assertPublicUrl(value) {
   try { parsed = new URL(raw); } catch { throw new CurlInputError("URL must be valid"); }
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new CurlInputError("Only http:// and https:// URLs are allowed");
   if (parsed.username || parsed.password) throw new CurlInputError("URLs with embedded credentials are not allowed");
-  if (isPrivateAddress(parsed.hostname)) throw new CurlInputError("Private and loopback targets are not allowed");
   const hostname = parsed.hostname.toLowerCase().replace(/\.$/, "");
+  if (BLOCKED_METADATA_HOSTNAMES.has(hostname)) throw new CurlInputError("Cloud metadata endpoints are not allowed");
+  // SSRF_ALLOW_PRIVATE=true opts a self-hosted instance into LAN/loopback
+  // targets (the chat curl tool then behaves like a local curl).
+  if (ALLOW_PRIVATE_TARGETS()) return parsed;
+  if (isPrivateAddress(parsed.hostname)) throw new CurlInputError("Private and loopback targets are not allowed");
   if (hostname === "localhost" || hostname === "metadata" || hostname === "metadata.google.internal" || hostname.endsWith(".internal") || hostname.endsWith(".local") || hostname.endsWith(".localhost") || hostname.endsWith(".lan")) {
     throw new CurlInputError("Private and metadata hostnames are not allowed");
   }

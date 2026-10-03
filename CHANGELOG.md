@@ -28,6 +28,10 @@ All notable changes to Sway Router are documented here.
 
 - Show a **Bot** badge on the provider connections list for accounts whose access token carries the bot-flag claim (`bot_flag_source`/`bfs`, numeric 1/2 — mirrors grok2api's CLI adapter).
 
+### Chat tools
+
+- Let the built-in chat **curl** tool reach `localhost`, `127.0.0.1`, and LAN targets when `SSRF_ALLOW_PRIVATE=true` is set, so self-hosted routers can have the agent probe their own services. Cloud metadata endpoints (`169.254.169.254`, `metadata.google.internal`) stay blocked even with the flag. Documented in both READMEs.
+
 ## [1.0.8] - 2026-09-26
 
 ### Fixed
