@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { POST } from "./route.js";
 import { RUNTIME_CONFIG } from "@/shared/constants/config.js";
+// The checkout-local .env may set SSRF_ALLOW_PRIVATE=true; this suite pins the
+// default-off posture. assertPublicUrl reads the env per request, so a
+// top-level override here applies before any test performs a fetch.
+process.env.SSRF_ALLOW_PRIVATE = "false";
 function request(body) {
   return new Request("http://localhost/api/chat/tools/curl", {
     method: "POST",
