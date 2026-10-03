@@ -101,9 +101,11 @@ async function getGeminiSubscriptionInfo(accessToken, proxyOptions = null) {
 }
 
 export async function getAntigravityUsage(accessToken, providerSpecificData, proxyOptions = null) {
+  let plan = "Free";
   try {
 
     const subscriptionInfo = await getAntigravitySubscriptionInfo(accessToken, proxyOptions);
+    plan = antigravityPlanFrom(subscriptionInfo);
     const projectId = subscriptionInfo?.cloudaicompanionProject || null;
 
     const response = await fetchWithTimeout(ANTIGRAVITY_CONFIG.quotaApiUrl, {
@@ -122,6 +124,7 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
 
     if (response.status === 403) {
       return {
+        plan,
         message: "Antigravity quota API access forbidden. Chat may still work.",
         quotas: {}
       };
@@ -129,6 +132,7 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
 
     if (response.status === 401) {
       return {
+        plan,
         message: "Antigravity quota API authentication expired. Chat may still work.",
         quotas: {}
       };
@@ -187,17 +191,13 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
     }
 
     return {
-      plan: normalizeAntigravityTier(subscriptionInfo?.paidTier?.id)
-        || normalizeAntigravityTier(subscriptionInfo?.currentTier?.id)
-        || normalizeAntigravityTier(subscriptionInfo?.paidTier?.name)
-        || normalizeAntigravityTier(subscriptionInfo?.currentTier?.name)
-        || "Free",
+      plan,
       quotas,
       subscriptionInfo,
     };
   } catch (error) {
     console.error("[Antigravity Usage] Failed to fetch quota:", error);
-    return { message: "Antigravity usage request failed." };
+    return { plan, message: "Antigravity usage request failed." };
   }
 }
 
@@ -242,4 +242,12 @@ export function normalizeAntigravityTier(raw) {
     if (pattern.test(lower)) return label;
   }
   return value;
+}
+
+function antigravityPlanFrom(subscriptionInfo) {
+  return normalizeAntigravityTier(subscriptionInfo?.paidTier?.id)
+    || normalizeAntigravityTier(subscriptionInfo?.currentTier?.id)
+    || normalizeAntigravityTier(subscriptionInfo?.paidTier?.name)
+    || normalizeAntigravityTier(subscriptionInfo?.currentTier?.name)
+    || "Free";
 }
