@@ -24,7 +24,8 @@ ENV NODE_ENV=production
 # curl drives the Grok SSO -> Build OAuth exchange: accounts.x.ai gates its
 # consent + approve endpoints behind TLS fingerprint checks that non-browser
 # fetch (Bun/undici) fails with 403.
-RUN apk add --no-cache curl
+# ripgrep backs the chat shell tool's `rg` subcommand (workspace search).
+RUN apk add --no-cache curl ripgrep
 ENV PORT=1212
 ENV HOSTNAME=0.0.0.0
 ENV DATA_DIR=/app/data

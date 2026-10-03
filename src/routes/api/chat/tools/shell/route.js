@@ -126,6 +126,9 @@ async function searchFiles(command, args) {
     return outputResult(command, [stdout, stderr].filter(Boolean).join("\n"));
   } catch (error) {
     if (error?.code === 1) return outputResult(command, "(no matches)");
+    if (error?.code === "ENOENT") {
+      throw new Error("rg (ripgrep) is not installed on the router host — install it or run the router in Docker, which bundles ripgrep");
+    }
     throw new Error(error?.stderr?.trim() || error?.message || "Search failed");
   }
 }

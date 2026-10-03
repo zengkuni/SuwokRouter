@@ -31,6 +31,7 @@ All notable changes to Sway Router are documented here.
 ### Chat tools
 
 - Let the built-in chat **curl** tool reach `localhost`, `127.0.0.1`, and LAN targets when `SSRF_ALLOW_PRIVATE=true` is set, so self-hosted routers can have the agent probe their own services. Cloud metadata endpoints (`169.254.169.254`, `metadata.google.internal`) stay blocked even with the flag. Documented in both READMEs.
+- Ship **ripgrep** in the Docker image so the chat shell tool's `rg` subcommand works out of the box (the image previously lacked the binary, and `rg` failed with `Executable not found`). Native (non-Docker) installs now get a clear error naming `ripgrep` as the missing dependency instead of an opaque `ENOENT`.
 
 ## [1.0.8] - 2026-09-26
 
