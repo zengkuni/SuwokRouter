@@ -139,6 +139,11 @@ export async function POST(request) {
       signal: controller.signal,
       ...(payload !== undefined ? { body: payload } : {}),
     };
+    // Self-URLs are already validated by assertPublicUrl; the shared SSRF guard
+    // would re-block them, so bypass it for the router's own address only.
+    const response = isSelfUrl(url)
+      ? await fetch(url.toString(), fetchInit)
+      : await fetchWithSsrfGuard(url.toString(), fetchInit, { maxRedirects: 0 });
     const bounded = method === "HEAD" ? { text: "", truncated: false } : await readBoundedBody(response);
     return NextResponse.json({
       ok: true,
