@@ -28,3 +28,4 @@ server-*.log
 .tmp-build-*
 .tmp-image-build/
 .tmp-warp-build/
+build-*.log
