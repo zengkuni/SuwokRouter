@@ -2,6 +2,8 @@ import dns from "node:dns/promises";
 import net from "node:net";
 import { NextResponse } from "@/next/server";
 import { fetchWithSsrfGuard, isUnsafeIp, SsrfGuardError } from "@/shared/utils/ssrfGuard.js";
+import { getConsistentMachineId } from "@/shared/utils/machineId.js";
+import { RUNTIME_CONFIG } from "@/shared/constants/config.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,11 +16,30 @@ const ALLOW_PRIVATE_TARGETS = () => process.env.SSRF_ALLOW_PRIVATE === "true";
 const BLOCKED_METADATA_HOSTNAMES = new Set([
   "metadata", "metadata.google.internal", "instance-data", "169.254.169.254",
 ]);
+// Loopback targets on the router's own port are the router talking to itself;
+// the internal CLI token (machine-derived, accepted by dashboardGuard's
+// hasValidCliToken) lets the agent call its own API without an API key.
+const LOOPBACK_HOSTNAMES = new Set(["127.0.0.1", "localhost", "::1", "[::1]"]);
+let cachedSelfToken = null;
 
 class CurlInputError extends Error {}
 
 function isPrivateAddress(address) {
   return net.isIP(address) > 0 && isUnsafeIp(address);
+}
+
+function isSelfUrl(parsed) {
+  return LOOPBACK_HOSTNAMES.has(parsed.hostname.toLowerCase()) &&
+    (parsed.port === "" || Number(parsed.port) === RUNTIME_CONFIG.appPort);
+}
+
+async function selfTokenHeader(parsed) {
+  if (!isSelfUrl(parsed)) return null;
+  if (!cachedSelfToken) {
+    try { cachedSelfToken = await getConsistentMachineId("suwokrouter-cli-auth"); }
+    catch { return null; }
+  }
+  return cachedSelfToken ? { "x-suwokrouter-cli-token": cachedSelfToken } : null;
 }
 
 async function assertPublicUrl(value) {
@@ -82,11 +103,14 @@ export async function POST(request) {
     const url = await assertPublicUrl(body?.url);
     const controller = new AbortController();
     timer = setTimeout(() => controller.abort(), CURL_TIMEOUT_MS);
+    const headers = { Accept: "application/json, text/plain, text/html, */*", "User-Agent": "SuwokRouter Agent/1.0" };
+    const selfToken = await selfTokenHeader(url);
+    if (selfToken) Object.assign(headers, selfToken);
     const response = await fetchWithSsrfGuard(url.toString(), {
       method,
       redirect: "manual",
       cache: "no-store",
-      headers: { Accept: "application/json, text/plain, text/html, */*", "User-Agent": "SuwokRouter Agent/1.0" },
+      headers,
       signal: controller.signal,
     }, { maxRedirects: 0 });
     const bounded = method === "HEAD" ? { text: "", truncated: false } : await readBoundedBody(response);
