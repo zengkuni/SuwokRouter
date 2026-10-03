@@ -187,10 +187,10 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
     }
 
     return {
-      plan: normalizeAntigravityTier(subscriptionInfo?.currentTier?.id)
-        || normalizeAntigravityTier(subscriptionInfo?.paidTier?.id)
-        || normalizeAntigravityTier(subscriptionInfo?.currentTier?.name)
+      plan: normalizeAntigravityTier(subscriptionInfo?.paidTier?.id)
+        || normalizeAntigravityTier(subscriptionInfo?.currentTier?.id)
         || normalizeAntigravityTier(subscriptionInfo?.paidTier?.name)
+        || normalizeAntigravityTier(subscriptionInfo?.currentTier?.name)
         || "Free",
       quotas,
       subscriptionInfo,
