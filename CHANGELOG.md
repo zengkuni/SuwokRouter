@@ -17,6 +17,17 @@ All notable changes to Sway Router are documented here.
 - Import a grok.com `sso` cookie directly on the **Grok CLI (Grok Build)** provider: a new **SSO** / **Bulk SSO** mode in the Add Connection dialog pastes `sso=` values (bare token, `sso=` prefix, or a full cookie header) and exchanges each one into real Grok Build OAuth credentials through the xAI device authorization flow — including the previously missing `consent_token` step on the approval POST. The connection is stored as an OAuth account labelled with the grok.com account email and refreshes with the grok-cli refresh token. `grok-web` keeps its cheap identity-only cookie validation.
 - Make every **copy** button work outside `localhost` — in Docker/server deployments reached over plain HTTP the Clipboard API does not exist, so the copy buttons (console logs "Copy", API key copy, gateway/URL copy, model ID copy, code blocks, chat response copy, tunnel URL, connection error copy) failed silently. All of them now go through the shared `copyText` helper with the legacy `execCommand` fallback and show a real error toast when copying is impossible.
 
+### Antigravity
+
+- Show the **plan badge** on the quota monitor: the account headline renders as `[Plan] email` on a single line, each tier with its own color (Free=slate, Plus=sky, Pro=violet, Ultra=amber, Enterprise=rose). The tier is read from `loadCodeAssist` and normalized through a tier map (`free-tier`→Free, `standard-tier`/`g1-pro-tier`→Pro, `g1-plus-tier`→Plus, `g1-ultra-tier`/`helium`→Ultra, Enterprise IDs/names→Enterprise).
+- Prefer `paidTier` over `currentTier` for the plan badge: `currentTier.id` stays `free-tier` even on paying accounts, so a Google AI Plus subscriber showed "Free".
+- Keep the plan badge visible when the quota API fails (401/403 or a thrown request): the tier is now resolved once from the subscription info and attached to every return path of `getAntigravityUsage`.
+- Support **Gemini 3.8 and 3.7 models** — `gemini-3.8-flash-{high,medium,low}` (exact-level upstream IDs) and `gemini-3.7-flash-{high,medium,low}` (tiered IDs), with the Code Assist client announcing IDE version 2.5.5.
+
+### Grok CLI
+
+- Show a **Bot** badge on the provider connections list for accounts whose access token carries the bot-flag claim (`bot_flag_source`/`bfs`, numeric 1/2 — mirrors grok2api's CLI adapter).
+
 ## [1.0.8] - 2026-09-26
 
 ### Fixed
