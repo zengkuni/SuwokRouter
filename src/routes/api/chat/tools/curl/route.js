@@ -30,7 +30,7 @@ function isPrivateAddress(address) {
 
 function isSelfUrl(parsed) {
   return LOOPBACK_HOSTNAMES.has(parsed.hostname.toLowerCase()) &&
-    (parsed.port === "" || Number(parsed.port) === RUNTIME_CONFIG.appPort);
+    Number(parsed.port) === RUNTIME_CONFIG.appPort;
 }
 
 async function selfTokenHeader(parsed) {
