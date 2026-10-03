@@ -615,7 +615,7 @@ export default function SuwokChat() {
     }
   });
   const [model, setModel] = useState(workspace?.model || "");
-  const systemPrompt = buildModelAwareSystemPrompt(DEFAULT_SYSTEM_PROMPT, model);
+  const systemPrompt = buildModelAwareSystemPrompt(DEFAULT_SYSTEM_PROMPT, model, typeof window !== "undefined" ? window.location.origin : "");
   const [messages, setMessages] = useState<ChatMessage[]>(workspace?.messages || []);
   const hydratedRef = useRef(false);
   const saveTimerRef = useRef<number | null>(null);

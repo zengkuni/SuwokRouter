@@ -52,6 +52,10 @@ async function assertPublicUrl(value) {
   if (parsed.username || parsed.password) throw new CurlInputError("URLs with embedded credentials are not allowed");
   const hostname = parsed.hostname.toLowerCase().replace(/\.$/, "");
   if (BLOCKED_METADATA_HOSTNAMES.has(hostname)) throw new CurlInputError("Cloud metadata endpoints are not allowed");
+  // The router talking to itself over loopback on its own port is not an SSRF
+  // risk: allow it even without SSRF_ALLOW_PRIVATE so the chat agent can
+  // inspect its own API (/api/models, /api/combos, ...) out of the box.
+  if (isSelfUrl(parsed)) return parsed;
   // SSRF_ALLOW_PRIVATE=true opts a self-hosted instance into LAN/loopback
   // targets (the chat curl tool then behaves like a local curl).
   if (ALLOW_PRIVATE_TARGETS()) return parsed;
@@ -106,13 +110,18 @@ export async function POST(request) {
     const headers = { Accept: "application/json, text/plain, text/html, */*", "User-Agent": "SuwokRouter Agent/1.0" };
     const selfToken = await selfTokenHeader(url);
     if (selfToken) Object.assign(headers, selfToken);
-    const response = await fetchWithSsrfGuard(url.toString(), {
+    const fetchInit = {
       method,
       redirect: "manual",
       cache: "no-store",
       headers,
       signal: controller.signal,
-    }, { maxRedirects: 0 });
+    };
+    // Self-URLs are already validated by assertPublicUrl; the shared SSRF guard
+    // would re-block them, so bypass it for the router's own address only.
+    const response = isSelfUrl(url)
+      ? await fetch(url.toString(), fetchInit)
+      : await fetchWithSsrfGuard(url.toString(), fetchInit, { maxRedirects: 0 });
     const bounded = method === "HEAD" ? { text: "", truncated: false } : await readBoundedBody(response);
     return NextResponse.json({
       ok: true,

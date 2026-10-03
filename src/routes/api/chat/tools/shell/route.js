@@ -21,7 +21,7 @@ function tokenize(command) {
   if (typeof command !== "string" || !command.trim()) throw new ToolInputError("Command is required");
   if (command.length > MAX_COMMAND_LENGTH) throw new ToolInputError(`Command must be ${MAX_COMMAND_LENGTH} characters or fewer`);
 
-  if (/[;&|<>`$()\\]/.test(command)) throw new ToolInputError("Shell operators, substitutions, and backslashes are not supported");
+  if (/[;&|<>`$()\\]/.test(command)) throw new ToolInputError("Shell operators, substitutions, and backslashes are not supported. Run one read-only command per call (e.g. `ls`, `cat src/foo.js`, `rg pattern src`, `git status`).");
 
   const tokens = [];
   let token = "";
@@ -98,13 +98,34 @@ async function readFile(command, args) {
   return outputResult(command, await fs.readFile(target, "utf8"));
 }
 
+// Read-only rg flags the tool accepts, so the agent can shape searches
+// (-i case-insensitive, -l files-only, -n line numbers, -w word, -F literal,
+// -c count, -t <type>, -g <glob>) without shell operators or pipes.
+const RG_FLAG_HINT = "Allowed rg flags: -i, -l, -n, -w, -F, -c, -t <type>, -g <glob>. No pipes/operators — run one command per call (e.g. `rg somePattern src`).";
+
 async function searchFiles(command, args) {
-  if (!args.length || args[0].startsWith("-")) throw new ToolInputError("rg requires a search pattern");
-  const pattern = args[0];
-  const locations = args.slice(1);
-  if (locations.length > 8 || locations.some((location) => location.startsWith("-"))) {
-    throw new ToolInputError("rg accepts at most eight workspace paths and no flags");
+  const rgFlags = [];
+  const locations = [];
+  let pattern = null;
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (pattern === null && !arg.startsWith("-")) { pattern = arg; continue; }
+    if (!arg.startsWith("-")) {
+      if (locations.length >= 8) throw new ToolInputError(`rg accepts at most eight workspace paths. ${RG_FLAG_HINT}`);
+      locations.push(arg);
+      continue;
+    }
+    if (/^-[ilnwFc]+$/.test(arg)) { rgFlags.push(arg); continue; }
+    if (arg === "-t" || arg === "-g") {
+      const value = args[index + 1];
+      if (!value || value.startsWith("-")) throw new ToolInputError(`rg ${arg} needs a value. ${RG_FLAG_HINT}`);
+      rgFlags.push(arg, value);
+      index += 1;
+      continue;
+    }
+    throw new ToolInputError(`Unsupported rg flag: ${arg}. ${RG_FLAG_HINT}`);
   }
+  if (pattern === null) throw new ToolInputError(`rg requires a search pattern. ${RG_FLAG_HINT}`);
   const safeLocations = locations.map((location) => {
     if (isSensitivePath(location)) throw new ToolInputError("Searching credential paths is not allowed");
     const resolved = resolveWorkspacePath(location);
@@ -113,6 +134,7 @@ async function searchFiles(command, args) {
   const rgArgs = [
     "--no-config", "--no-heading", "--line-number", "--color", "never",
     "--glob", "!.env*", "--glob", "!**/*.pem", "--glob", "!**/*.key", "--glob", "!**/id_rsa",
+    ...rgFlags,
     "--", pattern, ...safeLocations,
   ];
   try {

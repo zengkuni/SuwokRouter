@@ -117,11 +117,12 @@ export function getThinkingPhase(input: ThinkingPhaseInput):
   return "Thinking";
 }
 
-export function buildModelAwareSystemPrompt(basePrompt: string, modelId: string): string {
+export function buildModelAwareSystemPrompt(basePrompt: string, modelId: string, apiBase = ""): string {
   const id = modelId.trim() || "unknown";
   const parts = id.split("/").filter(Boolean);
   const provider = parts.length > 1 ? parts[0] : "unknown";
   const name = parts[parts.length - 1] || id;
+  const base = apiBase.replace(/\/+$/, "");
   return [
     basePrompt.trim(),
     "",
@@ -129,6 +130,17 @@ export function buildModelAwareSystemPrompt(basePrompt: string, modelId: string)
     `- Active model ID: ${id}`,
     `- Provider: ${provider}`,
     `- Model name: ${name}`,
+    "",
+    "Router API skills (authoritative):",
+    base ? `- Router API base for this instance: ${base} (browser/origin address).` : "",
+    "- From the curl tool, call the router's own API at http://127.0.0.1:<PORT> (PORT is the router's port, shown in the API base; default 1212). Loopback calls to the router's own port are allowed without any flag and need no API key.",
+    "- Models, combos, provider connections, usage, and settings are stored in the router database (Postgres), NOT as workspace files. Query them via the API; never grep the workspace for combo/model definitions.",
+    "- GET /api/models — every routable model, including combo-* ids and their rank/order.",
+    "- GET /api/combos — combo definitions: id, name, ordered member models, and routing/rank fields.",
+    "- GET /api/providers and GET /api/usage — provider connections and quota/usage state for ranking decisions.",
+    "- GET /api/health/ready — readiness probe.",
+    "- The OpenAI-compatible gateway is /v1/chat/completions; combo ids (e.g. combo-*) are valid model values there.",
+    "- When asked to route by rank: read the rank/priority field from /api/combos or /api/models, pick the highest-priority model whose connection is available per /api/usage, and state the choice plus the tool evidence.",
     "",
     "Identity rules:",
     "- You are Suwok Router Assistant, the internal agent and operator of the Suwok Router platform; do not present yourself as the underlying provider or model.",
