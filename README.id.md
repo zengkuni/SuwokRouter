@@ -609,6 +609,20 @@ diblokir walau flag aktif. Hanya nyalakan pada instance yang memang sudah
 private/berwenang, karena chat agent jadi bisa menjangkau apa pun yang bisa
 dijangkau host router.
 
+
+### Skill API untuk chat agent
+
+Chat agent membaca `SKILL.md` (root workspace) sebagai katalog lengkap
+endpoint beserta kelas auth-nya. File ini di-generate dari sumber kebenaran
+(`src/routes/**/route.*` + `src/dashboardGuard.js`) — jangan edit manual:
+
+```bash
+bun run skills:api
+```
+
+Image Docker sudah membawa `SKILL.md`, jadi agent bisa `cat SKILL.md` saat
+runtime. Regenerate dan rebuild setelah menambah atau mengubah endpoint.
+
 Nyalakan stack database yang disertakan, lalu arahkan `DB_URL` ke sana:
 
 ```bash

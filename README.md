@@ -602,6 +602,19 @@ blocked even with this flag. Only enable it on instances that are already
 private/authorized, since the chat agent can then reach anything the router
 host can reach.
 
+### Chat agent API skill
+
+The chat agent reads `SKILL.md` (workspace root) for the full endpoint catalog
+with auth classes. It is generated from the source of truth
+(`src/routes/**/route.*` + `src/dashboardGuard.js`) — never edit it by hand:
+
+```bash
+bun run skills:api
+```
+
+The Docker image ships `SKILL.md`, so the agent can `cat SKILL.md` at runtime.
+Regenerate and rebuild after adding or renaming endpoints.
+
 Multiple Suwok Router instances may share one Postgres database
 directory. If a supervisor injects secrets, keep their values stable across
 restarts so dashboard sessions and the instance identity remain stable.

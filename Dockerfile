@@ -34,6 +34,7 @@ COPY --from=server-deps /app/node_modules ./node_modules
 COPY package.json ./package.json
 COPY src/ ./src/
 COPY scripts/ ./scripts/
+COPY SKILL.md ./SKILL.md
 COPY tsconfig.json ./tsconfig.json
 COPY --from=dashboard-builder /app/dashboard/dist ./dashboard/dist
 COPY dashboard/public/ ./dashboard/public/
