@@ -187,7 +187,11 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
     }
 
     return {
-      plan: subscriptionInfo?.currentTier?.name || "Unknown",
+      plan: normalizeAntigravityTier(subscriptionInfo?.currentTier?.id)
+        || normalizeAntigravityTier(subscriptionInfo?.paidTier?.id)
+        || normalizeAntigravityTier(subscriptionInfo?.currentTier?.name)
+        || normalizeAntigravityTier(subscriptionInfo?.paidTier?.name)
+        || "Free",
       quotas,
       subscriptionInfo,
     };
@@ -215,4 +219,27 @@ async function getAntigravitySubscriptionInfo(accessToken, proxyOptions = null) 
     console.error("[Antigravity Subscription] Error:", error.message);
     return null;
   }
+}
+
+// Plan badge for the quota monitor. Mirrors Antigravity-Manager's tier map:
+// loadCodeAssist's currentTier/paidTier ids are the stable signal
+// (free-tier/standard-tier/g1-pro-tier/g1-ultra-tier, Enterprise via gcp
+// management); "helium" is Ultra's internal codename. Name text is accepted
+// as fallback; unrecognized values pass through untouched.
+const ANTIGRAVITY_TIER_MAP = [
+  [/ultra|helium/, "Ultra"],
+  [/enterprise|gemini.enterprise/, "Enterprise"],
+  [/plus/, "Plus"],
+  [/pro|premium|advanced|standard/, "Pro"],
+  [/free|starter/, "Free"],
+];
+
+export function normalizeAntigravityTier(raw) {
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  const value = raw.trim();
+  const lower = value.toLowerCase();
+  for (const [pattern, label] of ANTIGRAVITY_TIER_MAP) {
+    if (pattern.test(lower)) return label;
+  }
+  return value;
 }
