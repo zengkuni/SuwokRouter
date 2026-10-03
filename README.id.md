@@ -600,6 +600,10 @@ self-host di jaringan sendiri dan chat agent perlu curl service lokal, set:
 SSRF_ALLOW_PRIVATE=true
 ```
 
+Setelah itu restart: native run baca ulang `.env`; untuk Compose jalankan
+`docker compose up -d --force-recreate suwokrouter` (flag sudah di-plumb
+lewat `docker-compose.yml`).
+
 Endpoint metadata cloud (`169.254.169.254`, `metadata.google.internal`) tetap
 diblokir walau flag aktif. Hanya nyalakan pada instance yang memang sudah
 private/berwenang, karena chat agent jadi bisa menjangkau apa pun yang bisa

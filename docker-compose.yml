@@ -91,6 +91,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-}
       API_KEY_SECRET: ${API_KEY_SECRET:-}
       MACHINE_ID_SALT: ${MACHINE_ID_SALT:-}
+      SSRF_ALLOW_PRIVATE: ${SSRF_ALLOW_PRIVATE:-false}
     depends_on:
       postgres:
         condition: service_healthy

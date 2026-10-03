@@ -586,11 +586,16 @@ MACHINE_ID_SALT=replace-with-a-random-private-salt
 The built-in chat **curl** tool blocks `localhost`, `127.0.0.1`, LAN IPs, and
 cloud metadata endpoints by default (SSRF protection). If you self-host the
 router on your own network and want the chat agent to curl your local services,
-set:
+set `SSRF_ALLOW_PRIVATE=true` in `.env` (native runs) or in the Compose
+environment:
 
 ```dotenv
 SSRF_ALLOW_PRIVATE=true
 ```
+
+Then restart: native runs re-read `.env`; Compose instances run
+`docker compose up -d --force-recreate suwokrouter` (the flag is plumbed
+through `docker-compose.yml`).
 
 Cloud metadata endpoints (`169.254.169.254`, `metadata.google.internal`) stay
 blocked even with this flag. Only enable it on instances that are already
