@@ -116,12 +116,13 @@ export const SUWOK_AGENT_TOOLS = [
     type: "function",
     function: {
       name: "curl",
-      description: "Fetch a public HTTP(S) URL with a bounded GET or HEAD request. Private and loopback targets are blocked.",
+      description: "Fetch an http(s) URL. GET/HEAD for public URLs (private and loopback targets are blocked unless SSRF_ALLOW_PRIVATE=true; the router's own loopback port is always allowed). Writable methods (POST/PUT/PATCH/DELETE with a JSON body object) are allowed only against the router's own API (http://127.0.0.1:12122) — e.g. reorder a combo: PUT /api/combos/{id} with { name, kind, models: [...] } where array order is the fallback priority.",
       parameters: {
         type: "object",
         properties: {
-          url: { type: "string", description: "Public http(s) URL." },
-          method: { type: "string", enum: ["GET", "HEAD"] },
+          url: { type: "string", description: "http(s) URL. Use http://127.0.0.1:12122 for the router's own API." },
+          method: { type: "string", enum: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"] },
+          body: { type: "object", description: "JSON body for writable methods (self-URL only). For combo reorder: { name, kind, models: [...] }." },
         },
         required: ["url"],
         additionalProperties: false,
@@ -209,7 +210,7 @@ export async function executeSuwokTool(
   if (name === "router_api_keys") return postJson("/api/chat/tools/router", { action: "api_keys", include_revoked: args.include_revoked, limit: args.limit }, apiKey);
   if (name === "web_search") return postJson("/api/chat/tools/search", { query: args.query, max_results: args.max_results }, apiKey);
   if (name === "read_workspace") return postJson("/api/chat/tools/shell", { command: args.command }, apiKey);
-  if (name === "curl") return postJson("/api/chat/tools/curl", { url: args.url, method: args.method }, apiKey);
+  if (name === "curl") return postJson("/api/chat/tools/curl", { url: args.url, method: args.method, body: args.body }, apiKey);
   if (name === "generate_image") return postJson("/api/v1/images/generations", {
     prompt: args.prompt,
     provider: args.provider,

@@ -7,7 +7,7 @@ export const APP_CONFIG = {
 };
 
 export const RUNTIME_CONFIG = {
-  appPort: Number.parseInt(process.env.PORT || "1212", 10) || 1212,
+  appPort: Number.parseInt(process.env.PORT || "12122", 10) || 12122,
 };
 
 export const THEME_CONFIG = {

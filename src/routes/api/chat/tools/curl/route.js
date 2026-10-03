@@ -102,26 +102,43 @@ export async function POST(request) {
   let timer;
   try {
     const body = await request.json().catch(() => ({}));
+    const SAFE_METHODS = new Set(["GET", "HEAD"]);
     const method = String(body?.method || "GET").toUpperCase();
-    if (method !== "GET" && method !== "HEAD") throw new CurlInputError("Only GET and HEAD requests are allowed");
+    if (!SAFE_METHODS.has(method) && !["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+      throw new CurlInputError("Allowed methods: GET, HEAD, POST, PUT, PATCH, DELETE");
+    }
     const url = await assertPublicUrl(body?.url);
+    let payload;
+    if (SAFE_METHODS.has(method)) {
+      if (body?.body !== undefined) throw new CurlInputError("GET and HEAD requests cannot have a body");
+    } else if (body?.body !== undefined) {
+      if (typeof body.body !== "object" || body.body === null) {
+        throw new CurlInputError("body must be a JSON object");
+      }
+      const serialized = JSON.stringify(body.body);
+      if (serialized.length > MAX_BODY_LENGTH) throw new CurlInputError("Request body is too large");
+      payload = serialized;
+    }
+    // Writable methods stay scoped to the router's own API (loopback + own
+    // port): the agent may reorder combos / flip settings on itself, but
+    // never mutate an arbitrary host.
+    if (!SAFE_METHODS.has(method) && !isSelfUrl(url)) {
+      throw new CurlInputError("POST/PUT/PATCH/DELETE are only allowed against the router's own API (loopback on its own port)");
+    }
     const controller = new AbortController();
     timer = setTimeout(() => controller.abort(), CURL_TIMEOUT_MS);
     const headers = { Accept: "application/json, text/plain, text/html, */*", "User-Agent": "SuwokRouter Agent/1.0" };
     const selfToken = await selfTokenHeader(url);
     if (selfToken) Object.assign(headers, selfToken);
+    if (payload !== undefined) headers["Content-Type"] = "application/json";
     const fetchInit = {
       method,
       redirect: "manual",
       cache: "no-store",
       headers,
       signal: controller.signal,
+      ...(payload !== undefined ? { body: payload } : {}),
     };
-    // Self-URLs are already validated by assertPublicUrl; the shared SSRF guard
-    // would re-block them, so bypass it for the router's own address only.
-    const response = isSelfUrl(url)
-      ? await fetch(url.toString(), fetchInit)
-      : await fetchWithSsrfGuard(url.toString(), fetchInit, { maxRedirects: 0 });
     const bounded = method === "HEAD" ? { text: "", truncated: false } : await readBoundedBody(response);
     return NextResponse.json({
       ok: true,

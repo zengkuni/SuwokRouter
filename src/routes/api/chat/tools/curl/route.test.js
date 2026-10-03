@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { POST } from "./route.js";
-
+import { RUNTIME_CONFIG } from "@/shared/constants/config.js";
 function request(body) {
   return new Request("http://localhost/api/chat/tools/curl", {
     method: "POST",
@@ -24,7 +24,8 @@ describe("Suwok Chat curl tool", () => {
   });
 
   test("lets the router curl its own API without the private-target block", async () => {
-    const port = Number.parseInt(process.env.PORT || "1212", 10);
+    const port = RUNTIME_CONFIG.appPort;
+
     const response = await POST(request({ url: `http://127.0.0.1:${port}/api/health/ready` }));
     // The self-URL exemption must run before the private-target checks; the
     // fetch itself may fail (nothing listening in CI), never the SSRF block.
@@ -33,11 +34,17 @@ describe("Suwok Chat curl tool", () => {
     expect(body.error ?? "").not.toContain("loopback");
   });
 
-  test("only permits bounded GET and HEAD requests", async () => {
-    const response = await POST(
-      request({ url: "https://example.com/", method: "POST" }),
-    );
-    expect(response.status).toBe(400);
-    expect((await response.json()).error).toContain("GET and HEAD");
+  test("scopes writable methods to the router's own API", async () => {
+    const remote = await POST(request({ url: "https://example.com/", method: "PUT", body: { a: 1 } }));
+    expect(remote.status).toBe(400);
+    expect((await remote.json()).error).toContain("only allowed against the router's own API");
+
+    const getWithBody = await POST(request({ url: "https://example.com/", body: { a: 1 } }));
+    expect(getWithBody.status).toBe(400);
+    expect((await getWithBody.json()).error).toContain("cannot have a body");
+
+    const badBody = await POST(request({ url: "https://example.com/", method: "PUT", body: "nope" }));
+    expect(badBody.status).toBe(400);
+    expect((await badBody.json()).error).toContain("body must be a JSON object");
   });
 });

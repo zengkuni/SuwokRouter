@@ -64,7 +64,7 @@ services:
       - /tmp:rw,noexec,nosuid,size=64m
       - /run:rw,noexec,nosuid,size=16m
     ports:
-      - "127.0.0.1:1212:1212"
+      - "127.0.0.1:12122:12122"
     volumes:
       - ${SUWOK_DATA_VOLUME:-suwokrouter-data}:/app/data
 
@@ -74,7 +74,7 @@ services:
           "CMD",
           "bun",
           "-e",
-          "fetch('http://127.0.0.1:1212/api/health/ready').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))",
+          "fetch('http://127.0.0.1:12122/api/health/ready').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))",
         ]
       interval: 30s
       timeout: 5s
@@ -83,7 +83,7 @@ services:
 
     environment:
       DATA_DIR: /app/data
-      PORT: "1212"
+      PORT: "12122"
       HOSTNAME: "0.0.0.0"
       NODE_ENV: production
       DB_URL: ${DB_URL:-postgres://${POSTGRES_USER:-suwok}:${POSTGRES_PASSWORD:-suwok}@postgres:5432/${POSTGRES_DB:-suwokrouter}}

@@ -85,7 +85,7 @@ sudah terpasang, lewati langkah pertama.
    suwokrouter start -b
    ```
 
-4. Buka `http://127.0.0.1:1212/dashboard` di browser, lalu selesaikan setup
+4. Buka `http://127.0.0.1:12122/dashboard` di browser, lalu selesaikan setup
    pertama.
 
 5. Cek atau stop instance lokal kapan saja:
@@ -128,7 +128,7 @@ Pop-Location
 bun run dev
 ```
 
-Buka `http://127.0.0.1:1212/dashboard`. Biarkan terminal tetap terbuka saat
+Buka `http://127.0.0.1:12122/dashboard`. Biarkan terminal tetap terbuka saat
 development server berjalan.
 
 ### Jalanin dari source (macOS/Linux)
@@ -142,7 +142,7 @@ cd ..
 bun run dev
 ```
 
-Buka `http://127.0.0.1:1212/dashboard`, lalu tambahkan provider pertama kamu.
+Buka `http://127.0.0.1:12122/dashboard`, lalu tambahkan provider pertama kamu.
 
 Kalau mau ngembangin dashboard, jalanin `bun run dev` di dalam folder
 `dashboard/` lewat terminal kedua.
@@ -165,7 +165,7 @@ sebelum menjalankan Compose.
 Docker juga membuat secret persistent di data volume. Copy `.env.example`
 menjadi `.env` hanya kalau kamu ingin memberi override deployment sendiri.
 
-Buka `http://127.0.0.1:1212/dashboard`. Untuk lihat log:
+Buka `http://127.0.0.1:12122/dashboard`. Untuk lihat log:
 
 ```bash
 docker compose logs -f suwokrouter
@@ -229,7 +229,7 @@ yang umum.
 
 ```bash
 export SUWOK_API_KEY="swy-your_gateway_key"
-curl http://127.0.0.1:1212/v1/chat/completions \
+curl http://127.0.0.1:12122/v1/chat/completions \
   --oauth2-bearer "${SUWOK_API_KEY}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -578,7 +578,7 @@ yang kuat di data directory persistent. Pakai `.env` kalau perlu mengganti
 default, bind ke host lain, atau mengelola secret dari luar:
 
 ```dotenv
-PORT=1212
+PORT=12122
 HOSTNAME=127.0.0.1
 NODE_ENV=production
 # Wajib: PostgreSQL adalah satu-satunya driver database.

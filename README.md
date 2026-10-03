@@ -85,7 +85,7 @@ installed, skip the first step.
    suwokrouter start -b
    ```
 
-4. Open `http://127.0.0.1:1212/dashboard` in your browser and finish the
+4. Open `http://127.0.0.1:12122/dashboard` in your browser and finish the
    first-run setup.
 
 5. Check or stop the local instance whenever you need:
@@ -128,7 +128,7 @@ Pop-Location
 bun run dev
 ```
 
-Then open `http://127.0.0.1:1212/dashboard`. Keep the terminal open while
+Then open `http://127.0.0.1:12122/dashboard`. Keep the terminal open while
 the development server is running.
 
 ### Run from source (macOS/Linux)
@@ -142,7 +142,7 @@ cd ..
 bun run dev
 ```
 
-Then open `http://127.0.0.1:1212/dashboard` and connect your first provider.
+Then open `http://127.0.0.1:12122/dashboard` and connect your first provider.
 
 Want to work on the dashboard? Run `bun run dev` inside `dashboard/` in a
 second terminal.
@@ -165,7 +165,7 @@ before starting Compose.
 Docker also generates persistent secrets in its data volume. Copy
 `.env.example` to `.env` only when you want explicit deployment overrides.
 
-Open `http://127.0.0.1:1212/dashboard`. Follow the logs with:
+Open `http://127.0.0.1:12122/dashboard`. Follow the logs with:
 
 ```bash
 docker compose logs -f suwokrouter
@@ -228,7 +228,7 @@ common client setups.
 
 ```bash
 export SUWOK_API_KEY="swy-your_gateway_key"
-curl http://127.0.0.1:1212/v1/chat/completions \
+curl http://127.0.0.1:12122/v1/chat/completions \
   --oauth2-bearer "${SUWOK_API_KEY}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -572,7 +572,7 @@ the persistent data directory. Use `.env` when you need to override the
 defaults, bind another host, or manage secrets externally:
 
 ```dotenv
-PORT=1212
+PORT=12122
 HOSTNAME=127.0.0.1
 DATA_DIR=/var/lib/suwokrouter
 NODE_ENV=production
@@ -616,8 +616,6 @@ The Docker image ships `SKILL.md`, so the agent can `cat SKILL.md` at runtime.
 Regenerate and rebuild after adding or renaming endpoints.
 
 Multiple Suwok Router instances may share one Postgres database
-directory. If a supervisor injects secrets, keep their values stable across
-restarts so dashboard sessions and the instance identity remain stable.
 directory. If a supervisor injects secrets, keep their values stable across
 restarts so dashboard sessions and the instance identity remain stable.
 
