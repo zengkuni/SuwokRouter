@@ -87,7 +87,7 @@ export const AGENTROUTER_ANTHROPIC_AUTH = {
   anthropicVersion: true,
 };
 
-export const ANTIGRAVITY_IDE_VERSION = "2.1.1";
+export const ANTIGRAVITY_IDE_VERSION = "2.5.5";
 export const ANTIGRAVITY_IDE_BASE_URL = "https://daily-cloudcode-pa.googleapis.com";
 export const ANTIGRAVITY_IDE_USER_AGENT = `antigravity/ide/${ANTIGRAVITY_IDE_VERSION} darwin/arm64`;
 

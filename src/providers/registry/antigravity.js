@@ -36,7 +36,7 @@ export default {
     ],
     "format": "antigravity",
     "headers": {
-      "User-Agent": "antigravity/ide/2.1.1 darwin/arm64"
+      "User-Agent": "antigravity/ide/2.5.5 darwin/arm64"
     },
     "retry": {
       "429": {
@@ -58,6 +58,36 @@ export default {
     "clientSecret": ANTIGRAVITY_OAUTH_CLIENT.clientSecret
   },
   "models": [
+    {
+      "id": "gemini-3.8-flash-high",
+      "name": "Gemini 3.8 Flash (High)",
+      "upstreamModelId": "gemini-3.8-flash-high(high)"
+    },
+    {
+      "id": "gemini-3.8-flash-medium",
+      "name": "Gemini 3.8 Flash (Medium)",
+      "upstreamModelId": "gemini-3.8-flash-medium(medium)"
+    },
+    {
+      "id": "gemini-3.8-flash-low",
+      "name": "Gemini 3.8 Flash (Low)",
+      "upstreamModelId": "gemini-3.8-flash-low(low)"
+    },
+    {
+      "id": "gemini-3.7-flash-high",
+      "name": "Gemini 3.7 Flash (High)",
+      "upstreamModelId": "gemini-3.7-flash-tiered(high)"
+    },
+    {
+      "id": "gemini-3.7-flash-medium",
+      "name": "Gemini 3.7 Flash (Medium)",
+      "upstreamModelId": "gemini-3.7-flash-tiered(medium)"
+    },
+    {
+      "id": "gemini-3.7-flash-low",
+      "name": "Gemini 3.7 Flash (Low)",
+      "upstreamModelId": "gemini-3.7-flash-tiered(low)"
+    },
     {
       "id": "gemini-3.6-flash-high",
       "name": "Gemini 3.6 Flash (High)",
@@ -130,7 +160,7 @@ export default {
     "apiVersion": "v1internal",
     "loadCodeAssistEndpoint": "https://cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
     "onboardUserEndpoint": "https://cloudcode-pa.googleapis.com/v1internal:onboardUser",
-    "loadCodeAssistUserAgent": "antigravity/ide/2.1.1 darwin/arm64",
+    "loadCodeAssistUserAgent": "antigravity/ide/2.5.5 darwin/arm64",
     "refreshLeadMs": 300000
   },
   "features": {
