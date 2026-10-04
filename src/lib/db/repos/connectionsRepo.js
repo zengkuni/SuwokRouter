@@ -200,6 +200,13 @@ export async function getProviderConnections(filter = {}) {
   return list;
 }
 
+export async function findExistingApiKeys(provider, apiKeys) {
+  const requested = [...new Set((apiKeys || []).map(normalizeApiKey).filter(Boolean))];
+  if (!requested.length) return [];
+  const rows = await getProviderConnections({ provider });
+  return requested.filter((key) => findDuplicateApiKey(rows, key));
+}
+
 export async function getProviderConnectionsForRouting(filter = {}) {
   const db = await getAdapter();
   const where = ["1 = 1"];

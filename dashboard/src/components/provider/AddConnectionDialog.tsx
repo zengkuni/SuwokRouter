@@ -20,6 +20,7 @@ import {
   startOAuthProxy,
   stopOAuthProxy,
   testCodeBuddyToken,
+  checkExistingProviderKeys,
   testProviderKey,
   type AvailableProvider,
 } from "@/lib/connections-api";
@@ -265,14 +266,35 @@ export function AddConnectionDialog({
     const parsed = parseBulkLines(bulkRaw);
     if (!parsed.length) return;
     setBulkChecking(true);
-    const next = parsed.map((row) => ({ ...row, checking: false }));
+    const next: BulkKeyRow[] = parsed.map((row) => ({ ...row, checking: false }));
     const seenKeys = new Set<string>();
     setBulkRows([...next]);
+    let existingKeys = new Set<string>();
+    try {
+      const { existingKeys: existing } = await checkExistingProviderKeys({
+        provider: provider.id,
+        apiKeys: parsed.map((row) => row.apiKey.trim()),
+      });
+      existingKeys = new Set(existing.map((key) => key.trim()));
+    } catch {
+      // existence check is advisory — probe all rows if it fails
+    }
     setBulkActiveIndex(0);
     try {
       for (let index = 0; index < next.length; index += 1) {
-        setBulkActiveIndex(index);
         const normalizedKey = next[index].apiKey.trim();
+        if (existingKeys.has(normalizedKey)) {
+          next[index] = {
+            ...next[index],
+            valid: false,
+            checking: false,
+            skipped: true,
+            msg: "Already in database — skipped",
+          };
+          setBulkRows([...next]);
+          continue;
+        }
+        setBulkActiveIndex(index);
         if (seenKeys.has(normalizedKey)) {
           next[index] = {
             ...next[index],

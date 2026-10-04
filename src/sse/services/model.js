@@ -123,7 +123,9 @@ export async function getComboModels(modelStr) {
 
   const combo = await getComboByName(modelStr);
   if (combo && combo.models && combo.models.length > 0) {
-    return combo.models;
+    const disabled = new Set(combo.disabledModels || []);
+    const enabled = disabled.size > 0 ? combo.models.filter((m) => !disabled.has(m)) : combo.models;
+    return enabled.length > 0 ? enabled : combo.models;
   }
   return null;
 }

@@ -760,25 +760,23 @@ function ProviderCard({
 
   return (
     <Frame className="flex min-w-0 flex-col overflow-hidden">
-      <FrameHeader className="flex flex-row items-start justify-between gap-3 p-4">
+      <FrameHeader className="flex flex-row items-center justify-between gap-3 p-4">
         <div className="flex min-w-0 items-center gap-2">
           <ProviderMark provider={conn.provider} />
-          <div className="min-w-0">
-            <h3 className="flex min-w-0 items-center gap-1.5 truncate text-sm font-medium leading-tight">
-              {card.plan ? (
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "shrink-0 px-1.5 py-0 text-[10px] font-semibold",
-                    PLAN_BADGE_CLASSES[card.plan.toLowerCase()] ?? PLAN_BADGE_FALLBACK,
-                  )}
-                >
-                  {card.plan}
-                </Badge>
-              ) : null}
-              <span className="truncate">
-                {conn.email || conn.name || conn.provider}
-              </span>
+          <div className="flex min-w-0 flex-col gap-1.5">
+            {card.plan ? (
+              <Badge
+                variant="outline"
+                className={cn(
+                  "w-fit shrink-0 px-1.5 py-0 text-[10px] font-semibold",
+                  PLAN_BADGE_CLASSES[card.plan.toLowerCase()] ?? PLAN_BADGE_FALLBACK,
+                )}
+              >
+                {card.plan}
+              </Badge>
+            ) : null}
+            <h3 className="truncate text-sm font-medium leading-tight">
+              {conn.email || conn.name || conn.provider}
             </h3>
           </div>
         </div>

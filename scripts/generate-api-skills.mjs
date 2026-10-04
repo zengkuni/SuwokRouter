@@ -94,7 +94,7 @@ lines.push("## How the chat agent should use this skill");
 lines.push("");
 lines.push("- **Source of truth:** models, combos, provider connections, usage, pricing, keys, and settings live in the router database (Postgres) — never in workspace files. Do not grep the workspace for combo/model definitions; query this API.");
 lines.push("- **Base URL from the curl tool:** `http://127.0.0.1:12122` (the router's own port; default `12122`). Loopback calls to the router's own port are always allowed and automatically carry the internal CLI token — no API key needed. Writable methods (POST/PUT/PATCH/DELETE with a JSON `body` object) work only against this self URL, never against other hosts.");
-lines.push("- **Reordering combo members:** `GET /api/combos` → locate the combo → `PUT /api/combos/{id}` with the full updated object `{ \"name\": \"...\", \"kind\": \"...\", \"models\": [...] }`. Array order IS the priority/fallback order, so send the members in the desired sequence and keep every existing field.");
+lines.push("- **Reordering combo members:** `GET /api/combos` → locate the combo → `PUT /api/combos/{id}` with the full updated object `{ \"name\": \"...\", \"kind\": \"...\", \"group\": \"...\", \"models\": [...] }` (`group` is an optional display label; same label = one section in the Combos page). Array order IS the priority/fallback order, so send the members in the desired sequence and keep every existing field.");
 lines.push("- **Auth classes** (enforced by `src/dashboardGuard.js`):");
 lines.push("  - `public` — no credentials.");
 lines.push("  - `public (gateway: API key unless loopback)` — the OpenAI-compatible gateway; remote callers need an API key, loopback callers do not.");

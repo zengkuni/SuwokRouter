@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { comboNameError, moveComboModel, toggleComboModel } from "@/lib/comboForm";
+import { comboGroupError, comboNameError, moveComboModel, toggleComboModel } from "@/lib/comboForm";
 
 const CHARSET_MESSAGE = "Name can only contain letters, numbers, -, _ and .";
 
@@ -38,6 +38,35 @@ describe("combo name validation", () => {
 
   test("reports a missing name before a duplicate", () => {
     expect(comboNameError("", ["smart"])).toBe("Name is required");
+  });
+});
+
+describe("combo group validation", () => {
+  test("accepts labels the gateway accepts", () => {
+    for (const group of ["gpt", "gpt-5", "my group", "a_b.c-d", "A1", "9router"]) {
+      expect(comboGroupError(group)).toBe("");
+    }
+  });
+
+  test("treats an empty label as ungrouped", () => {
+    expect(comboGroupError("")).toBe("");
+    expect(comboGroupError("   ")).toBe("");
+  });
+
+  test("rejects labels longer than 64 characters", () => {
+    expect(comboGroupError("a".repeat(64))).toBe("");
+    expect(comboGroupError("a".repeat(65))).toBe("Group must be 64 characters or fewer");
+  });
+
+  test("rejects characters outside letters, numbers, spaces, -, _ and .", () => {
+    for (const group of ["gpt/5", "gpt:5", "gpt,5", "grüp", "group!"]) {
+      expect(comboGroupError(group)).toBe("Group can only contain letters, numbers, spaces, -, _ and .");
+    }
+  });
+
+  test("validates the trimmed label the dialog actually saves", () => {
+    expect(comboGroupError("  gpt  ")).toBe("");
+    expect(comboGroupError("  gpt 5  ")).toBe("");
   });
 });
 

@@ -60,6 +60,7 @@ export const ROUTE_LOADERS = {
   "api/providers/catalog/route.js": () => import("./api/providers/catalog/route.js"),
   "api/providers/client/route.js": () => import("./api/providers/client/route.js"),
   "api/providers/counts/route.js": () => import("./api/providers/counts/route.js"),
+  "api/providers/keys-exists/route.js": () => import("./api/providers/keys-exists/route.js"),
   "api/providers/kilo/free-models/route.js": () => import("./api/providers/kilo/free-models/route.js"),
   "api/providers/route.js": () => import("./api/providers/route.js"),
   "api/providers/suggested-models/route.js": () => import("./api/providers/suggested-models/route.js"),
@@ -944,6 +945,12 @@ export const ROUTE_TABLE = [
     "method": "POST",
     "pathPattern": "/api/providers",
     "file": "api/providers/route.js",
+    "params": []
+  },
+  {
+    "method": "POST",
+    "pathPattern": "/api/providers/keys-exists",
+    "file": "api/providers/keys-exists/route.js",
     "params": []
   },
   {

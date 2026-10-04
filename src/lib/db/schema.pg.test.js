@@ -107,9 +107,9 @@ maybe("postgres schema", () => {
     expect(row.indexdef).toContain("WHERE");
   });
 
-  test("SCHEMA_VERSION stays 16", async () => {
+  test("SCHEMA_VERSION stays 18", async () => {
     const mod = await import("./schema.pg.js");
-    expect(mod.SCHEMA_VERSION).toBe(16);
+    expect(mod.SCHEMA_VERSION).toBe(18);
   });
 
   test("DDL is idempotent", async () => {

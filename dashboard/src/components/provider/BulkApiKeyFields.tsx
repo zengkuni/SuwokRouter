@@ -99,8 +99,13 @@ export function BulkApiKeyFields({
         >
           <StatusBadge tone="ok">Valid: {validCount} API Key</StatusBadge>
           <StatusBadge tone="err">
-            Error: {rows.filter((row) => row.valid === false).length} API Key
+            Error: {rows.filter((row) => row.valid === false && !row.skipped).length} API Key
           </StatusBadge>
+          {rows.some((row) => row.skipped) ? (
+            <StatusBadge tone="muted">
+              Skipped: {rows.filter((row) => row.skipped).length} already in database
+            </StatusBadge>
+          ) : null}
         </motion.div>
       ) : null}
       <div className="flex flex-wrap items-center gap-2">

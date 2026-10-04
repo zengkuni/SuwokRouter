@@ -352,6 +352,7 @@ async function readCurrentSnapshot(db) {
       name: row.name,
       kind: row.kind,
       models: parseJson(row.models, []),
+      disabledModels: parseJson(row.disabled_models, []),
     })),
     customModels: customModelRows
       .map((row) => parseJson(row.value, null))
@@ -674,7 +675,7 @@ export function buildNineRouterMigrationPlan(rawPayload, rawOptions, current = {
     }
     const sourceName = safeString(sourceCombo.name, 512);
     const sameName = comboByName.get(normalized(sourceName));
-    if (sameName && JSON.stringify(sameName.models || []) === JSON.stringify(models)) {
+    if (sameName && JSON.stringify(sameName.models || []) === JSON.stringify(models) && JSON.stringify(sameName.disabledModels || []) === JSON.stringify([])) {
       comboNameMap.set(normalized(sourceName), sameName.name);
       sections.combos.duplicates += 1;
       continue;

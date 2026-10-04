@@ -11,6 +11,7 @@ export type BulkKeyRow = {
   valid: boolean | null;
   checking?: boolean;
   msg?: string;
+  skipped?: boolean;
 };
 
 export type CodeBuddyTokenRow = {

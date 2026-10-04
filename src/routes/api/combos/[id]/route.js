@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getComboById, updateCombo, deleteCombo, getComboByName } from "@/lib/localDb";
 import { resetComboRotation } from "open-sse/services/combo.js";
+import { comboGroupError, normalizeComboGroup } from "../comboGroupValidation.js";
 
 const VALID_NAME_REGEX = /^[a-zA-Z0-9_.\-]+$/;
 
@@ -36,8 +37,19 @@ export async function PUT(request, { params }) {
       }
     }
 
+    if (body.group !== undefined) {
+      const groupError = comboGroupError(body.group);
+      if (groupError) {
+        return NextResponse.json({ error: groupError }, { status: 400 });
+      }
+    }
+
+    if (body.disabledModels !== undefined && (!Array.isArray(body.disabledModels) || !body.disabledModels.every((m) => typeof m === "string"))) {
+      return NextResponse.json({ error: "disabledModels must be an array of model ids" }, { status: 400 });
+    }
+
     const prev = await getComboById(id);
-    const combo = await updateCombo(id, body);
+    const combo = await updateCombo(id, body.group === undefined ? body : { ...body, group: normalizeComboGroup(body.group) });
 
     if (!combo) {
       return NextResponse.json({ error: "Combo not found" }, { status: 404 });

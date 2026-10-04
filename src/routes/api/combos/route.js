@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCombos, createCombo, getComboByName } from "@/lib/localDb";
+import { comboGroupError, normalizeComboGroup } from "./comboGroupValidation.js";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export async function GET() {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { name, models, kind } = body;
+    const { name, models, kind, group, disabledModels } = body;
 
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -33,7 +34,16 @@ export async function POST(request) {
       return NextResponse.json({ error: "Combo name already exists" }, { status: 400 });
     }
 
-    const combo = await createCombo({ name, models: models || [], kind: kind || null });
+    const groupError = comboGroupError(group);
+    if (groupError) {
+      return NextResponse.json({ error: groupError }, { status: 400 });
+    }
+
+    if (disabledModels !== undefined && (!Array.isArray(disabledModels) || !disabledModels.every((m) => typeof m === "string"))) {
+      return NextResponse.json({ error: "disabledModels must be an array of model ids" }, { status: 400 });
+    }
+
+    const combo = await createCombo({ name, models: models || [], kind: kind || null, group: normalizeComboGroup(group), disabledModels: disabledModels || [] });
 
     return NextResponse.json(combo, { status: 201 });
   } catch (error) {

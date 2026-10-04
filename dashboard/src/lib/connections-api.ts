@@ -446,6 +446,17 @@ export async function testProviderKey(body: {
   return data;
 }
 
+export async function checkExistingProviderKeys(body: {
+  provider: string;
+  apiKeys: string[];
+}) {
+  const { data } = await api.post<{ existingKeys: string[] }>(
+    "/providers/keys-exists",
+    body,
+  );
+  return data;
+}
+
 export async function testCodeBuddyToken(body: {
   provider: string;
   credentialToken?: string;

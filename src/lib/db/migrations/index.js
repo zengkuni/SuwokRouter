@@ -12,8 +12,10 @@ import m013 from "./013-default-fill-first-routing.js";
 import m014 from "./014-normalize-fill-first-routing.js";
 import m015 from "./015-remove-ip-ban-tables.js";
 import m016 from "./016-prune-legacy-codebuddy-intl-models.js";
+import m017 from "./017-combo-group.js";
+import m018 from "./018-combo-model-enable.js";
 
-export const MIGRATIONS = [m001, m002, m004, m005, m007, m008, m009, m010, m011, m012, m013, m014, m015, m016].sort((a, b) => a.version - b.version);
+export const MIGRATIONS = [m001, m002, m004, m005, m007, m008, m009, m010, m011, m012, m013, m014, m015, m016, m017, m018].sort((a, b) => a.version - b.version);
 
 export function latestVersion() {
   return MIGRATIONS.length ? MIGRATIONS[MIGRATIONS.length - 1].version : 0;

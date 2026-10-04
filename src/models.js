@@ -19,6 +19,7 @@ export {
   updateProxyPool,
   deleteProxyPool,
   deleteProviderConnectionsByProvider,
+  findExistingApiKeys,
   getCombos,
   getComboById,
   getComboByName,

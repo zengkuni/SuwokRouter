@@ -179,6 +179,8 @@ export type Combo = {
   id?: string;
   name: string;
   models: string[];
+  disabledModels?: string[];
+  group?: string | null;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -199,6 +201,8 @@ export async function listCombos(): Promise<Combo[]> {
 export async function createCombo(body: {
   name: string;
   models: string[];
+  group?: string | null;
+  disabledModels?: string[];
 }): Promise<Combo> {
 
   const { data } = await api.post<Combo>("/combos", body);
@@ -207,7 +211,7 @@ export async function createCombo(body: {
 
 export async function updateCombo(
   id: string,
-  body: { models?: string[]; name?: string }
+  body: { models?: string[]; name?: string; group?: string | null; disabledModels?: string[] }
 ): Promise<Combo> {
 
   const { data } = await api.put<Combo>(`/combos/${encodeURIComponent(id)}`, body);

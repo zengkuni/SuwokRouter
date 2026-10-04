@@ -33,6 +33,26 @@ export function comboNameError(name: string, takenNames: readonly string[]): str
   return "";
 }
 
+const GROUP_CHARSET = "Group can only contain letters, numbers, spaces, -, _ and .";
+const GROUP_TOO_LONG = "Group must be 64 characters or fewer";
+
+/** Letters, numbers, `-`, `_`, `.` and spaces; an empty label means ungrouped. */
+const VALID_GROUP_REGEX = /^[a-zA-Z0-9_.\- ]+$/;
+
+/**
+ * Explain why a combo group label cannot be used, or "" when it can.
+ *
+ * Mirrors `comboGroupError` in `src/routes/api/combos/comboGroupValidation.js`.
+ * An empty (or whitespace-only) label is valid and means "ungrouped".
+ */
+export function comboGroupError(group: string): string {
+  const trimmed = group.trim();
+  if (!trimmed) return "";
+  if (trimmed.length > 64) return GROUP_TOO_LONG;
+  if (!VALID_GROUP_REGEX.test(trimmed)) return GROUP_CHARSET;
+  return "";
+}
+
 /**
  * Add or remove a model id; new picks go last so the column keeps click order.
  *

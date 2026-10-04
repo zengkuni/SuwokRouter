@@ -6,7 +6,7 @@
 
 - **Source of truth:** models, combos, provider connections, usage, pricing, keys, and settings live in the router database (Postgres) — never in workspace files. Do not grep the workspace for combo/model definitions; query this API.
 - **Base URL from the curl tool:** `http://127.0.0.1:12122` (the router's own port; default `12122`). Loopback calls to the router's own port are always allowed and automatically carry the internal CLI token — no API key needed. Writable methods (POST/PUT/PATCH/DELETE with a JSON `body` object) work only against this self URL, never against other hosts.
-- **Reordering combo members:** `GET /api/combos` → locate the combo → `PUT /api/combos/{id}` with the full updated object `{ "name": "...", "kind": "...", "models": [...] }`. Array order IS the priority/fallback order, so send the members in the desired sequence and keep every existing field.
+- **Reordering combo members:** `GET /api/combos` → locate the combo → `PUT /api/combos/{id}` with the full updated object `{ "name": "...", "kind": "...", "group": "...", "models": [...] }` (`group` is an optional display label; same label = one section in the Combos page). Array order IS the priority/fallback order, so send the members in the desired sequence and keep every existing field.
 - **Auth classes** (enforced by `src/dashboardGuard.js`):
   - `public` — no credentials.
   - `public (gateway: API key unless loopback)` — the OpenAI-compatible gateway; remote callers need an API key, loopback callers do not.
@@ -128,6 +128,7 @@
 | GET | `/api/providers/catalog` | dashboard/cli token |
 | GET | `/api/providers/client` | dashboard/cli token |
 | GET | `/api/providers/counts` | dashboard/cli token |
+| POST | `/api/providers/keys-exists` | dashboard/cli token |
 | GET | `/api/providers/kilo/free-models` | dashboard/cli token |
 | GET | `/api/providers` | dashboard/cli token |
 | POST | `/api/providers` | dashboard/cli token |
@@ -183,5 +184,5 @@
 | POST | `/api/settings/database` | always-protected |
 | POST | `/api/shutdown` | always-protected |
 
-_104 route modules, 161 methods._
+_105 route modules, 162 methods._
 

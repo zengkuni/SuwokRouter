@@ -11,14 +11,25 @@ async function readAllCombos() {
   return rows.map(rowToCombo);
 }
 
+function normalizeDisabledModels(value) {
+  if (!Array.isArray(value)) return [];
+  const modelSet = new Set();
+  for (const v of value) {
+    if (typeof v !== "string" || !v) continue;
+    modelSet.add(v);
+  }
+  return [...modelSet];
+}
 function rowToCombo(row) {
   if (!row) return null;
   return {
     id: row.id,
     name: row.name,
     kind: row.kind,
+    group: row.group ?? null,
     models: parseJson(row.models, []),
     createdAt: row.createdAt,
+    disabledModels: normalizeDisabledModels(parseJson(row.disabled_models, [])),
     updatedAt: row.updatedAt,
   };
 }
@@ -43,17 +54,20 @@ export async function getComboByName(name) {
 export async function createCombo(data) {
   const db = await getAdapter();
   const now = new Date().toISOString();
+  const disabledModels = normalizeDisabledModels(data.disabledModels).filter((m) => (data.models || []).includes(m));
   const combo = {
     id: uuidv4(),
     name: data.name,
     kind: data.kind || null,
+    group: data.group ?? null,
     models: data.models || [],
+    disabledModels,
     createdAt: now,
     updatedAt: now,
   };
   await db.run(
-    `INSERT INTO combos(id, name, kind, models, createdAt, updatedAt) VALUES($1, $2, $3, $4, $5, $6)`,
-    [combo.id, combo.name, combo.kind, stringifyJson(combo.models), combo.createdAt, combo.updatedAt]
+    `INSERT INTO combos(id, name, kind, "group", models, disabled_models, createdAt, updatedAt) VALUES($1, $2, $3, $4, $5, $6, $7, $8)`,
+    [combo.id, combo.name, combo.kind, combo.group, stringifyJson(combo.models), stringifyJson(combo.disabledModels), combo.createdAt, combo.updatedAt]
   );
   await bumpConfigCacheVersion().catch(() => {});
   return combo;
@@ -66,11 +80,12 @@ export async function updateCombo(id, data) {
     const row = await db.get(`SELECT * FROM combos WHERE id = $1`, [id]);
     if (!row) return;
     const merged = { ...rowToCombo(row), ...data, updatedAt: new Date().toISOString() };
+    const disabledModels = normalizeDisabledModels(merged.disabledModels).filter((m) => (merged.models || []).includes(m));
     await db.run(
-      `UPDATE combos SET name = $1, kind = $2, models = $3, updatedAt = $4 WHERE id = $5`,
-      [merged.name, merged.kind, stringifyJson(merged.models || []), merged.updatedAt, id]
+      `UPDATE combos SET name = $1, kind = $2, "group" = $3, models = $4, disabled_models = $5, updatedAt = $6 WHERE id = $7`,
+      [merged.name, merged.kind, merged.group, stringifyJson(merged.models || []), stringifyJson(disabledModels), merged.updatedAt, id]
     );
-    result = merged;
+    result = { ...merged, disabledModels };
   });
   if (result) await bumpConfigCacheVersion().catch(() => {});
   return result;

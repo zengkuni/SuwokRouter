@@ -11,10 +11,10 @@ export {
 export {
   getProviderConnections, getProviderConnectionById, getActiveProviderRows,
   getProviderConnectionsForRouting, getProviderConnectionsPaged, countProviderConnections,
+  reorderProviderConnections, cleanupProviderConnections, findExistingApiKeys,
   countConnectionsByProxyPool,
   createProviderConnection, updateProviderConnection,
   deleteProviderConnection, deleteProviderConnectionsByProvider,
-  reorderProviderConnections, cleanupProviderConnections,
 } from "./repos/connectionsRepo.js";
 
 export {
@@ -237,6 +237,7 @@ export function validateDatabaseBackup(payload) {
   payload.combos.forEach((combo, index) => {
     assertString(combo.name, `combos[${index}].name`, { max: 512 });
     assertString(combo.kind, `combos[${index}].kind`, { required: false, max: 128 });
+    assertString(combo.group, `combos[${index}].group`, { required: false, max: 64 });
     if (combo.models !== undefined) assertArray(combo.models, `combos[${index}].models`);
   });
 
@@ -327,7 +328,7 @@ export async function exportDb({ scope = "configuration" } = {}) {
 
     apiKeysRedacted: true,
     apiKeys: (await db.all(`SELECT * FROM apiKeys ORDER BY isDefault DESC, createdAt ASC`)).map((r) => ({ id: r.id, name: r.name, machineId: r.machineId, isActive: r.isActive === 1, isDefault: r.isDefault === 1, createdAt: r.createdAt })),
-    combos: (await db.all(`SELECT * FROM combos`)).map((r) => ({ id: r.id, name: r.name, kind: r.kind, models: parseJson(r.models, []), createdAt: r.createdAt, updatedAt: r.updatedAt })),
+    combos: (await db.all(`SELECT * FROM combos`)).map((r) => ({ id: r.id, name: r.name, kind: r.kind, group: r.group ?? null, models: parseJson(r.models, []), disabledModels: parseJson(r.disabled_models, []), createdAt: r.createdAt, updatedAt: r.updatedAt })),
     customModels: [],
     pricing: {},
   };
@@ -423,8 +424,8 @@ export async function importDb(payload) {
     }
     for (const c of payload.combos || []) {
       await db.run(
-        `INSERT INTO combos(id, name, kind, models, createdAt, updatedAt) VALUES($1, $2, $3, $4, $5, $6) ON CONFLICT(id) DO UPDATE SET name = excluded.name, kind = excluded.kind, models = excluded.models, createdAt = excluded.createdAt, updatedAt = excluded.updatedAt`,
-        [c.id, c.name, c.kind || null, stringifyJson(c.models || []), c.createdAt || new Date().toISOString(), c.updatedAt || new Date().toISOString()]
+        `INSERT INTO combos(id, name, kind, "group", models, disabled_models, createdAt, updatedAt) VALUES($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT(id) DO UPDATE SET name = excluded.name, kind = excluded.kind, "group" = excluded."group", models = excluded.models, disabled_models = excluded.disabled_models, createdAt = excluded.createdAt, updatedAt = excluded.updatedAt`,
+        [c.id, c.name, c.kind || null, c.group || null, stringifyJson(c.models || []), stringifyJson(c.disabledModels || []), c.createdAt || new Date().toISOString(), c.updatedAt || new Date().toISOString()]
       );
     }
     for (const m of payload.customModels || []) {

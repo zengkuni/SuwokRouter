@@ -18,7 +18,7 @@
 //
 // Idempotent: every statement is IF NOT EXISTS, safe to re-run on boot.
 
-export const SCHEMA_VERSION = 16;
+export const SCHEMA_VERSION = 18;
 
 export const SCHEMA_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS _meta (
@@ -70,7 +70,9 @@ export const SCHEMA_STATEMENTS = [
      id TEXT PRIMARY KEY,
      name TEXT UNIQUE NOT NULL,
      kind TEXT,
+    "group" TEXT,
      models TEXT NOT NULL,
+    disabled_models TEXT,
      createdAt TEXT NOT NULL,
      updatedAt TEXT NOT NULL
    )`,

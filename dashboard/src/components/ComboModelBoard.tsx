@@ -14,6 +14,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ProviderModelIcon } from "@/components/ProviderModelAccordion";
 import { RippleButton } from "@/components/animate/ripple-button";
 import {
@@ -411,6 +412,10 @@ type ComboModelBoardProps = {
   renderSelectedExtra?: (modelId: string) => ReactNode;
   /** Existing combos offered as bundles in the picker; ids are bare combo names. */
   combos?: ModelInfo[];
+  /** Model ids whose row checkbox is OFF (kept in the route but skipped). */
+  disabledModels?: ReadonlySet<string>;
+  /** Toggle one model's enabled state; renders the per-row checkbox when set. */
+  onToggleEnabled?: (modelId: string, enabled: boolean) => void;
 };
 
 /**
@@ -431,6 +436,8 @@ export function ComboModelBoard({
   error,
   renderSelectedExtra,
   combos = [],
+  disabledModels,
+  onToggleEnabled,
 }: ComboModelBoardProps) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -531,8 +538,18 @@ export function ComboModelBoard({
                   dragOverId === id &&
                     draggedId !== id &&
                     "border-primary/40 bg-primary/10 ring-1 ring-primary/40",
+                  disabledModels?.has(id) && "opacity-50",
                 )}
               >
+                {/* Enable checkbox — unchecked rows stay in the route but are skipped */}
+                {onToggleEnabled ? (
+                  <Checkbox
+                    checked={!disabledModels?.has(id)}
+                    onCheckedChange={(checked) => onToggleEnabled(id, checked !== false)}
+                    aria-label={`${disabledModels?.has(id) ? "Enable" : "Disable"} ${id}`}
+                    className="size-3.5 shrink-0"
+                  />
+                ) : null}
                 {/* Order index badge */}
                 <span className="w-3.5 shrink-0 text-center font-mono text-[10px] font-medium text-muted-foreground/70">
                   {index + 1}

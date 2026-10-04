@@ -132,14 +132,13 @@ async function importLegacyMain(adapter, data) {
 
   await importWithAssertion(adapter, "combos", data.combos || [], async (c) => {
     await adapter.run(
-      `INSERT INTO combos(id, name, kind, models, createdAt, updatedAt)
-       VALUES($1, $2, $3, $4, $5, $6)
-       ON CONFLICT(id) DO UPDATE SET name = excluded.name, kind = excluded.kind, models = excluded.models,
-         createdAt = excluded.createdAt, updatedAt = excluded.updatedAt`,
-      [c.id, c.name, c.kind || null, stringifyJson(c.models || []), c.createdAt || new Date().toISOString(), c.updatedAt || new Date().toISOString()]
+      `INSERT INTO combos(id, name, kind, "group", models, disabled_models, createdAt, updatedAt)
+       VALUES($1, $2, $3, $4, $5, $6, $7, $8)
+       ON CONFLICT(id) DO UPDATE SET name = excluded.name, kind = excluded.kind, "group" = excluded."group", models = excluded.models,
+         disabled_models = excluded.disabled_models, createdAt = excluded.createdAt, updatedAt = excluded.updatedAt`,
+      [c.id, c.name, c.kind || null, c.group || null, stringifyJson(c.models || []), stringifyJson(c.disabledModels || []), c.createdAt || new Date().toISOString(), c.updatedAt || new Date().toISOString()]
     );
   }, (c) => ({ id: c.id ?? null, name: c.name ?? null }));
-
   for (const m of data.customModels || []) {
     const k = `${m.providerAlias}|${m.id}|${m.type || "llm"}`;
     await adapter.run(`INSERT INTO kv(scope, key, value) VALUES('customModels', $1, $2) ON CONFLICT(scope, key) DO UPDATE SET value = excluded.value`, [k, stringifyJson(m)]);
