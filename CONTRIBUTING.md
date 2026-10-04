@@ -3,6 +3,8 @@
 Thanks for helping make Suwok Router better. Bug fixes, provider integrations,
 compatibility improvements, tests, docs, and focused UI work are welcome.
 
+By participating you agree to the [Code of Conduct](./CODE_OF_CONDUCT.md).
+
 ## Start locally
 
 ```bash

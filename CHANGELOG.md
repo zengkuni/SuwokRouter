@@ -2,6 +2,13 @@
 
 All notable changes to Sway Router are documented here.
 
+## [1.1.2] - 2026-10-05
+
+### Added
+
+- **Code of Conduct** (`CODE_OF_CONDUCT.md`, Contributor Covenant v2.1, enforcement contact `@zengkuni`), linked from the README community section and the contributing guide.
+- **Repository description** on GitHub (was empty): "Self-hosted AI gateway: one OpenAI-compatible endpoint for every model — multi-provider routing, combos, quotas, and a clean dashboard."
+
 ## [1.1.1] - 2026-10-05
 
 ### Fixed
