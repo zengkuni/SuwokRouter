@@ -6,9 +6,23 @@ export const dynamic = "force-dynamic";
 
 const VALID_NAME_REGEX = /^[a-zA-Z0-9_.\-]+$/;
 
-export async function GET() {
+export async function GET(request) {
   try {
-    const combos = await getCombos();
+    const params = new URL(request.url).searchParams;
+    const name = params.get("name");
+    if (name !== null) {
+      const combo = name.trim() ? await getComboByName(name.trim()) : null;
+      if (!combo) {
+        return NextResponse.json({ error: "Combo not found" }, { status: 404 });
+      }
+      return NextResponse.json({ combo });
+    }
+    const group = params.get("group");
+    let combos = await getCombos();
+    if (group !== null) {
+      const wanted = group.trim().toLowerCase();
+      combos = combos.filter((c) => (c.group?.trim() ?? "").toLowerCase() === wanted);
+    }
     return NextResponse.json({ combos });
   } catch (error) {
     console.log("Error fetching combos:", error);

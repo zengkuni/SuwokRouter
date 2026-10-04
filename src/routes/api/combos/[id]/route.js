@@ -8,7 +8,9 @@ const VALID_NAME_REGEX = /^[a-zA-Z0-9_.\-]+$/;
 export async function GET(request, { params }) {
   try {
     const { id } = await params;
-    const combo = await getComboById(id);
+    // `id` is a UUID for the dashboard; the chat agent knows combos by name,
+    // so fall back to a name lookup before reporting "not found".
+    const combo = (await getComboById(id)) ?? (await getComboByName(id));
 
     if (!combo) {
       return NextResponse.json({ error: "Combo not found" }, { status: 404 });

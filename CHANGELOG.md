@@ -2,6 +2,12 @@
 
 All notable changes to Sway Router are documented here.
 
+## [1.1.1] - 2026-10-05
+
+### Fixed
+
+- **Find one combo without scrolling the full list**: `GET /api/combos` now accepts `?name=<exact>` (returns that single combo, 404 when absent) and `?group=<label>` (only that group; empty label = ungrouped), and `GET /api/combos/{id}` also resolves a combo **name** — previously the chat agent could only look combos up by UUID while every model listing identifies them by name, and the unfiltered 24-combo body was truncated by the chat curl tool before the target combo appeared. The chat agent's Router API skills section and `SKILL.md` now teach the filters.
+
 ## [1.1.0] - 2026-10-04
 
 ### Fixed
