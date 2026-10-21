@@ -24,12 +24,15 @@ export default {
 
     thinkingFormat: "openai",
     headers: {
-      "User-Agent": "IDE/2.108.1 CodeBuddy/2.108.1",
+      "User-Agent": "CLI/2.108.1 CodeBuddy/2.108.1",
       "X-Product": "SaaS",
-      "X-IDE-Type": "IDE",
-      "X-IDE-Name": "IDE",
-      "x-requested-with": "XMLHttpRequest",
-      "x-codebuddy-request": "1",
+      "X-App": "cli",
+      "X-IDE-Type": "CLI",
+      "X-IDE-Name": "CLI",
+      "X-IDE-Version": "2.108.1",
+      "X-Private-Data": "false",
+      "X-Requested-With": "XMLHttpRequest",
+      "X-CodeBuddy-Request": "1",
     },
     auth: {
       combined: true,

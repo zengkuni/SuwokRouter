@@ -2,6 +2,12 @@
 
 All notable changes to Sway Router are documented here.
 
+## [1.1.3] - 2026-10-21
+
+### Fixed
+
+- **CodeBuddy HTTP 400 / error 11128 (`request illegal`)**: both CodeBuddy CN and international requests now use the official CLI channel and Stainless headers, per-request conversation identifiers, a required leading CodeBuddy system prompt, preserved caller instructions, and sanitized third-party client identity markers.
+
 ## [1.1.2] - 2026-10-05
 
 ### Added
