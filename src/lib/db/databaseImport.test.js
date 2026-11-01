@@ -79,3 +79,44 @@ describe("database export/import", () => {
     await expect(importDb({ apiKeys: [{ id: "missing-secret" }] })).rejects.toThrow("API key material");
   });
 });
+
+describe("promptInjections backup validation", () => {
+  const base = {
+    formatVersion: 1,
+    backupScope: "configuration",
+    settings: {},
+    providerConnections: [],
+    providerNodes: [],
+    proxyPools: [],
+    apiKeysRedacted: true,
+    apiKeys: [],
+    combos: [],
+    customModels: [],
+    pricing: {},
+  };
+
+  test("accepts a well-formed promptInjections section", () => {
+    expect(validateDatabaseBackup({
+      ...base,
+      promptInjections: {
+        global: { name: "g", mode: "single", content: "hi", position: "append", enabled: true, updatedAt: null },
+        byKey: { key1: { mode: "chat", turns: [{ role: "user", content: "x" }], position: "prepend", enabled: true } },
+        byModel: { "gpt-combo": { mode: "single", content: "m", position: "append", enabled: false } },
+        byKeyModel: { key1: { "gpt-combo": { mode: "single", content: "km", position: "append", enabled: true } } },
+      },
+    }).scope).toBe("configuration");
+    expect(validateDatabaseBackup({ ...base, promptInjections: { global: null, byKey: {}, byModel: {}, byKeyModel: {} } }).scope)
+      .toBe("configuration");
+  });
+
+  test("rejects malformed promptInjections entries", () => {
+    expect(() => validateDatabaseBackup({ ...base, promptInjections: { global: { mode: "soul" } } }))
+      .toThrow("promptInjections.global is not a valid injection");
+    expect(() => validateDatabaseBackup({ ...base, promptInjections: { byKey: { key1: "nope" } } }))
+      .toThrow("promptInjections.byKey.key1 is not a valid injection");
+    expect(() => validateDatabaseBackup({ ...base, promptInjections: { byKeyModel: { key1: { m: { mode: "chat", turns: [] } } } } }))
+      .toThrow("promptInjections.byKeyModel.key1.m is not a valid injection");
+    expect(() => validateDatabaseBackup({ ...base, promptInjections: [] }))
+      .toThrow("promptInjections must be an object");
+  });
+});

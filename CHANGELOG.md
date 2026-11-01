@@ -2,6 +2,43 @@
 
 All notable changes to Sway Router are documented here.
 
+## [1.3.2] - 2026-11-02
+
+### Added
+
+- **Prompt Injection end-to-end regression test** (`src/handlers/chatCore.inject.test.js`): proves the wiring from the injection store through `handleChatCore` to the provider executor — a single-mode injection lands as a system message and a chat-mode injection as turns in the translated body sent upstream, disabled entries never reach the executor, and a store failure stays fail-open (the request still reaches the executor and fails with the gateway error, not the injection error). The test injects fakes through `handleChatCore`'s dependency seam: no database writes, no live provider requests.
+
+### Changed
+
+- **`handleChatCore` dependency seam**: the injection resolver, API-key resolver, executor factory, and usage-tracking callbacks are now optional parameters (`resolveInjectionsDep`, `resolveKeyIdDep`, `getExecutorDep`, `trackPendingDep`, `appendReqLogDep`, `saveDetailDep`) defaulting to the production imports. Existing callers are unaffected; tests can now inject fakes instead of mutating global module state.
+
+## [1.2.1] - 2026-11-02
+
+## [1.3.1] - 2026-11-02
+
+### Fixed
+
+- **Prompt Injection entry row**: an injection created from a template now shows the template's name as a badge (`from template “name”`) next to the on/off badge while the injection is enabled — previously the origin was only visible at the end of the muted summary line. Disabled injections keep the origin in the summary line.
+
+## [1.3.0] - 2026-11-02
+
+### Added
+
+- **Prompt Injection templates**: a library of reusable prompts on the Prompt Injection page — create, edit, and delete named templates (single prompt or scripted chat, with a token estimate). Templates never run on their own; picking one when creating an injection copies its body into that injection and records the origin (shown as `from template “name”`). Capped at 50 templates; `PUT {template}` / `DELETE ?templateId=` on `/api/prompt-injection`, included in the promptInjections backup scope.
+- **Prompt Injection import/export**: the header now carries Export/Import buttons. Export downloads `prompt-injections.json` (global, templates, per-key, per-model, per-key+model). Import accepts both our own export and 9router-pro files (`variants`, `prompts`, `userPrompts`, `keyModelPrompts`, legacy `presets` templates), mapping 9router-pro shapes onto our scopes, reporting `applied / skipped` counts, and skipping items whose API key no longer exists.
+
+### Fixed
+
+- **Prompt Injection editor dialog**: the dialog grew without bound with long chat scripts (footer pushed off-screen), and in scripted-chat mode the role switch (`w-full` Segmented) claimed the whole turn row — the content input collapsed to ~2px and the remove button overflowed past the dialog edge. The dialog now matches the Combos page conventions (`max-h-[90vh] overflow-hidden`, `DialogPanel scroll={false}` with an internal scrolling turns list, bare footer), the role switch is bounded (`w-[176px]`) so both "User" and "Assistant" render fully, and each turn row is `min-w-0 flex-1` input + fixed switch + fixed remove button — verified on desktop, 20 turns, and 390px viewport.
+
+## [1.2.0] - 2026-11-02
+
+### Added
+
+- **Prompt Injection** — inject extra instructions into every chat request, one injection per target, stacked in order **global → per API key → per model** (max 3). Two modes per target: a **single system prompt** (prepend or append) or a **scripted chat** (fake user/assistant history turns). Per-model matching covers both the resolved `provider/model` and the name the client asked for (combo name, alias, or bare model), so a combo named `gpt-combo` can carry its own injection. Injection runs after provider translation in the chat core, is wire-format aware (OpenAI / Claude / Gemini / Responses), idempotent, and fail-open — a broken injection entry never fails a request.
+- **Prompt Injection dashboard page** (`/dashboard/prompt-injection`): editors for the global / per-key / per-model targets with mode and position switches, enable toggle, scripted-turn editor, plus a live preview that shows the exact stack a model + key combination would receive.
+- **`/api/prompt-injection` REST API**: `GET` (state or `?preview=1&model=&keyId=` resolved stack), `PUT` (`{scope, entry, keyId?, model?}`), `DELETE` (`?scope=&keyId=&model=`). The `promptInjections` configuration scope is now included in database backup export/import with strict validation (malformed entries are rejected, not silently coerced).
+
 ## [1.1.3] - 2026-10-21
 
 ### Fixed

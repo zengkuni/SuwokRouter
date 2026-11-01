@@ -16,6 +16,12 @@ export {
   getCustomModels, addCustomModel, deleteCustomModel,
   getPricing, getPricingForModel, updatePricing, resetPricing, resetAllPricing,
   exportDb, importDb,
+  getPromptInjectionState, resolvePromptInjections, selectPromptInjections,
+  setInjectGlobal, deleteInjectGlobal,
+  setInjectKeyPrompt, deleteInjectKeyPrompt,
+  setInjectModelPrompt, deleteInjectModelPrompt,
+  setInjectKeyModelPrompt, deleteInjectKeyModelPrompt,
+  listTemplates, setTemplate, deleteTemplate, cleanTemplate, cleanTemplates,
 } from "@/lib/db/index.js";
 export { flushUsageBuffer } from "@/lib/db/repos/usageRepo.js";
 export { flushRequestDetails } from "@/lib/db/repos/requestDetailsRepo.js";

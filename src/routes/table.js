@@ -50,6 +50,7 @@ export const ROUTE_LOADERS = {
   "api/oauth/kiro/social-authorize/route.js": () => import("./api/oauth/kiro/social-authorize/route.js"),
   "api/oauth/kiro/social-exchange/route.js": () => import("./api/oauth/kiro/social-exchange/route.js"),
   "api/pricing/route.js": () => import("./api/pricing/route.js"),
+  "api/prompt-injection/route.js": () => import("./api/prompt-injection/route.js"),
   "api/provider-nodes/[id]/route.js": () => import("./api/provider-nodes/[id]/route.js"),
   "api/provider-nodes/route.js": () => import("./api/provider-nodes/route.js"),
   "api/provider-nodes/validate/route.js": () => import("./api/provider-nodes/validate/route.js"),
@@ -195,6 +196,12 @@ export const ROUTE_TABLE = [
     "method": "DELETE",
     "pathPattern": "/api/pricing",
     "file": "api/pricing/route.js",
+    "params": []
+  },
+  {
+    "method": "DELETE",
+    "pathPattern": "/api/prompt-injection",
+    "file": "api/prompt-injection/route.js",
     "params": []
   },
   {
@@ -438,6 +445,12 @@ export const ROUTE_TABLE = [
     "method": "GET",
     "pathPattern": "/api/pricing",
     "file": "api/pricing/route.js",
+    "params": []
+  },
+  {
+    "method": "GET",
+    "pathPattern": "/api/prompt-injection",
+    "file": "api/prompt-injection/route.js",
     "params": []
   },
   {
@@ -1120,6 +1133,12 @@ export const ROUTE_TABLE = [
     "params": [
       "id"
     ]
+  },
+  {
+    "method": "PUT",
+    "pathPattern": "/api/prompt-injection",
+    "file": "api/prompt-injection/route.js",
+    "params": []
   },
   {
     "method": "PUT",

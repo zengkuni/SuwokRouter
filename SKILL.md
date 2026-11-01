@@ -115,6 +115,9 @@
 | GET | `/api/pricing` | dashboard/cli token |
 | PATCH | `/api/pricing` | dashboard/cli token |
 | DELETE | `/api/pricing` | dashboard/cli token |
+| GET | `/api/prompt-injection` | dashboard/cli token |
+| PUT | `/api/prompt-injection` | dashboard/cli token |
+| DELETE | `/api/prompt-injection` | dashboard/cli token |
 | PUT | `/api/provider-nodes/{id}` | dashboard/cli token |
 | DELETE | `/api/provider-nodes/{id}` | dashboard/cli token |
 | GET | `/api/provider-nodes` | dashboard/cli token |
@@ -185,5 +188,5 @@
 | POST | `/api/settings/database` | always-protected |
 | POST | `/api/shutdown` | always-protected |
 
-_105 route modules, 162 methods._
+_106 route modules, 165 methods._
 

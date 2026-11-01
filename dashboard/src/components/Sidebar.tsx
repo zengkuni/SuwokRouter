@@ -19,7 +19,9 @@ import {
   Router,
   Settings,
   SquareTerminal,
+  Syringe,
 } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Popover } from "@base-ui/react/popover";
@@ -65,6 +67,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: `${DASH}/proxy`, label: "Proxy", icon: GlobeCheck },
   { to: `${DASH}/usage`, label: "Usage", icon: ChartColumnBig },
   { to: `${DASH}/quota-monitor`, label: "Quota Monitor", icon: ChartPie },
+  { to: `${DASH}/prompt-injection`, label: "Prompt Injection", icon: Syringe },
   { to: `${DASH}/cli-tools`, label: "CLI Tools", icon: SquareTerminal },
   { to: `${DASH}/chat`, label: "Chat", icon: MessagesSquare },
   { to: `${DASH}/settings`, label: "Settings", icon: Settings },

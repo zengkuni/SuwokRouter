@@ -2,6 +2,7 @@ import { getAdapter } from "./driver.js";
 import { stringifyJson, parseJson } from "./helpers/jsonCol.js";
 import { bumpConfigCacheVersion } from "../cache/ttlCache.js";
 import { stripRemovedSettings } from "./repos/settingsRepo.js";
+import { cleanEntry, cleanTemplate } from "./repos/promptInjectRepo.js";
 import { isNineRouterBackupPayload } from "./nineRouterMigration.js";
 
 export {
@@ -57,6 +58,16 @@ export {
 export {
   saveRequestDetail, clearRequestDetails, getRequestDetails, getRequestDetailById, getDistinctProviders,
 } from "./repos/requestDetailsRepo.js";
+
+
+export {
+  getPromptInjectionState, resolvePromptInjections, selectPromptInjections,
+  setInjectGlobal, deleteInjectGlobal,
+  setInjectKeyPrompt, deleteInjectKeyPrompt,
+  setInjectModelPrompt, deleteInjectModelPrompt,
+  setInjectKeyModelPrompt, deleteInjectKeyModelPrompt,
+  listTemplates, setTemplate, deleteTemplate, cleanTemplate, cleanTemplates,
+} from "./repos/promptInjectRepo.js";
 
 const BACKUP_SCOPES = new Set(["configuration", "full"]);
 const MAX_BACKUP_ITEMS = 20_000;
@@ -168,6 +179,32 @@ export function validateDatabaseBackup(payload) {
   assertArray(payload.combos, "combos");
   assertArray(payload.customModels, "customModels");
   assertPlainObject(payload.pricing, "pricing");
+  if (payload.promptInjections !== undefined) {
+    assertPlainObject(payload.promptInjections, "promptInjections");
+    for (const [key, value] of Object.entries(payload.promptInjections)) {
+      if (key === "byKeyModel") {
+        assertPlainObject(value, "promptInjections.byKeyModel");
+        for (const [keyId, inner] of Object.entries(value)) {
+          assertPlainObject(inner, `promptInjections.byKeyModel.${keyId}`);
+          for (const [model, entry] of Object.entries(inner)) {
+            if (!cleanEntry(entry)) invalidBackup(`promptInjections.byKeyModel.${keyId}.${model} is not a valid injection`);
+          }
+        }
+      } else if (key === "global") {
+        if (value !== null && !cleanEntry(value)) invalidBackup("promptInjections.global is not a valid injection");
+      } else if (key === "templates") {
+        assertArray(value, "promptInjections.templates");
+        value.forEach((template, index) => {
+          if (!cleanTemplate(template)) invalidBackup(`promptInjections.templates[${index}] is not a valid template`);
+        });
+      } else {
+        assertPlainObject(value, `promptInjections.${key}`);
+        for (const [name, entry] of Object.entries(value)) {
+          if (!cleanEntry(entry)) invalidBackup(`promptInjections.${key}.${name} is not a valid injection`);
+        }
+      }
+    }
+  }
 
   const booleanSettings = [
     "cloudEnabled", "tunnelEnabled", "requireLogin", "requireApiKey",
@@ -331,10 +368,12 @@ export async function exportDb({ scope = "configuration" } = {}) {
     combos: (await db.all(`SELECT * FROM combos`)).map((r) => ({ id: r.id, name: r.name, kind: r.kind, group: r.group ?? null, models: parseJson(r.models, []), disabledModels: parseJson(r.disabled_models, []), createdAt: r.createdAt, updatedAt: r.updatedAt })),
     customModels: [],
     pricing: {},
+    promptInjections: {},
   };
 
   for (const r of await db.all(`SELECT key, value FROM kv WHERE scope = 'customModels'`)) out.customModels.push(parseJson(r.value));
   for (const r of await db.all(`SELECT key, value FROM kv WHERE scope = 'pricing'`)) out.pricing[r.key] = parseJson(r.value);
+  for (const r of await db.all(`SELECT key, value FROM kv WHERE scope = 'promptInjections'`)) out.promptInjections[r.key] = parseJson(r.value);
 
   if (scope === "full") {
     out.usageHistory = (await db.all(`SELECT id, timestamp, provider, model, connectionId, apiKey, endpoint, promptTokens, completionTokens, cost, status, tokens, meta FROM usageHistory ORDER BY id ASC`)).map((row) => ({
@@ -372,7 +411,7 @@ export async function importDb(payload) {
     await db.run(`DELETE FROM proxyPools`);
     if (!preserveApiKeys) await db.run(`DELETE FROM apiKeys`);
     await db.run(`DELETE FROM combos`);
-    await db.run(`DELETE FROM kv WHERE scope IN ('customModels', 'pricing')`);
+    await db.run(`DELETE FROM kv WHERE scope IN ('customModels', 'pricing', 'promptInjections')`);
     if (scope === "full") {
       await db.run(`DELETE FROM usageHistory`);
       await db.run(`DELETE FROM usageDaily`);
@@ -434,6 +473,9 @@ export async function importDb(payload) {
     }
     for (const [provider, models] of Object.entries(payload.pricing || {})) {
       await db.run(`INSERT INTO kv(scope, key, value) VALUES('pricing', $1, $2) ON CONFLICT(scope, key) DO UPDATE SET value = excluded.value`, [provider, stringifyJson(models || {})]);
+    }
+    for (const [k, value] of Object.entries(payload.promptInjections || {})) {
+      await db.run(`INSERT INTO kv(scope, key, value) VALUES('promptInjections', $1, $2) ON CONFLICT(scope, key) DO UPDATE SET value = excluded.value`, [k, stringifyJson(value)]);
     }
 
     if (scope === "full") {

@@ -34,4 +34,10 @@ export {
   deleteApiKey,
   validateApiKey,
   isCloudEnabled,
+  getPromptInjectionState, resolvePromptInjections, selectPromptInjections,
+  setInjectGlobal, deleteInjectGlobal,
+  setInjectKeyPrompt, deleteInjectKeyPrompt,
+  setInjectModelPrompt, deleteInjectModelPrompt,
+  setInjectKeyModelPrompt, deleteInjectKeyModelPrompt,
+  listTemplates, setTemplate, deleteTemplate,
 } from "@/lib/localDb";

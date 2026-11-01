@@ -17,6 +17,7 @@ const CliTools = lazy(() => import("@/pages/CliTools"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const ConsoleLog = lazy(() => import("@/pages/ConsoleLog"));
 const QuotaMonitor = lazy(() => import("@/pages/QuotaMonitor"));
+const PromptInjection = lazy(() => import("@/pages/PromptInjection"));
 
 function PageFallback() {
 
@@ -147,6 +148,14 @@ export const router = createBrowserRouter([
             element: (
               <L>
                 <QuotaMonitor />
+              </L>
+            ),
+          },
+          {
+            path: `${DASH}/prompt-injection`,
+            element: (
+              <L>
+                <PromptInjection />
               </L>
             ),
           },

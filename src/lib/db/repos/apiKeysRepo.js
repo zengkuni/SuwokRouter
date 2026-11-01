@@ -197,6 +197,22 @@ export async function rotateApiKey(id) {
   return rowToKey({ ...row, key: generated.key }, true);
 }
 
+async function readKeyIdMap() {
+  const db = await getAdapter();
+  const rows = await db.all(`SELECT id, key FROM apiKeys`);
+  const map = {};
+  for (const r of rows) map[r.key] = r.id;
+  return map;
+}
+
+// Resolve a presented API key secret to its row id (per-key Prompt Injection
+// targeting). Returns "" when the key is unknown.
+export async function resolveApiKeyId(key) {
+  if (!key || typeof key !== "string") return "";
+  const map = await apiKeysCache.get("idmap", readKeyIdMap);
+  return map[key] || "";
+}
+
 export async function validateApiKey(key) {
   if (!key) return false;
   const map = await apiKeysCache.get("map", readKeyMap);

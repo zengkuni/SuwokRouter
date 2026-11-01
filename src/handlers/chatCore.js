@@ -26,6 +26,9 @@ import { compatFallbackStripsTotal } from "../observability/metrics.js";
 import { injectCaveman } from "../rtk/caveman.js";
 import { injectPonytail } from "../rtk/ponytail.js";
 import { compressMessages, formatRtkLog } from "../rtk/index.js";
+import { injectSystemPrompt, injectChatTurns } from "../rtk/systemInject.js";
+import { resolvePromptInjections } from "@/lib/db/repos/promptInjectRepo.js";
+import { resolveApiKeyId } from "@/lib/db/repos/apiKeysRepo.js";
 import { getCapabilitiesForModel } from "../providers/capabilities.js";
 import { previewSSEPrefix, isAuthError } from "../sse/recovery.js";
 import { forceRefreshOAuth } from "../sse/oauthLease.js";
@@ -45,7 +48,7 @@ export function stripContinuityFields(body) {
   return body;
 }
 
-export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, sourceFormatOverride, providerThinking, requestSignal }) {
+export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, sourceFormatOverride, providerThinking, requestSignal, resolveInjectionsDep = resolvePromptInjections, resolveKeyIdDep = resolveApiKeyId, getExecutorDep = getExecutor, trackPendingDep = trackPendingRequest, appendReqLogDep = appendRequestLog, saveDetailDep = saveRequestDetail }) {
   const { provider, model, modelCapabilities } = modelInfo;
   const requestStartTime = Date.now();
   let failureRecorded = false;
@@ -83,7 +86,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   const modelTargetFormat = getModelTargetFormat(alias, model);
 
   const runtimeTransport = resolveTransport(provider, sourceFormat);
-  const executor = getExecutor(provider);
+  const executor = getExecutorDep(provider);
   const defaultTargetFormat = modelTargetFormat || runtimeTransport?.format || getTargetFormat(provider, credentials);
   const targetFormat = executor.resolveTargetFormat?.(model, defaultTargetFormat) || defaultTargetFormat;
   if (runtimeTransport && credentials) credentials.runtimeTransport = runtimeTransport;
@@ -203,7 +206,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   } else {
     translatedBody = translateRequest(sourceFormat, targetFormat, upstreamModel, body, stream, credentials, provider, reqLogger, stripList, connectionId, clientTool, modelCapabilities);
     if (!translatedBody) {
-      trackPendingRequest(model, provider, connectionId, false, true);
+      trackPendingDep(model, provider, connectionId, false, true);
       recordFailure(`Failed to translate request for ${sourceFormat} → ${targetFormat}`, HTTP_STATUS.BAD_REQUEST);
       return createErrorResult(HTTP_STATUS.BAD_REQUEST, `Failed to translate request for ${sourceFormat} → ${targetFormat}`);
     }
@@ -280,6 +283,29 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     xf.push(`PONYTAIL:${ponytailLevel}`);
   }
 
+  // Prompt Injection (global → key → model(+key)) on the translated body.
+  // Fail-open: storage or shaping problems never fail the request.
+  try {
+    const requestedModel = typeof clientRawRequest?.body?.model === "string" ? clientRawRequest.body.model : "";
+    const apiKeyId = apiKey ? await resolveKeyIdDep(apiKey) : "";
+    const injections = await resolveInjectionsDep({
+      apiKeyId,
+      requestedModel,
+      resolvedModel: `${provider}/${model}`,
+    });
+    for (const entry of injections) {
+      if (entry.mode === "chat") {
+        injectChatTurns(translatedBody, finalFormat, entry.turns);
+        xf.push(`PINJECT:${entry.name}:chat:${entry.position}`);
+      } else {
+        injectSystemPrompt(translatedBody, finalFormat, entry.text, entry.position);
+        xf.push(`PINJECT:${entry.name}:single:${entry.position}`);
+      }
+    }
+  } catch (err) {
+    log?.debug?.("PINJECT", `skipped: ${err?.message || err}`);
+  }
+
   if (xf.length && log?.line) log.line(reqTag, "DEBUG", `TRANSFORM · ${xf.join(" · ")}`);
 
   const proxyOptions = {
@@ -297,13 +323,13 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   const streamController = createStreamController({
     callerSignal: requestSignal,
     onDisconnect: (reason) => {
-      trackPendingRequest(model, provider, connectionId, false);
+      trackPendingDep(model, provider, connectionId, false);
       const detail = typeof reason === "string" ? reason : reason?.reason || "client_closed";
       reportStreamFailure(`Client disconnected: ${detail}`, 499);
       if (onDisconnect) onDisconnect(reason);
     },
     onError: (error) => {
-      trackPendingRequest(model, provider, connectionId, false);
+      trackPendingDep(model, provider, connectionId, false);
       const isAbort = error?.name === "AbortError" && requestSignal?.aborted;
       reportStreamFailure(isAbort ? "Request aborted" : error?.message || "Streaming request failed", isAbort ? 499 : HTTP_STATUS.BAD_GATEWAY);
     },
@@ -316,8 +342,8 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     requestTag: reqTag,
     attemptReason: "initial",
   };
-  trackPendingRequest(model, provider, connectionId, true);
-  appendRequestLog({ model, provider, connectionId, status: "PENDING" }).catch(() => { });
+  trackPendingDep(model, provider, connectionId, true);
+  appendReqLogDep({ model, provider, connectionId, status: "PENDING" }).catch(() => { });
 
   const msgCount = translatedBody.messages?.length || translatedBody.input?.length || translatedBody.contents?.length || translatedBody.request?.contents?.length || 0;
   log?.debug?.("REQUEST", `${provider.toUpperCase()} | ${model} | ${msgCount} msgs`);
@@ -360,10 +386,10 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     providerResponseFormat = result.responseFormat || targetFormat;
     reqLogger.logTargetRequest(providerUrl, providerHeaders, finalBody);
   } catch (error) {
-    trackPendingRequest(model, provider, connectionId, false, true);
+    trackPendingDep(model, provider, connectionId, false, true);
     const failedStatus = recordFailure(error.message || String(error), error.name === "AbortError" ? 499 : HTTP_STATUS.BAD_GATEWAY);
-    appendRequestLog({ model, provider, connectionId, status: `FAILED ${error.name === "AbortError" ? 499 : HTTP_STATUS.BAD_GATEWAY}` }).catch(() => { });
-    saveRequestDetail(buildRequestDetail({
+    appendReqLogDep({ model, provider, connectionId, status: `FAILED ${error.name === "AbortError" ? 499 : HTTP_STATUS.BAD_GATEWAY}` }).catch(() => { });
+    saveDetailDep(buildRequestDetail({
       provider, model, connectionId,
       latency: { ttft: 0, total: Date.now() - requestStartTime },
       tokens: { prompt_tokens: 0, completion_tokens: 0 },
@@ -459,11 +485,11 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     }
 
     if (!providerResponse.ok) {
-      trackPendingRequest(model, provider, connectionId, false, true);
+      trackPendingDep(model, provider, connectionId, false, true);
       const { statusCode, message, resetsAtMs } = await parseUpstreamError(providerResponse, executor);
       recordFailure(message, statusCode);
-      appendRequestLog({ model, provider, connectionId, status: `FAILED ${statusCode}` }).catch(() => { });
-      saveRequestDetail(buildRequestDetail({
+      appendReqLogDep({ model, provider, connectionId, status: `FAILED ${statusCode}` }).catch(() => { });
+      saveDetailDep(buildRequestDetail({
         provider, model, connectionId,
         latency: { ttft: 0, total: Date.now() - requestStartTime },
         tokens: { prompt_tokens: 0, completion_tokens: 0 },
@@ -614,8 +640,8 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   }
 
   const sharedCtx = { provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqTag, log, client: { id: clientMeta.id, confidence: clientMeta.confidence, signals: clientMeta.signals, conflicts: clientMeta.conflicts }, strippedParams: strippedTrace.length ? strippedTrace : undefined };
-  const appendLog = (extra) => appendRequestLog({ model, provider, connectionId, ...extra }).catch(() => { });
-  const trackDone = () => trackPendingRequest(model, provider, connectionId, false);
+  const appendLog = (extra) => appendReqLogDep({ model, provider, connectionId, ...extra }).catch(() => { });
+  const trackDone = () => trackPendingDep(model, provider, connectionId, false);
 
   if (!clientRequestedStreaming && providerRequiresStreaming) {
     const result = await handleForcedSSEToJson({ ...sharedCtx, providerResponse, sourceFormat, targetFormat: providerResponseFormat, customToolNames, trackDone, appendLog });
