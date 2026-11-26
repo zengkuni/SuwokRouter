@@ -114,6 +114,8 @@ type ModelPickDialogProps = {
   error?: unknown;
   title?: string;
   description?: string;
+  /** Single-select mode: a click picks one model instead of toggling; caller closes the dialog. */
+  single?: boolean;
   ordered?: string[];
   onReorder?: (fromId: string, toId: string) => void;
   /** Existing combos offered as one-tap bundles; ids are bare combo names. */
@@ -132,6 +134,7 @@ export function ModelPickDialog({
   description = "Click a chip to add or remove it from the combo. Changes apply immediately.",
   ordered = [],
   onReorder,
+  single = false,
   combos = [],
 }: ModelPickDialogProps) {
   const [query, setQuery] = useState("");
@@ -301,9 +304,16 @@ export function ModelPickDialog({
                         <button
                           key={combo.id}
                           type="button"
-                          aria-pressed={isPicked}
-                          aria-label={`${isPicked ? "Remove" : "Add"} combo ${combo.id}`}
-                          title="Insert this combo as a single route step"
+                          aria-label={
+                            single
+                              ? `Select combo ${combo.id}`
+                              : `${isPicked ? "Remove" : "Add"} combo ${combo.id}`
+                          }
+                          title={
+                            single
+                              ? "Attach this combo"
+                              : "Insert this combo as a single route step"
+                          }
                           onClick={() => onToggle(combo.id)}
                           className={cn(
                             "flex items-center gap-1 rounded-md px-2 py-1 font-mono text-xs transition-colors",
@@ -359,8 +369,11 @@ export function ModelPickDialog({
                             <button
                               key={model.id}
                               type="button"
-                              aria-pressed={isPicked}
-                              aria-label={`${isPicked ? "Remove" : "Add"} ${model.id}`}
+                              aria-label={
+                                single
+                                  ? `Select ${model.id}`
+                                  : `${isPicked ? "Remove" : "Add"} ${model.id}`
+                              }
                               onClick={() => onToggle(model.id)}
                               className={cn(
                                 "flex items-center gap-1 rounded-md px-2 py-1 font-mono text-xs transition-colors",

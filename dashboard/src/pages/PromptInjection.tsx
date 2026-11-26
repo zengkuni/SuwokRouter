@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookmarkPlus, Download, MessageSquarePlus, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { Header } from "@/components/Header";
+import { ModelPickDialog } from "@/components/ComboModelBoard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +20,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { toast } from "@/components/ui/toast";
 import { api, getErrorMessage } from "@/lib/api";
 import { listApiKeys } from "@/lib/api-keys-api";
+import { listGatewayModels } from "@/lib/model-catalog-api";
 import {
   MAX_TURNS,
   deleteInjection,
@@ -469,7 +471,7 @@ export default function PromptInjection() {
   const [saving, setSaving] = useState(false);
 
   const [keyModel, setKeyModel] = useState("");
-  const [newModel, setNewModel] = useState("");
+  const [modelPickerOpen, setModelPickerOpen] = useState(false);
   const [previewModel, setPreviewModel] = useState("");
   const [previewKeyId, setPreviewKeyId] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -485,6 +487,12 @@ export default function PromptInjection() {
     queryFn: () => listApiKeys({ includeRevoked: true }),
     enabled: probeEnabled(),
     retry: false,
+  });
+  const modelsQ = useQuery({
+    queryKey: ["combos", "models"],
+    queryFn: listGatewayModels,
+    enabled: probeEnabled(),
+    retry: 1,
   });
   const previewQ = useQuery({
     queryKey: ["prompt-injection", "preview", previewModel, previewKeyId],
@@ -510,6 +518,18 @@ export default function PromptInjection() {
   const modelEntries = useMemo(
     () => Object.entries(state.byModel ?? {}),
     [state.byModel]
+  );
+  const providerModels = useMemo(
+    () => (modelsQ.data ?? []).filter((model) => model.provider !== "combo"),
+    [modelsQ.data],
+  );
+  const comboModels = useMemo(
+    () => (modelsQ.data ?? []).filter((model) => model.provider === "combo"),
+    [modelsQ.data],
+  );
+  const injectedModels = useMemo(
+    () => new Set(modelEntries.map(([model]) => model)),
+    [modelEntries],
   );
 
   function invalidate() {
@@ -913,28 +933,33 @@ export default function PromptInjection() {
               }
             />
           ))}
-          <div className="flex gap-2">
-            <Input
-              placeholder="Model name (e.g. gpt-combo or openai/gpt-4o)"
-              value={newModel}
-              onChange={(e) => setNewModel(e.target.value)}
-            />
-            <Button
-              variant="outline"
-              disabled={!newModel.trim()}
-              onClick={() =>
-                setEditor({
-                  kind: "injection",
-                  scope: "model",
-                  title: `Injection for ${newModel.trim()}`,
-                  model: newModel.trim(),
-                  entry: emptyEntry(),
-                })
-              }
-            >
-              <Plus className="mr-1 h-4 w-4" /> Add for model
-            </Button>
-          </div>
+          <Button variant="outline" onClick={() => setModelPickerOpen(true)}>
+            <Plus className="mr-1 h-4 w-4" /> Add for model
+          </Button>
+          <ModelPickDialog
+            open={modelPickerOpen}
+            onOpenChange={setModelPickerOpen}
+            catalog={providerModels}
+            combos={comboModels}
+            picked={injectedModels}
+            single
+            loading={modelsQ.isLoading}
+            error={modelsQ.error}
+            title="Select model"
+            description="Pick the model to attach this injection to."
+            onToggle={(model) => {
+              setModelPickerOpen(false);
+              const existing = state.byModel?.[model];
+              setEditor({
+                kind: "injection",
+                scope: "model",
+                title: `Injection for ${model}`,
+                model,
+                entry: existing ? entryToInput(existing) : emptyEntry(),
+                existing,
+              });
+            }}
+          />
         </CardContent>
       </Card>
 

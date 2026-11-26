@@ -2,6 +2,12 @@
 
 All notable changes to Sway Router are documented here.
 
+## [1.4.2] - 2026-11-26
+
+### Changed
+
+- **Prompt Injection → Per model uses the model picker**: "Add for model" now opens the same searchable, provider-grouped model picker as the combo editor instead of a free-text name field. Picking a model that already has an injection reopens it for editing.
+
 ## [1.4.1] - 2026-11-26
 
 ### Added
