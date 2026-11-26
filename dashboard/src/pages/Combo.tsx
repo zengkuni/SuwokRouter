@@ -83,6 +83,7 @@ const STRATEGY_META: Record<ComboStrategy, { label: string; hint: string }> = {
   fallback: { label: "Fallback", hint: "first healthy model answers" },
   "round-robin": { label: "Round-robin", hint: "load spread across models" },
   fusion: { label: "Fusion", hint: "a judge routes each request" },
+  latency: { label: "Latency", hint: "fastest measured model answers first" },
 };
 
 
@@ -109,6 +110,7 @@ export default function Combo() {
   const [name, setName] = useState("");
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [group, setGroup] = useState("");
+  const [maxAccountAttempts, setMaxAccountAttempts] = useState("0");
   // Judge is edited from the combo card (list), not from this dialog.
   const [judgeTarget, setJudgeTarget] = useState<Combo | null>(null);
   const [testingModels, setTestingModels] = useState<ReadonlySet<string>>(new Set<string>());
@@ -526,6 +528,7 @@ export default function Combo() {
     setSelectedModels([]);
     setDisabledModels(new Set<string>());
     setGroup("");
+    setMaxAccountAttempts("0");
   }
 
   function openCreate() {
@@ -542,6 +545,13 @@ export default function Combo() {
     setSelectedModels(c.models);
     setDisabledModels(new Set(c.disabledModels ?? []));
     setGroup(c.group ?? "");
+    setMaxAccountAttempts(
+      String(
+        (settingsQ.data?.comboStrategies as Record<string, ComboStrategyConfig> | undefined)?.[
+          c.name
+        ]?.maxAccountAttempts ?? 0,
+      ),
+    );
     setCreateOpen(true);
   }
 
@@ -807,27 +817,6 @@ export default function Combo() {
     }
   }
 
-  async function persistComboOrder(
-    order: string[],
-    rename?: { from: string; to: string },
-  ) {
-    const current = settingsQ.data || {};
-    const prev =
-      (current.comboStrategies as Record<string, ComboStrategyConfig>) || {};
-    const renaming = rename !== undefined && rename.from !== rename.to;
-    let comboStrategies = prev;
-    if (renaming) {
-      // The strategy entry is keyed by combo name — carry it through a rename
-      // instead of leaving the new name on the global default.
-      const { [rename.from]: moved, ...rest } = prev;
-      comboStrategies = moved ? { ...rest, [rename.to]: moved } : rest;
-    }
-    await updateSettings({
-      comboOrder: order,
-      ...(renaming ? { comboStrategies } : {}),
-    });
-    await qc.invalidateQueries({ queryKey: ["settings"] });
-  }
 
   async function onSave() {
     if (orderSavingRef.current) return;
@@ -848,6 +837,20 @@ export default function Combo() {
     }
     const g = group.trim() || null;
     const disabledList = models.filter((id) => disabledModels.has(id));
+    const parsedMax = Math.floor(Number(maxAccountAttempts));
+    const maxAttempts =
+      Number.isFinite(parsedMax) && parsedMax > 0 ? Math.min(parsedMax, 1000) : 0;
+    const prevStrategies =
+      (settingsQ.data?.comboStrategies as Record<string, ComboStrategyConfig>) || {};
+    const renamedFrom = editCombo && n !== editCombo.name ? editCombo.name : null;
+    const nextStrategies: Record<string, ComboStrategyConfig> = {
+      ...prevStrategies,
+    };
+    if (renamedFrom) delete nextStrategies[renamedFrom];
+    nextStrategies[n] = {
+      ...(renamedFrom ? prevStrategies[renamedFrom] : prevStrategies[n]),
+      maxAccountAttempts: maxAttempts,
+    };
     setSaving(true);
     try {
       if (editCombo) {
@@ -857,23 +860,26 @@ export default function Combo() {
           group: g,
           disabledModels: disabledList,
         });
-        await persistComboOrder(
-          combos.map((combo) =>
-            (combo.id || combo.name) === (editCombo.id || editCombo.name)
-              ? combo.id || n
-              : combo.id || combo.name
-          ),
-          { from: editCombo.name, to: n },
+        const order = combos.map((combo) =>
+          (combo.id || combo.name) === (editCombo.id || editCombo.name)
+            ? combo.id || n
+            : combo.id || combo.name
         );
+        await updateSettings({ comboOrder: order, comboStrategies: nextStrategies });
         await qc.invalidateQueries({ queryKey: ["combos"] });
+        await qc.invalidateQueries({ queryKey: ["settings"] });
         flash("Combo updated", "success");
       } else {
         const created = await createCombo({ name: n, models, group: g, disabledModels: disabledList });
-        await persistComboOrder([
-          ...combos.map((combo) => combo.id || combo.name),
-          created.id || created.name,
-        ]);
+        await updateSettings({
+          comboOrder: [
+            ...combos.map((combo) => combo.id || combo.name),
+            created.id || created.name,
+          ],
+          comboStrategies: nextStrategies,
+        });
         await qc.invalidateQueries({ queryKey: ["combos"] });
+        await qc.invalidateQueries({ queryKey: ["settings"] });
         flash("Combo created", "success");
       }
       setCreateOpen(false);
@@ -1007,6 +1013,7 @@ export default function Combo() {
                   <SelectItem value="fallback">Fallback</SelectItem>
                   <SelectItem value="round-robin">Round-robin</SelectItem>
                   <SelectItem value="fusion">Fusion</SelectItem>
+                  <SelectItem value="latency">Latency</SelectItem>
                 </SelectPopup>
               </Select>
             </div>
@@ -1161,6 +1168,7 @@ export default function Combo() {
               <SelectItem value="fallback">Fallback</SelectItem>
               <SelectItem value="round-robin">Round-robin</SelectItem>
               <SelectItem value="fusion">Fusion</SelectItem>
+              <SelectItem value="latency">Latency</SelectItem>
             </SelectPopup>
           </Select>
           <RippleButton
@@ -1407,6 +1415,28 @@ export default function Combo() {
                   Same group = one section. Empty = ungrouped.
                 </p>
               </div>
+            </div>
+            <div className="space-y-2">
+              <label
+                className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70"
+                htmlFor="combo-max-account-attempts"
+              >
+                Max account attempts per model
+              </label>
+              <Input
+                id="combo-max-account-attempts"
+                type="number"
+                min={0}
+                max={1000}
+                inputMode="numeric"
+                value={maxAccountAttempts}
+                onChange={(e) => setMaxAccountAttempts(e.target.value)}
+                placeholder="0"
+                className="h-10 items-center rounded-xl border-0 bg-white/[0.03] font-mono text-sm ring-1 ring-inset ring-white/[0.06] dark:bg-white/[0.03] has-focus-visible:border-transparent has-focus-visible:ring-1 has-focus-visible:ring-primary/40"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                0 = unlimited, tries every account. After this many failed account attempts for one model, the combo moves to the next model.
+              </p>
             </div>
             <datalist id="combo-groups">
               {existingGroups.map((g) => (

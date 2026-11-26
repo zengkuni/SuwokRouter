@@ -216,6 +216,10 @@ export function validateDatabaseBackup(payload) {
     "stickyRoundRobinLimit", "comboStickyRoundRobinLimit", "observabilityMaxRecords",
     "observabilityBatchSize", "observabilityFlushIntervalMs", "observabilityMaxJsonSize",
   ]) assertInteger(payload.settings[field], `settings.${field}`);
+  for (const field of ["upstreamTimeoutMs", "upstreamMaxAttempts", "upstreamStreamTimeoutMs"]) {
+    const value = payload.settings[field];
+    if (value !== undefined && value !== null) assertInteger(value, `settings.${field}`);
+  }
   for (const field of [
     "profileName", "tunnelUrl", "tunnelProvider", "cavemanLevel", "ponytailLevel",
   ]) assertString(payload.settings[field], `settings.${field}`, { required: false, max: 4096 });

@@ -70,6 +70,64 @@ export function reorderByCapabilities(models, required) {
 
 const comboRotationState = new Map();
 
+// Combo latency strategy: end-to-end attempt latency per model, kept as an
+// exponentially weighted moving average. In-memory only; models without a
+// sample keep the combo's configured order until an attempt measures them.
+const comboLatencyState = new Map();
+const comboLatencyTicks = new Map();
+const LATENCY_EWMA_ALPHA = 0.3;
+// A model can only be measured when an attempt reaches it, so one model would
+// otherwise keep the lead forever. Every Nth latency request sends the first
+// still-unmeasured model to the front to sample it; failures fall through to
+// the ordered rest, so the worst case is one extra failing attempt.
+const LATENCY_EXPLORE_EVERY = 10;
+
+export function recordModelLatency(modelStr, ms) {
+  if (typeof modelStr !== "string" || !modelStr) return;
+  const sample = Number(ms);
+  if (!Number.isFinite(sample) || sample < 0) return;
+  const previous = comboLatencyState.get(modelStr);
+  comboLatencyState.set(
+    modelStr,
+    previous === undefined ? sample : previous * (1 - LATENCY_EWMA_ALPHA) + sample * LATENCY_EWMA_ALPHA,
+  );
+}
+
+export function getMeasuredLatency(modelStr) {
+  return comboLatencyState.get(modelStr);
+}
+
+// Ascending measured latency; models without a sample keep their relative
+// order after the measured ones (stable, deterministic).
+export function getLatencyOrderedModels(models) {
+  if (!Array.isArray(models) || models.length <= 1) return models;
+  return models
+    .map((model, index) => ({ model, index, latency: comboLatencyState.get(model) ?? Infinity }))
+    .sort((a, b) => (a.latency - b.latency) || (a.index - b.index))
+    .map((entry) => entry.model);
+}
+
+// Ordering for one combo request: latency order plus the periodic exploration
+// probe described above. Returns { models, explored } so callers can log both.
+export function planLatencyOrder(models, comboName = "") {
+  const ordered = getLatencyOrderedModels(models);
+  if (!Array.isArray(ordered) || ordered.length <= 1) return { models: ordered, explored: null };
+  const tick = (comboLatencyTicks.get(comboName) || 0) + 1;
+  comboLatencyTicks.set(comboName, tick % LATENCY_EXPLORE_EVERY);
+  if (tick % LATENCY_EXPLORE_EVERY !== 0) return { models: ordered, explored: null };
+  const unmeasured = ordered.find((model) => !comboLatencyState.has(model));
+  if (!unmeasured) return { models: ordered, explored: null };
+  return { models: [unmeasured, ...ordered.filter((model) => model !== unmeasured)], explored: unmeasured };
+}
+
+export function resetComboLatency(modelStr) {
+  if (modelStr) comboLatencyState.delete(modelStr);
+  else {
+    comboLatencyState.clear();
+    comboLatencyTicks.clear();
+  }
+}
+
 function trailingUserItems(arr) {
   if (!Array.isArray(arr) || arr.length === 0) return [];
   const isAssistant = (r) => r === "assistant" || r === "model";
@@ -185,9 +243,27 @@ export function getComboModelsFromData(modelStr, combosData) {
   return null;
 }
 
-export async function handleComboChat({ body, models, handleSingleModel, log, comboName, comboStrategy, comboStickyLimit = 1, autoSwitch = true }) {
+const MAX_ACCOUNT_ATTEMPTS_CAP = 1000;
+
+// 0 (or blank / invalid) means unlimited: every account of the model may be
+// tried. A positive value caps how many account attempts one combo model may
+// consume before the combo falls through to the next model.
+export function resolveMaxAccountAttempts(value) {
+  const n = Math.floor(Number(value));
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.min(n, MAX_ACCOUNT_ATTEMPTS_CAP);
+}
+
+export async function handleComboChat({ body, models, handleSingleModel, log, comboName, comboStrategy, comboStickyLimit = 1, autoSwitch = true, maxAccountAttempts = 0 }) {
 
   let rotatedModels = getRotatedModels(models, comboName, comboStrategy, comboStickyLimit);
+  if (comboStrategy === "latency") {
+    const { models: latencyOrdered, explored } = planLatencyOrder(rotatedModels, comboName);
+    if (explored) log.info("COMBO", `latency probe → ${explored}`);
+    else if (latencyOrdered[0] !== rotatedModels[0]) log.info("COMBO", `latency order → ${latencyOrdered[0]} first`);
+    rotatedModels = latencyOrdered;
+  }
+
 
   if (autoSwitch) {
     const required = detectRequiredCapabilities(body);
@@ -209,7 +285,9 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
     log.info("COMBO", `Trying model ${i + 1}/${rotatedModels.length}: ${modelStr}`);
 
     try {
-      const result = await handleSingleModel(body, modelStr);
+      const attemptStartedAt = Date.now();
+      const result = await handleSingleModel(body, modelStr, maxAccountAttempts);
+      if (result.ok) recordModelLatency(modelStr, Date.now() - attemptStartedAt);
 
       if (result.ok) {
         log.info("COMBO", `Model ${modelStr} succeeded`);

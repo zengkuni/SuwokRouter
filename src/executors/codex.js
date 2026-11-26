@@ -11,7 +11,7 @@ import { getThinkingLevels } from "../providers/thinkingLevels.js";
 import { DEFAULT_RETRY_CONFIG, HTTP_STATUS, resolveRetryEntry } from "../config/runtimeConfig.js";
 import { dbg } from "../utils/debugLog.js";
 import { resolveSessionId } from "../utils/sessionManager.js";
-import { env } from "@/lib/env";
+import { getUpstreamTuning } from "@/lib/upstreamTuning.js";
 
 const CODEX_SSE_RETRY_PATTERNS = ["server_is_overloaded", "service_unavailable_error"];
 const CODEX_SSE_ACCOUNT_FALLBACK_PATTERNS = ["selected model is at capacity", "model_at_capacity"];
@@ -243,7 +243,8 @@ export class CodexExecutor extends BaseExecutor {
 
     const retryConfig = { ...DEFAULT_RETRY_CONFIG, ...this.config.retry };
     const { attempts, delayMs } = resolveRetryEntry(retryConfig[503]);
-    const totalAttemptLimit = Math.max(1, Number(args.maxTotalAttempts) || env.upstreamMaxAttempts || 8);
+    const tuning = await getUpstreamTuning(args.log);
+    const totalAttemptLimit = Math.max(1, Number(args.maxTotalAttempts) || tuning.maxAttempts);
 
     const maxSseRetries = Math.min(attempts, Math.max(0, totalAttemptLimit - 1));
     const baseAttemptBudget = Math.max(1, Math.floor(totalAttemptLimit / (maxSseRetries + 1)));

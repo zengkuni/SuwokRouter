@@ -6,6 +6,12 @@ import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { getDashboardAuthSession, setDashboardAuthCookie } from "@/lib/auth/dashboardSession";
 import { env } from "@/lib/env.ts";
+import {
+  normalizeUpstreamMaxAttempts,
+  normalizeUpstreamStreamTimeoutMs,
+  normalizeUpstreamTimeoutMs,
+  resolveUpstreamTuning,
+} from "@/lib/upstreamTuning.js";
 import { logRouteError } from "@/lib/errors/publicError";
 
 const SETTINGS_ERROR = "Unable to process settings request";
@@ -56,12 +62,16 @@ export async function GET() {
 
     const enableRequestLogs = env.requestLogsEnabled;
     const enableTranslator = env.translatorEnabled;
+    const resolvedUpstream = resolveUpstreamTuning(settings);
 
     return NextResponse.json({
       ...safeSettings,
       enableRequestLogs,
       enableTranslator,
       hasPassword: !!settings.password,
+      resolvedUpstreamTimeoutMs: resolvedUpstream.timeoutMs,
+      resolvedUpstreamMaxAttempts: resolvedUpstream.maxAttempts,
+      resolvedUpstreamStreamTimeoutMs: resolvedUpstream.streamTimeoutMs,
     }, { headers: SETTINGS_RESPONSE_HEADERS });
 
   } catch (error) {
@@ -150,6 +160,24 @@ export async function PATCH(request) {
       body.profileAvatar = avatar;
     }
 
+    for (const [field, normalize, message] of [
+      ["upstreamTimeoutMs", normalizeUpstreamTimeoutMs, "Connect timeout must be between 1 and 600 seconds"],
+      ["upstreamMaxAttempts", normalizeUpstreamMaxAttempts, "Max attempts must be between 1 and 100"],
+      ["upstreamStreamTimeoutMs", normalizeUpstreamStreamTimeoutMs, "Stream stall timeout must be between 1 and 3600 seconds"],
+    ]) {
+      if (!Object.prototype.hasOwnProperty.call(body, field)) continue;
+      const raw = body[field];
+      if (raw === null || raw === "") {
+        body[field] = null;
+        continue;
+      }
+      const normalized = normalize(raw);
+      if (normalized === null) {
+        return NextResponse.json({ error: message }, { status: 400 });
+      }
+      body[field] = normalized;
+    }
+
     const settings = await updateSettings(body);
 
     if (forcedPasswordChange) {
@@ -178,7 +206,13 @@ export async function PATCH(request) {
     }
 
     const safeSettings = sanitizeSettingsForResponse(settings);
-    return NextResponse.json(safeSettings, { headers: SETTINGS_RESPONSE_HEADERS });
+    const resolvedUpstream = resolveUpstreamTuning(settings);
+    return NextResponse.json({
+      ...safeSettings,
+      resolvedUpstreamTimeoutMs: resolvedUpstream.timeoutMs,
+      resolvedUpstreamMaxAttempts: resolvedUpstream.maxAttempts,
+      resolvedUpstreamStreamTimeoutMs: resolvedUpstream.streamTimeoutMs,
+    }, { headers: SETTINGS_RESPONSE_HEADERS });
   } catch (error) {
     logRouteError("Settings][Patch", error);
     return NextResponse.json({ error: SETTINGS_ERROR }, { status: 500 });

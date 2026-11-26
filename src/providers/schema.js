@@ -1,4 +1,4 @@
-import { DEFAULT_RETRY_CONFIG, FETCH_CONNECT_TIMEOUT_MS } from "../config/runtimeConfig.js";
+import { DEFAULT_RETRY_CONFIG } from "../config/runtimeConfig.js";
 
 export const PROVIDER_DEFAULTS = {
   baseUrl: "",
@@ -10,7 +10,7 @@ export const PROVIDER_DEFAULTS = {
   quirks: {},
   passthroughModels: false,
   retry: DEFAULT_RETRY_CONFIG,
-  timeoutMs: FETCH_CONNECT_TIMEOUT_MS,
+  timeoutMs: null,
   executor: "default"
 };
 

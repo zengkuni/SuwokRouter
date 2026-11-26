@@ -30,6 +30,13 @@ export type AppSettings = {
   comboOrder?: string[];
   rtkEnabled?: boolean;
 
+  upstreamTimeoutMs?: number | null;
+  upstreamMaxAttempts?: number | null;
+  resolvedUpstreamTimeoutMs?: number;
+  resolvedUpstreamMaxAttempts?: number;
+  upstreamStreamTimeoutMs?: number | null;
+  resolvedUpstreamStreamTimeoutMs?: number;
+
   cavemanEnabled?: boolean;
   cavemanLevel?: string;
   ponytailEnabled?: boolean;

@@ -18,7 +18,6 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
-import { CloudflareTunnelSettings } from "@/components/CloudflareTunnelSettings";
 import { Header } from "@/components/Header";
 import {
   compactDatabasePath,
@@ -891,7 +890,67 @@ export default function Settings() {
         </div>
 
         <TabsContent value="general" className="space-y-3">
-          <div className="space-y-2 pt-1">
+          <div className="space-y-3">
+            <p className="text-xs font-medium text-muted-foreground">
+              Upstream requests
+            </p>
+            <div className="rounded-xl border border-border bg-card px-4 py-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block space-y-1.5">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Connect timeout (seconds)
+                  </span>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={600}
+                    inputMode="numeric"
+                    value={form.upstreamTimeoutSeconds}
+                    onChange={(event) => set("upstreamTimeoutSeconds", event.target.value)}
+                    placeholder={`Auto · ${Math.round((settingsQ.data?.resolvedUpstreamTimeoutMs ?? 60000) / 1000)}`}
+                  />
+                  <span className="block text-[11px] text-muted-foreground/80">
+                    1–600 s per upstream attempt. Empty = default.
+                  </span>
+                </label>
+                <label className="block space-y-1.5">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Max attempts per request
+                  </span>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={100}
+                    inputMode="numeric"
+                    value={form.upstreamMaxAttempts}
+                    onChange={(event) => set("upstreamMaxAttempts", event.target.value)}
+                    placeholder={`Auto · ${settingsQ.data?.resolvedUpstreamMaxAttempts ?? 8}`}
+                  />
+                  <span className="block text-[11px] text-muted-foreground/80">
+                    Total attempts including the first, across fallback URLs. 1–100. Empty = auto.
+                  </span>
+                </label>
+                <label className="block space-y-1.5">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Stream stall timeout (seconds)
+                  </span>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={3600}
+                    inputMode="numeric"
+                    value={form.upstreamStreamTimeoutSeconds}
+                    onChange={(event) => set("upstreamStreamTimeoutSeconds", event.target.value)}
+                    placeholder={`Auto · ${Math.round((settingsQ.data?.resolvedUpstreamStreamTimeoutMs ?? 360000) / 1000)}`}
+                  />
+                  <span className="block text-[11px] text-muted-foreground/80">
+                    Idle limit between stream chunks before the stream is aborted. 1–3600 s. Empty = default.
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-2 border-t border-border/70 pt-3">
             <p className="text-xs font-medium text-muted-foreground">
               Token saver
             </p>
@@ -1000,12 +1059,8 @@ export default function Settings() {
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
-            <CloudflareTunnelSettings
-              requireApiKey={form.requireApiKey}
-              requireLogin={form.requireLogin}
-              hasPassword={Boolean(settingsQ.data?.hasPassword)}
-            />
           </div>
+
         </TabsContent>
 
         <TabsContent value="preferences" className="space-y-4">

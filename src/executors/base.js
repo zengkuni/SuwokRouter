@@ -1,10 +1,10 @@
 import { HTTP_STATUS, RETRY_CONFIG, DEFAULT_RETRY_CONFIG, resolveRetryEntry, FETCH_CONNECT_TIMEOUT_MS } from "../config/runtimeConfig.js";
+import { getUpstreamTuning } from "@/lib/upstreamTuning.js";
 import { shouldRefreshCredentials } from "../services/oauthCredentialManager.js";
 import { proxyAwareFetch } from "../utils/proxyFetch.js";
 import { dbg } from "../utils/debugLog.js";
 import { ANTHROPIC_API_VERSION, OPENAI_COMPAT_BASE, ANTHROPIC_COMPAT_BASE } from "../providers/shared.js";
 import { resolveOpenAICompatibleApiType } from "../services/provider.js";
-import { env } from "@/lib/env";
 
 export function waitForRetry(delayMs, signal) {
   if (!delayMs || delayMs <= 0) {
@@ -124,9 +124,10 @@ export class BaseExecutor {
     return { status: response.status, message: bodyText || `HTTP ${response.status}` };
   }
 
-  async execute({ model, body, stream, credentials, signal, log, proxyOptions = null, requestTag = "", attemptReason = "initial", maxTotalAttempts = env.upstreamMaxAttempts }) {
+  async execute({ model, body, stream, credentials, signal, log, proxyOptions = null, requestTag = "", attemptReason = "initial", maxTotalAttempts = null }) {
     const fallbackCount = this.getFallbackCount();
-    const totalAttemptLimit = Math.max(1, Number(maxTotalAttempts) || env.upstreamMaxAttempts || 8);
+    const tuning = await getUpstreamTuning(log);
+    const totalAttemptLimit = Math.max(1, Number(maxTotalAttempts) || tuning.maxAttempts);
     let attempt = 0;
     let lastError = null;
     let lastStatus = 0;
@@ -158,7 +159,7 @@ export class BaseExecutor {
       if (!retryAttemptsByUrl[urlIndex]) retryAttemptsByUrl[urlIndex] = 0;
 
       const connectCtrl = new AbortController();
-      const timeoutMs = this.config?.timeoutMs || FETCH_CONNECT_TIMEOUT_MS;
+      const timeoutMs = this.config?.timeoutMs || tuning.timeoutMs || FETCH_CONNECT_TIMEOUT_MS;
       const connectTimer = setTimeout(() => connectCtrl.abort(new Error("fetch connect timeout")), timeoutMs);
       const mergedSignal = signal ? AbortSignal.any([signal, connectCtrl.signal]) : connectCtrl.signal;
 

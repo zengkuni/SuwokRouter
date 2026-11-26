@@ -142,7 +142,31 @@ export type SettingsForm = {
   cavemanLevel: string;
   ponytailEnabled: boolean;
   ponytailLevel: string;
+  upstreamTimeoutSeconds: string;
+  upstreamMaxAttempts: string;
+  upstreamStreamTimeoutSeconds: string;
 };
+
+const UPSTREAM_TIMEOUT_SECONDS_MIN = 1;
+const UPSTREAM_TIMEOUT_SECONDS_MAX = 600;
+const UPSTREAM_MAX_ATTEMPTS_MIN = 1;
+const UPSTREAM_MAX_ATTEMPTS_MAX = 100;
+const UPSTREAM_STREAM_TIMEOUT_SECONDS_MIN = 1;
+const UPSTREAM_STREAM_TIMEOUT_SECONDS_MAX = 3600;
+
+function toOptionalInt(raw: string, min: number, max: number): number | null {
+  if (raw.trim() === "") return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return null;
+  return Math.min(max, Math.max(min, Math.round(n)));
+}
+
+function toInputValue(value: unknown, divisor = 1): string {
+  if (value === null || value === undefined) return "";
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  return String(Math.round(n / divisor));
+}
 
 export function settingsToForm(s: AppSettings): SettingsForm {
   return {
@@ -157,12 +181,25 @@ export function settingsToForm(s: AppSettings): SettingsForm {
     cavemanLevel: String(s.cavemanLevel || "full"),
     ponytailEnabled: !!s.ponytailEnabled,
     ponytailLevel: String(s.ponytailLevel || "full"),
+    upstreamTimeoutSeconds: toInputValue(s.upstreamTimeoutMs, 1000),
+    upstreamMaxAttempts: toInputValue(s.upstreamMaxAttempts),
+    upstreamStreamTimeoutSeconds: toInputValue(s.upstreamStreamTimeoutMs, 1000),
   };
 }
 
 export function formToSettingsPartial(
   f: SettingsForm
 ): Partial<AppSettings> {
+  const timeoutSeconds = toOptionalInt(
+    f.upstreamTimeoutSeconds,
+    UPSTREAM_TIMEOUT_SECONDS_MIN,
+    UPSTREAM_TIMEOUT_SECONDS_MAX,
+  );
+  const streamTimeoutSeconds = toOptionalInt(
+    f.upstreamStreamTimeoutSeconds,
+    UPSTREAM_STREAM_TIMEOUT_SECONDS_MIN,
+    UPSTREAM_STREAM_TIMEOUT_SECONDS_MAX,
+  );
   return {
     requireApiKey: f.requireApiKey,
     requireLogin: f.requireLogin,
@@ -172,6 +209,13 @@ export function formToSettingsPartial(
     cavemanLevel: f.cavemanLevel,
     ponytailEnabled: f.ponytailEnabled,
     ponytailLevel: f.ponytailLevel,
+    upstreamTimeoutMs: timeoutSeconds === null ? null : timeoutSeconds * 1000,
+    upstreamMaxAttempts: toOptionalInt(
+      f.upstreamMaxAttempts,
+      UPSTREAM_MAX_ATTEMPTS_MIN,
+      UPSTREAM_MAX_ATTEMPTS_MAX,
+    ),
+    upstreamStreamTimeoutMs: streamTimeoutSeconds === null ? null : streamTimeoutSeconds * 1000,
   };
 }
 
@@ -185,12 +229,14 @@ export type Combo = {
   updatedAt?: string;
 };
 
-export type ComboStrategy = "fallback" | "round-robin" | "fusion";
+export type ComboStrategy = "fallback" | "round-robin" | "fusion" | "latency";
 
 export type ComboStrategyConfig = {
   fallbackStrategy?: ComboStrategy;
   judgeModel?: string;
   fusionTuning?: string;
+  /** 0 = unlimited: every account of a model may be tried before falling through. */
+  maxAccountAttempts?: number;
 };
 
 export async function listCombos(): Promise<Combo[]> {

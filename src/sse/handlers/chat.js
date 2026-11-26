@@ -12,7 +12,7 @@ import { getSettings, getProviderConnectionById } from "@/lib/localDb";
 import { getModelInfo, getComboModels } from "../services/model.js";
 import { handleChatCore } from "../../handlers/chatCore.js";
 import { errorResponse, unavailableResponse } from "../../utils/error.js";
-import { handleComboChat, handleFusionChat, detectRequiredCapabilities } from "../../services/combo.js";
+import { handleComboChat, handleFusionChat, detectRequiredCapabilities, resolveMaxAccountAttempts } from "../../services/combo.js";
 import { augmentModelsWithCapacityAdapter, withCapacityAdapterStripping, getActiveAdapterStrategy } from "../../services/capacityAdapter.js";
 import { handleBypassRequest } from "../../utils/bypassHandler.js";
 import { HTTP_STATUS } from "../../config/runtimeConfig.js";
@@ -205,18 +205,20 @@ export async function handleChat(request, clientRawRequest = null) {
     }
 
     const comboStickyLimit = settings.comboStickyRoundRobinLimit;
+    const comboMaxAccountAttempts = resolveMaxAccountAttempts(comboStrategies[modelStr]?.maxAccountAttempts);
     log.info("CHAT", `Combo "${modelStr}" with ${augmentedModels.length} models (strategy: ${comboStrategy}, sticky: ${comboStickyLimit})`);
     return handleComboChat({
       body,
       models: augmentedModels,
       handleSingleModel: withCapacityAdapterStripping(
-        (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey, preferredConnectionId, request?.signal),
+        (b, m, limit) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey, preferredConnectionId, request?.signal, limit),
         adapterAdded
       ),
       log,
       comboName: modelStr,
       comboStrategy,
-      comboStickyLimit
+      comboStickyLimit,
+      maxAccountAttempts: comboMaxAccountAttempts
     });
   }
 
@@ -240,7 +242,7 @@ export async function handleChat(request, clientRawRequest = null) {
   return handleSingleModelChat(body, modelStr, clientRawRequest, request, apiKey, preferredConnectionId, request?.signal);
 }
 
-async function handleSingleModelChat(body, modelStr, clientRawRequest = null, request = null, apiKey = null, preferredConnectionId = null, requestSignal = null) {
+async function handleSingleModelChat(body, modelStr, clientRawRequest = null, request = null, apiKey = null, preferredConnectionId = null, requestSignal = null, maxAccountAttempts = 0) {
   requestSignal ||= request?.signal || null;
   if (requestSignal?.aborted) return errorResponse(499, "Request aborted");
   const incomingClient = clientRawRequest?.headers
@@ -287,18 +289,20 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       }
 
       const comboStickyLimit = chatSettings.comboStickyRoundRobinLimit;
-      log.info("CHAT", `Combo "${modelStr}" with ${augmentedModels.length} models (strategy: ${comboStrategy}, sticky: ${comboStickyLimit})`);
+      const comboMaxAccountAttempts = resolveMaxAccountAttempts(comboStrategies[modelStr]?.maxAccountAttempts);
+      log.info("CHAT", `Combo "${modelStr}" with ${augmentedModels.length} models (strategy: ${comboStrategy}, sticky: ${comboStickyLimit}, account attempts: ${comboMaxAccountAttempts || "all"})`);
       return handleComboChat({
         body,
         models: augmentedModels,
         handleSingleModel: withCapacityAdapterStripping(
-          (b, m) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey, preferredConnectionId, request?.signal),
+          (b, m, limit) => handleSingleModelChat(b, m, clientRawRequest, request, apiKey, preferredConnectionId, request?.signal, limit),
           adapterAdded
         ),
         log,
         comboName: modelStr,
         comboStrategy,
-        comboStickyLimit
+        comboStickyLimit,
+        maxAccountAttempts: comboMaxAccountAttempts
       });
     }
     log.warn("CHAT", "Invalid model format", { model: modelStr });
@@ -315,8 +319,14 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
 
   const cacheKey = extractCacheKey(body);
   let retryCount = 0;
+  const accountAttemptLimit = Math.max(0, Math.floor(Number(maxAccountAttempts) || 0));
+  let accountAttemptCount = 0;
 
   while (true) {
+    if (accountAttemptLimit > 0 && accountAttemptCount >= accountAttemptLimit) {
+      log.warn("CHAT", `[${provider}/${model}] account attempt limit ${accountAttemptLimit} reached → next combo model`);
+      return errorResponse(HTTP_STATUS.SERVICE_UNAVAILABLE, `Account attempt limit (${accountAttemptLimit}) reached for ${provider}/${model}`);
+    }
     const credentials = await getProviderCredentials(provider, excludeConnectionIds, model, {
       cacheKey,
       preferredConnectionId,
@@ -418,6 +428,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       lastError = result.error;
       lastStatus = result.status;
       retryCount += 1;
+      accountAttemptCount += 1;
       continue;
     }
 

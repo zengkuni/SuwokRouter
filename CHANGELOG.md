@@ -2,6 +2,32 @@
 
 All notable changes to Sway Router are documented here.
 
+## [1.4.1] - 2026-11-26
+
+### Added
+
+- **Upstream timeout, attempt, and stream-stall limits in General Settings**: three dashboard fields (Settings → General → Upstream requests) control the per-attempt connect timeout (1–600 s), the total attempts including the first (1–100), and the stream stall timeout (1–3600 s, the idle limit between SSE chunks before a stream is aborted) for every upstream model call. Blank means automatic: the connect timeout falls back to `FETCH_CONNECT_TIMEOUT_MS`, attempts to the RAM-derived `upstreamMaxAttempts` profile, and the stall timeout to `STREAM_STALL_TIMEOUT_MS`, so upgrades keep their tuned defaults. `GET/PATCH /api/settings` validate and clamp the values and return the resolved effective numbers for the UI placeholders; empty or non-numeric input stores `null`. Provider-level overrides (for example qoder's 120 s stall) still win.
+- **Combo account-attempt cap**: the Create/Edit combo dialog has a "Max account attempts per model" field (default `0` = unlimited, tries every account). A positive value caps how many failed account attempts one model inside the combo may consume before the request falls through to the next model, so a model backed by 1000 accounts can no longer exhaust all of them. Stored per combo in `comboStrategies` and enforced in the SSE account loop; provider-level retries are unchanged.
+
+### Changed
+
+- **General Settings layout**: the upstream timeout/attempt/stream limits now sit first in General, above Token saver, and the redundant Cloudflare Tunnel panel is removed from the page (the tunnel API remains available for scripted setups).
+
+### Fixed
+
+- **Global timeout was unreachable**: `PROVIDER_DEFAULTS.timeoutMs` was initialised to the 60 s constant, so every provider config looked like an explicit override and a global setting could never apply. The default is now `null`; providers that set their own value (for example qoder's 120 s) still win, and the resolver chain is `provider → settings → env`.
+- **Container healthcheck ignored `PORT`**: the image healthcheck probed a hard-coded `127.0.0.1:1212`, so a deployment that changed `PORT` reported unhealthy; it now reads `process.env.PORT` and only falls back to `1212`.
+
+## [1.4.0] - 2026-11-26
+
+### Added
+
+- **Combo "Latency" strategy**: a fourth per-combo strategy next to Fallback, Round-robin, and Fusion. It orders the combo's models by observed end-to-end attempt latency, fastest first, and keeps the existing fallback semantics — when a model errors the next fastest model is tried. Latency is an in-memory exponentially weighted moving average per model updated by each successful combo attempt; models with no sample yet keep their configured relative order after the measured ones. Because a model can only be measured when an attempt reaches it, every tenth request for the combo sends the first still-unmeasured model to the front to sample it (a failure falls through to the ordered rest). Selectable per combo card, from the bulk "Set strategy…" menu, and through `comboStrategies[name].fallbackStrategy = "latency"` (the global `comboStrategy` default accepts it too).
+
+### Fixed
+
+- **Docker health probe follows `PORT`**: the image healthcheck hardcoded `127.0.0.1:1212`, so any deployment overriding `PORT` (the compose file uses `12122`) reported the container unhealthy while the service was fine. The probe now reads `PORT` from the environment and falls back to `1212`.
+
 ## [1.3.2] - 2026-11-02
 
 ### Added

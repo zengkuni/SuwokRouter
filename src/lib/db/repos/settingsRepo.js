@@ -14,6 +14,9 @@ const DEFAULT_SETTINGS = {
   stickyRoundRobinLimit: 1,
   fallbackStrategy: "fill-first",
   providerStrategies: {},
+  upstreamTimeoutMs: null,
+  upstreamMaxAttempts: null,
+  upstreamStreamTimeoutMs: null,
 
   accountPool: {
     enabled: true,
